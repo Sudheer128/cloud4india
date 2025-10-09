@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  cloud4india-web:
+    build: .
+    container_name: cloud4india-website
+    ports:
+      - "3004:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - cloud4india-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cloud4india.rule=Host(`161.97.155.89`) || Host(`localhost`)"
+      - "traefik.http.services.cloud4india.loadbalancer.server.port=80"
+
+networks:
+  cloud4india-network:
+    driver: bridge
