@@ -16,6 +16,7 @@ export default {
       },
       fontFamily: {
         'aws': ['Amazon Ember', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'inter': ['Inter', 'system-ui', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
