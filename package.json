@@ -1,0 +1,46 @@
+{
+  "name": "cloud4india-website",
+  "version": "1.0.0",
+  "description": "Cloud4India - Exact AWS Website Clone",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "serve -s dist",
+    "docker:build": "docker build -t cloud4india-website .",
+    "docker:run": "docker run -d --name cloud4india-website -p 3004:80 cloud4india-website",
+    "docker:stop": "docker stop cloud4india-website && docker rm cloud4india-website",
+    "deploy": "npm run build && npm run docker:build && npm run docker:run",
+    "deploy:compose": "docker-compose up --build -d",
+    "logs": "docker logs cloud4india-website -f",
+    "migrate:financial": "cd cloud4india-cms && node migrate-financial-sections.js"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.0.16",
+    "axios": "^1.12.2",
+    "lucide-react": "^0.263.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.21",
+    "serve": "^14.2.0",
+    "tailwindcss": "^3.2.7",
+    "vite": "^4.1.0"
+  },
+  "keywords": [
+    "react",
+    "aws",
+    "cloud",
+    "clone",
+    "cloud4india"
+  ],
+  "author": "Cloud4India",
+  "license": "MIT"
+}
