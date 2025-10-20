@@ -101,15 +101,18 @@ const SolutionsSection = () => {
 
         {/* Solutions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSolutions.map((solution) => (
-            solution.route ? (
+          {filteredSolutions.map((solution) => {
+            // Create gradient class from database fields (now using light gradients)
+            const gradientClass = `from-${solution.gradient_start}-50 to-${solution.gradient_end}`;
+            
+            return (
               <Link
                 key={solution.id}
-                to={solution.route}
-                className={`bg-gradient-to-br ${solution.color} border ${solution.borderColor} rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block`}
+                to={`/solutions/${solution.id}`}
+                className={`bg-gradient-to-br ${gradientClass} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block text-gray-900`}
               >
                 <div className="mb-4">
-                  <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
+                  <span className="inline-block bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
                     {solution.category}
                   </span>
                   <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
@@ -121,7 +124,7 @@ const SolutionsSection = () => {
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
+                  <span className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-all">
                     <span>View solutions</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -129,37 +132,8 @@ const SolutionsSection = () => {
                   </span>
                 </div>
               </Link>
-            ) : (
-              <div
-                key={solution.id}
-                className={`bg-gradient-to-br ${solution.color} border ${solution.borderColor} rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}
-              >
-                <div className="mb-4">
-                  <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
-                    {solution.category}
-                  </span>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                    {solution.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {solution.description}
-                  </p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <button 
-                    className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform"
-                    onClick={() => console.log('No route defined for:', solution.name)}
-                  >
-                    <span>View solutions</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )
-          ))}
+            );
+          })}
         </div>
 
         {/* Show more button */}

@@ -196,6 +196,20 @@ export const checkCMSHealth = async () => {
 };
 
 /**
+ * Get all solutions (including hidden) - for admin panel
+ * @returns {Promise<Array>} Array of all solutions
+ */
+export const getAdminSolutions = async () => {
+  try {
+    const response = await cmsApi.get('/admin/solutions');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin solutions:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all solutions
  * @returns {Promise<Array>} Array of solutions
  */
@@ -287,6 +301,21 @@ export const duplicateSolution = async (id, duplicateData) => {
 };
 
 /**
+ * Toggle solution visibility
+ * @param {number} id - Solution ID
+ * @returns {Promise<Object>} Toggle result
+ */
+export const toggleSolutionVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/solutions/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling solution visibility:', error);
+    throw error;
+  }
+};
+
+/**
  * Get solution sections
  * @param {number} id - Solution ID
  * @returns {Promise<Array>} Array of solution sections
@@ -350,6 +379,253 @@ export const deleteSolutionSection = async (id, sectionId) => {
   }
 };
 
+// Product Sections API Functions
+
+/**
+ * Get all product sections for a specific product
+ * @param {number} productId - Product ID
+ * @returns {Promise<Array>} Array of product sections
+ */
+export const getProductSections = async (productId) => {
+  try {
+    const response = await cmsApi.get(`/products/${productId}/sections`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all product sections for admin (including hidden)
+ * @param {number} productId - Product ID
+ * @returns {Promise<Array>} Array of product sections
+ */
+export const getAdminProductSections = async (productId) => {
+  try {
+    const response = await cmsApi.get(`/admin/products/${productId}/sections`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin product sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new product section
+ * @param {number} productId - Product ID
+ * @param {Object} sectionData - Section data to create
+ * @returns {Promise<Object>} Created section data
+ */
+export const createProductSection = async (productId, sectionData) => {
+  try {
+    const response = await cmsApi.post(`/products/${productId}/sections`, sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating product section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update product section
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @param {Object} sectionData - Section data to update
+ * @returns {Promise<Object>} Updated section data
+ */
+export const updateProductSection = async (productId, sectionId, sectionData) => {
+  try {
+    const response = await cmsApi.put(`/products/${productId}/sections/${sectionId}`, sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating product section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete product section
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Object>} Deletion result
+ */
+export const deleteProductSection = async (productId, sectionId) => {
+  try {
+    const response = await cmsApi.delete(`/products/${productId}/sections/${sectionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting product section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle product section visibility
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Object>} Toggle result
+ */
+export const toggleProductSectionVisibility = async (productId, sectionId) => {
+  try {
+    const response = await cmsApi.patch(`/products/${productId}/sections/${sectionId}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling product section visibility:', error);
+    throw error;
+  }
+};
+
+// Product Items API Functions
+
+/**
+ * Get all items for a specific product section
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Array>} Array of product items
+ */
+export const getProductItems = async (productId, sectionId) => {
+  try {
+    const response = await cmsApi.get(`/products/${productId}/sections/${sectionId}/items`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all items for admin (including hidden)
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Array>} Array of product items
+ */
+export const getAdminProductItems = async (productId, sectionId) => {
+  try {
+    const response = await cmsApi.get(`/admin/products/${productId}/sections/${sectionId}/items`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin product items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new product item
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @param {Object} itemData - Item data to create
+ * @returns {Promise<Object>} Created item data
+ */
+export const createProductItem = async (productId, sectionId, itemData) => {
+  try {
+    const response = await cmsApi.post(`/products/${productId}/sections/${sectionId}/items`, itemData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating product item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update product item
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @param {number} itemId - Item ID
+ * @param {Object} itemData - Item data to update
+ * @returns {Promise<Object>} Updated item data
+ */
+export const updateProductItem = async (productId, sectionId, itemId, itemData) => {
+  try {
+    const response = await cmsApi.put(`/products/${productId}/sections/${sectionId}/items/${itemId}`, itemData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating product item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete product item
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @param {number} itemId - Item ID
+ * @returns {Promise<Object>} Deletion result
+ */
+export const deleteProductItem = async (productId, sectionId, itemId) => {
+  try {
+    const response = await cmsApi.delete(`/products/${productId}/sections/${sectionId}/items/${itemId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting product item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle product item visibility
+ * @param {number} productId - Product ID
+ * @param {number} sectionId - Section ID
+ * @param {number} itemId - Item ID
+ * @returns {Promise<Object>} Toggle result
+ */
+export const toggleProductItemVisibility = async (productId, sectionId, itemId) => {
+  try {
+    const response = await cmsApi.patch(`/products/${productId}/sections/${sectionId}/items/${itemId}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling product item visibility:', error);
+    throw error;
+  }
+};
+
+// Product Management API Functions
+
+/**
+ * Get all products for admin (including hidden)
+ * @returns {Promise<Array>} Array of products
+ */
+export const getAdminProducts = async () => {
+  try {
+    const response = await cmsApi.get('/admin/products');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin products:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle product visibility
+ * @param {number} productId - Product ID
+ * @returns {Promise<Object>} Toggle result
+ */
+export const toggleProductVisibility = async (productId) => {
+  try {
+    const response = await cmsApi.put(`/products/${productId}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling product visibility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Duplicate product with all sections and items
+ * @param {number} productId - Product ID
+ * @param {Object} options - Duplication options (newName, newRoute)
+ * @returns {Promise<Object>} Duplication result
+ */
+export const duplicateProduct = async (productId, options = {}) => {
+  try {
+    const response = await cmsApi.post(`/products/${productId}/duplicate`, options);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating product:', error);
+    throw error;
+  }
+};
+
 // Export the axios instance for custom requests
 export { cmsApi };
 
@@ -360,11 +636,13 @@ export default {
   getWhyItems,
   getProducts,
   getSolutions,
+  getAdminSolutions,
   getSolution,
   createSolution,
   updateSolution,
   deleteSolution,
   duplicateSolution,
+  toggleSolutionVisibility,
   getSolutionSections,
   createSolutionSection,
   updateSolutionSection,
@@ -376,5 +654,21 @@ export default {
   createProduct,
   updateProduct,
   deleteProduct,
+  // New Product CMS API functions
+  getProductSections,
+  getAdminProductSections,
+  createProductSection,
+  updateProductSection,
+  deleteProductSection,
+  toggleProductSectionVisibility,
+  getProductItems,
+  getAdminProductItems,
+  createProductItem,
+  updateProductItem,
+  deleteProductItem,
+  toggleProductItemVisibility,
+  getAdminProducts,
+  toggleProductVisibility,
+  duplicateProduct,
   checkCMSHealth,
 };

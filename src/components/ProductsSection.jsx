@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { useProducts } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
@@ -86,33 +87,39 @@ const ProductsSection = () => {
           emptyMessage="No products available"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className={`bg-gradient-to-br ${product.color} border ${product.border_color} rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}
-              >
-                <div className="mb-4">
-                  <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
-                    {product.category}
-                  </span>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-aws-blue transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {product.description}
-                  </p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <button className="text-aws-blue hover:text-aws-orange font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-                    <span>View product</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
+            {filteredProducts.map((product) => {
+              // Use product ID for dynamic routing
+              const productId = product.id;
+              
+              return (
+                <Link
+                  key={product.id}
+                  to={`/products/${productId}`}
+                  className={`bg-gradient-to-br ${product.color} border ${product.border_color} rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block`}
+                >
+                  <div className="mb-4">
+                    <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
+                      {product.category}
+                    </span>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-aws-blue transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      {product.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-aws-blue hover:text-aws-orange font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
+                      <span>View product</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </ContentWrapper>
 

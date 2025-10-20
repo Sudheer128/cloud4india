@@ -27,7 +27,9 @@ export const useSolutionSections = (solutionId) => {
       }
       
       const result = await response.json();
-      setSections(result);
+      // Filter out hidden sections (is_visible = 0 or false)
+      const visibleSections = result.filter(section => section.is_visible !== 0);
+      setSections(visibleSections);
     } catch (err) {
       setError(err.message);
       console.error('Error fetching solution sections:', err);

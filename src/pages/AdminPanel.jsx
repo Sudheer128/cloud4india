@@ -8,14 +8,29 @@ import {
   createProduct,
   updateProduct, 
   deleteProduct,
-  getSolutions,
+  getAdminSolutions,
   createSolution,
   updateSolution,
   duplicateSolution,
-  deleteSolution
+  deleteSolution,
+  toggleSolutionVisibility,
+  // New Product CMS API functions
+  getAdminProducts,
+  toggleProductVisibility,
+  duplicateProduct,
+  getAdminProductSections,
+  createProductSection,
+  updateProductSection,
+  deleteProductSection,
+  toggleProductSectionVisibility,
+  getAdminProductItems,
+  createProductItem,
+  updateProductItem,
+  deleteProductItem,
+  toggleProductItemVisibility
 } from '../services/cmsApi';
 import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
-import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -73,23 +88,27 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 const AdminPanel = () => {
   const [homepageData, setHomepageData] = useState(null);
   const [solutions, setSolutions] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState('home');
   const [activeTab, setActiveTab] = useState('hero');
   const [editingItem, setEditingItem] = useState(null);
   const [editingSolution, setEditingSolution] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [homepage, solutionsData] = await Promise.all([
+      const [homepage, solutionsData, productsData] = await Promise.all([
         getHomepageContent(),
-        getSolutions()
+        getAdminSolutions(),
+        getAdminProducts()
       ]);
       setHomepageData(homepage);
       setSolutions(solutionsData);
+      setProducts(productsData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -180,6 +199,111 @@ const AdminPanel = () => {
     }
   };
 
+  // Enhanced Product Handlers for CMS
+  const handleToggleProductVisibility = async (id) => {
+    try {
+      await toggleProductVisibility(id);
+      await fetchData();
+      alert('Product visibility toggled successfully!');
+    } catch (err) {
+      alert('Error toggling product visibility: ' + err.message);
+    }
+  };
+
+  const handleDuplicateProduct = async (id, options = {}) => {
+    try {
+      const result = await duplicateProduct(id, options);
+      await fetchData();
+      alert(`Product duplicated successfully! Created ${result.sectionsDuplicated} sections with ${result.itemsDuplicated} items.`);
+    } catch (err) {
+      alert('Error duplicating product: ' + err.message);
+    }
+  };
+
+  const handleCreateProductSection = async (productId, sectionData) => {
+    try {
+      await createProductSection(productId, sectionData);
+      await fetchData();
+      alert('Product section created successfully!');
+    } catch (err) {
+      alert('Error creating product section: ' + err.message);
+    }
+  };
+
+  const handleUpdateProductSection = async (productId, sectionId, sectionData) => {
+    try {
+      await updateProductSection(productId, sectionId, sectionData);
+      await fetchData();
+      alert('Product section updated successfully!');
+    } catch (err) {
+      alert('Error updating product section: ' + err.message);
+    }
+  };
+
+  const handleDeleteProductSection = async (productId, sectionId) => {
+    if (window.confirm('Are you sure you want to delete this product section?')) {
+      try {
+        await deleteProductSection(productId, sectionId);
+        await fetchData();
+        alert('Product section deleted successfully!');
+      } catch (err) {
+        alert('Error deleting product section: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleProductSectionVisibility = async (productId, sectionId) => {
+    try {
+      await toggleProductSectionVisibility(productId, sectionId);
+      await fetchData();
+      alert('Product section visibility toggled successfully!');
+    } catch (err) {
+      alert('Error toggling product section visibility: ' + err.message);
+    }
+  };
+
+  const handleCreateProductItem = async (productId, sectionId, itemData) => {
+    try {
+      await createProductItem(productId, sectionId, itemData);
+      await fetchData();
+      alert('Product item created successfully!');
+    } catch (err) {
+      alert('Error creating product item: ' + err.message);
+    }
+  };
+
+  const handleUpdateProductItem = async (productId, sectionId, itemId, itemData) => {
+    try {
+      await updateProductItem(productId, sectionId, itemId, itemData);
+      await fetchData();
+      alert('Product item updated successfully!');
+    } catch (err) {
+      alert('Error updating product item: ' + err.message);
+    }
+  };
+
+  const handleDeleteProductItem = async (productId, sectionId, itemId) => {
+    if (window.confirm('Are you sure you want to delete this product item?')) {
+      try {
+        await deleteProductItem(productId, sectionId, itemId);
+        await fetchData();
+        alert('Product item deleted successfully!');
+      } catch (err) {
+        alert('Error deleting product item: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleProductItemVisibility = async (productId, sectionId, itemId) => {
+    try {
+      await toggleProductItemVisibility(productId, sectionId, itemId);
+      await fetchData();
+      alert('Product item visibility toggled successfully!');
+    } catch (err) {
+      alert('Error toggling product item visibility: ' + err.message);
+    }
+  };
+
   // Solutions Handlers for Home Page Management
   const handleCreateSolution = async (solutionData) => {
     try {
@@ -200,6 +324,16 @@ const AdminPanel = () => {
       alert('Solution updated successfully!');
     } catch (err) {
       alert('Error updating solution: ' + err.message);
+    }
+  };
+
+  const handleToggleSolutionVisibility = async (solution) => {
+    try {
+      await toggleSolutionVisibility(solution.id);
+      await fetchData();
+      alert(`Solution ${solution.is_visible ? 'hidden' : 'shown'} successfully!`);
+    } catch (err) {
+      alert('Error toggling solution visibility: ' + err.message);
     }
   };
 
@@ -397,12 +531,24 @@ const AdminPanel = () => {
           
           {activeSection === 'products' && (
             <ProductsManagement 
-              products={homepageData?.products}
+              products={products}
               onCreateProduct={handleCreateProduct}
               onUpdateProduct={handleUpdateProduct}
               onDeleteProduct={handleDeleteProduct}
+              onToggleProductVisibility={handleToggleProductVisibility}
+              onDuplicateProduct={handleDuplicateProduct}
+              onCreateProductSection={handleCreateProductSection}
+              onUpdateProductSection={handleUpdateProductSection}
+              onDeleteProductSection={handleDeleteProductSection}
+              onToggleProductSectionVisibility={handleToggleProductSectionVisibility}
+              onCreateProductItem={handleCreateProductItem}
+              onUpdateProductItem={handleUpdateProductItem}
+              onDeleteProductItem={handleDeleteProductItem}
+              onToggleProductItemVisibility={handleToggleProductItemVisibility}
               editingItem={editingItem}
               setEditingItem={setEditingItem}
+              editingProduct={editingProduct}
+              setEditingProduct={setEditingProduct}
             />
           )}
           
@@ -412,6 +558,7 @@ const AdminPanel = () => {
               onEditSolution={handleEditSolution}
               onDuplicateSolution={handleDuplicateSolution}
               onDeleteSolution={handleDeleteSolution}
+              onToggleVisibility={handleToggleSolutionVisibility}
             />
           )}
           
@@ -524,7 +671,7 @@ const HomePageManagement = ({
 };
 
 // Solutions Management Component
-const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, onDeleteSolution }) => {
+const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, onDeleteSolution, onToggleVisibility }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -578,6 +725,27 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
                     <DocumentDuplicateIcon className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => onToggleVisibility(solution)}
+                    className={`inline-flex items-center justify-center p-2 rounded-lg ${
+                      solution.is_visible !== 0 
+                        ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                    title={solution.is_visible !== 0 ? 'Hide Solution' : 'Show Solution'}
+                    aria-label={solution.is_visible !== 0 ? 'Hide Solution' : 'Show Solution'}
+                  >
+                    {solution.is_visible !== 0 ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
                     onClick={() => onDeleteSolution(solution)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
                     title="Delete"
@@ -612,11 +780,70 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
 };
 
 // Products Management Component
-const ProductsManagement = ({ products, onCreateProduct, onUpdateProduct, onDeleteProduct, editingItem, setEditingItem }) => {
+const ProductsManagement = ({ 
+  products, 
+  onCreateProduct, 
+  onUpdateProduct, 
+  onDeleteProduct, 
+  onToggleProductVisibility,
+  onDuplicateProduct,
+  onCreateProductSection,
+  onUpdateProductSection,
+  onDeleteProductSection,
+  onToggleProductSectionVisibility,
+  onCreateProductItem,
+  onUpdateProductItem,
+  onDeleteProductItem,
+  onToggleProductItemVisibility,
+  editingItem, 
+  setEditingItem,
+  editingProduct,
+  setEditingProduct
+}) => {
+  const [productSections, setProductSections] = useState({});
+  const [productItems, setProductItems] = useState({});
+  const [loadingSections, setLoadingSections] = useState({});
+  const [loadingItems, setLoadingItems] = useState({});
+
+  // Load sections for a product
+  const loadProductSections = async (productId) => {
+    if (productSections[productId]) return; // Already loaded
+    
+    setLoadingSections(prev => ({ ...prev, [productId]: true }));
+    try {
+      const sections = await getAdminProductSections(productId);
+      setProductSections(prev => ({ ...prev, [productId]: sections }));
+    } catch (error) {
+      console.error('Error loading product sections:', error);
+    } finally {
+      setLoadingSections(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  // Load items for a section
+  const loadSectionItems = async (productId, sectionId) => {
+    const key = `${productId}-${sectionId}`;
+    if (productItems[key]) return; // Already loaded
+    
+    setLoadingItems(prev => ({ ...prev, [key]: true }));
+    try {
+      const items = await getAdminProductItems(productId, sectionId);
+      setProductItems(prev => ({ ...prev, [key]: items }));
+    } catch (error) {
+      console.error('Error loading section items:', error);
+    } finally {
+      setLoadingItems(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
+          <p className="text-sm text-gray-600 mt-1">Create and manage product pages with dynamic content</p>
+        </div>
         <button 
           onClick={() => setEditingItem('new')}
           className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors"
@@ -626,11 +853,12 @@ const ProductsManagement = ({ products, onCreateProduct, onUpdateProduct, onDele
         </button>
       </div>
 
+      {/* Products List */}
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
         <div className="hidden md:grid grid-cols-[1.5fr_2fr_1fr_auto] gap-4 px-6 py-3 text-xs font-semibold text-gray-600 bg-gray-50 border-b border-gray-200">
           <div>Product</div>
           <div>Description</div>
-          <div>Category</div>
+          <div>Status</div>
           <div className="text-right">Actions</div>
         </div>
         <ul className="divide-y divide-gray-200">
@@ -639,38 +867,69 @@ const ProductsManagement = ({ products, onCreateProduct, onUpdateProduct, onDele
               <div className="md:grid md:grid-cols-[1.5fr_2fr_1fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    product.category === 'Generative AI'
-                      ? 'bg-purple-100 text-purple-700'
-                      : product.category === 'Artificial Intelligence (AI)'
-                      ? 'bg-blue-100 text-blue-700'
-                      : product.category === 'Compute'
+                    product.category === 'Cloud Servers'
                       ? 'bg-green-100 text-green-700'
-                      : product.category === 'Storage'
-                      ? 'bg-orange-100 text-orange-700'
+                      : product.category === 'Backup Services'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'bg-gray-100 text-gray-700'
                   }`}>
                     {product.category}
                   </span>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{product.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {productSections[product.id]?.length || 0} sections
+                    </div>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 mt-2 md:mt-0">{product.description}</div>
-                <div className="text-xs text-gray-500 mt-2 md:mt-0">{product.category}</div>
+                <div className="flex items-center gap-2 mt-2 md:mt-0">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    product.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {product.is_visible ? 'Visible' : 'Hidden'}
+                  </span>
+                </div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
+                  <button
+                    onClick={() => setEditingProduct(product.id)}
+                    className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    title="Edit Sections"
+                    aria-label="Edit Sections"
+                  >
+                    <DocumentTextIcon className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => setEditingItem(product.id)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
-                    title="Edit"
-                    aria-label="Edit"
+                    title="Edit Product"
+                    aria-label="Edit Product"
                   >
                     <PencilSquareIcon className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => onToggleProductVisibility(product.id)}
+                    className={`inline-flex items-center justify-center p-2 rounded-lg ${
+                      product.is_visible ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
+                    } text-white`}
+                    title={product.is_visible ? 'Hide Product' : 'Show Product'}
+                    aria-label={product.is_visible ? 'Hide Product' : 'Show Product'}
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onDuplicateProduct(product.id)}
+                    className="inline-flex items-center justify-center p-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                    title="Duplicate Product"
+                    aria-label="Duplicate Product"
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => onDeleteProduct(product.id)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
-                    title="Delete"
-                    aria-label="Delete"
+                    title="Delete Product"
+                    aria-label="Delete Product"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -693,7 +952,474 @@ const ProductsManagement = ({ products, onCreateProduct, onUpdateProduct, onDele
           onCancel={() => setEditingItem(null)}
         />
       )}
+
+      {/* Product Sections Editor Modal */}
+      {editingProduct && (
+        <ProductSectionsEditor
+          product={products.find(p => p.id === editingProduct)}
+          productSections={productSections[editingProduct] || []}
+          productItems={productItems}
+          loadingSections={loadingSections[editingProduct]}
+          loadingItems={loadingItems}
+          onCreateSection={onCreateProductSection}
+          onUpdateSection={onUpdateProductSection}
+          onDeleteSection={onDeleteProductSection}
+          onToggleSectionVisibility={onToggleProductSectionVisibility}
+          onCreateItem={onCreateProductItem}
+          onUpdateItem={onUpdateProductItem}
+          onDeleteItem={onDeleteProductItem}
+          onToggleItemVisibility={onToggleProductItemVisibility}
+          onLoadSections={() => loadProductSections(editingProduct)}
+          onLoadItems={(sectionId) => loadSectionItems(editingProduct, sectionId)}
+          onClose={() => setEditingProduct(null)}
+          setEditingItem={setEditingItem}
+        />
+      )}
+
+      {/* Product Item Editor Modal */}
+      {editingItem && editingItem.type && (
+        <ProductItemEditor
+          product={products.find(p => p.id === editingProduct)}
+          section={productSections[editingProduct]?.find(s => s.id === editingItem.sectionId)}
+          item={editingItem.itemId ? productItems[`${editingProduct}-${editingItem.sectionId}`]?.find(i => i.id === editingItem.itemId) : null}
+          itemType={editingItem.type}
+          onCreateItem={onCreateProductItem}
+          onUpdateItem={onUpdateProductItem}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
+  );
+};
+
+// Product Sections Editor Component
+const ProductSectionsEditor = ({
+  product,
+  productSections,
+  productItems,
+  loadingSections,
+  loadingItems,
+  onCreateSection,
+  onUpdateSection,
+  onDeleteSection,
+  onToggleSectionVisibility,
+  onCreateItem,
+  onUpdateItem,
+  onDeleteItem,
+  onToggleItemVisibility,
+  onLoadSections,
+  onLoadItems,
+  onClose,
+  setEditingItem
+}) => {
+  const [editingSection, setEditingSection] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({});
+
+  useEffect(() => {
+    if (product && !productSections.length && !loadingSections) {
+      onLoadSections();
+    }
+  }, [product, productSections.length, loadingSections, onLoadSections]);
+
+  // Refresh items when productItems prop changes
+  useEffect(() => {
+    // This will trigger a re-render when productItems are updated
+  }, [productItems]);
+
+  const toggleSectionExpansion = (sectionId) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+    
+    // Load items when expanding
+    if (!expandedSections[sectionId]) {
+      onLoadItems(sectionId);
+    }
+  };
+
+  const getSectionItems = (sectionId) => {
+    const key = `${product.id}-${sectionId}`;
+    return productItems[key] || [];
+  };
+
+  const getItemTypeLabel = (itemType) => {
+    const labels = {
+      'feature_card': 'Feature Card',
+      'pricing_plan': 'Pricing Plan',
+      'spec_card': 'Specification Card',
+      'security_feature': 'Security Feature',
+      'support_feature': 'Support Feature',
+      'migration_step': 'Migration Step',
+      'use_case': 'Use Case'
+    };
+    return labels[itemType] || itemType;
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Edit Sections: ${product?.name}`}>
+      <div className="max-h-[80vh] overflow-y-auto">
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{product?.name}</h3>
+              <p className="text-sm text-gray-600">Manage sections and content for this product</p>
+            </div>
+            <button
+              onClick={() => setEditingSection('new')}
+              className="inline-flex items-center gap-2 bg-gray-900 text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add Section
+            </button>
+          </div>
+
+          {/* Sections List */}
+          {loadingSections ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">Loading sections...</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {productSections.map((section) => (
+                <div key={section.id} className="border border-gray-200 rounded-lg">
+                  {/* Section Header */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggleSectionExpansion(section.id)}
+                        className="p-1 hover:bg-gray-200 rounded"
+                      >
+                        <ChevronDoubleRightIcon 
+                          className={`w-4 h-4 transition-transform ${
+                            expandedSections[section.id] ? 'rotate-90' : ''
+                          }`} 
+                        />
+                      </button>
+                      <div>
+                        <h4 className="font-medium text-gray-900">{section.title}</h4>
+                        <p className="text-sm text-gray-600">{section.section_type}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        section.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {section.is_visible ? 'Visible' : 'Hidden'}
+                      </span>
+                      <button
+                        onClick={() => setEditingSection(section.id)}
+                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
+                        title="Edit Section"
+                      >
+                        <PencilSquareIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onToggleSectionVisibility(product.id, section.id)}
+                        className={`p-1 rounded ${
+                          section.is_visible ? 'text-yellow-600 hover:bg-yellow-100' : 'text-green-600 hover:bg-green-100'
+                        }`}
+                        title={section.is_visible ? 'Hide Section' : 'Show Section'}
+                      >
+                        {section.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => onDeleteSection(product.id, section.id)}
+                        className="p-1 text-red-600 hover:text-red-900 hover:bg-red-100 rounded"
+                        title="Delete Section"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section Items */}
+                  {expandedSections[section.id] && (
+                    <div className="p-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center mb-3">
+                        <h5 className="font-medium text-gray-900">Section Items</h5>
+                        <button
+                          onClick={() => setEditingItem({ sectionId: section.id, type: 'new' })}
+                          className="inline-flex items-center gap-1 text-sm bg-gray-900 text-white px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+                        >
+                          <PlusIcon className="w-3 h-3" />
+                          Add Item
+                        </button>
+                      </div>
+                      
+                      {loadingItems[`${product.id}-${section.id}`] ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mx-auto"></div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {getSectionItems(section.id).map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded">
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <p className="font-medium text-gray-900">{item.title}</p>
+                                  <p className="text-sm text-gray-600">{getItemTypeLabel(item.item_type)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  item.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {item.is_visible ? 'Visible' : 'Hidden'}
+                                </span>
+                                <button
+                                  onClick={() => setEditingItem({ sectionId: section.id, itemId: item.id, type: 'edit' })}
+                                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
+                                  title="Edit Item"
+                                >
+                                  <PencilSquareIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onToggleItemVisibility(product.id, section.id, item.id);
+                                    // Reload items for this section after toggle
+                                    setTimeout(() => {
+                                      onLoadItems(section.id);
+                                    }, 500);
+                                  }}
+                                  className={`p-1 rounded ${
+                                    item.is_visible ? 'text-yellow-600 hover:bg-yellow-100' : 'text-green-600 hover:bg-green-100'
+                                  }`}
+                                  title={item.is_visible ? 'Hide Item' : 'Show Item'}
+                                >
+                                  {item.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                                </button>
+                                <button
+                                  onClick={() => onDeleteItem(product.id, section.id, item.id)}
+                                  className="p-1 text-red-600 hover:text-red-900 hover:bg-red-100 rounded"
+                                  title="Delete Item"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {getSectionItems(section.id).length === 0 && (
+                            <p className="text-sm text-gray-500 text-center py-4">No items in this section</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {productSections.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No sections found for this product</p>
+                  <button
+                    onClick={() => setEditingSection('new')}
+                    className="mt-2 inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Add First Section
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+// Product Item Editor Component
+const ProductItemEditor = ({
+  product,
+  section,
+  item,
+  itemType,
+  onCreateItem,
+  onUpdateItem,
+  onClose
+}) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    content: '',
+    item_type: itemType === 'new' ? 'feature_card' : item?.item_type || 'feature_card',
+    icon: item?.icon || 'CpuChipIcon',
+    order_index: 0,
+    is_visible: 1
+  });
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        title: item.title || '',
+        description: item.description || '',
+        content: item.content || '',
+        item_type: item.item_type || 'feature_card',
+        icon: item.icon || 'CpuChipIcon',
+        order_index: item.order_index || 0,
+        is_visible: item.is_visible !== null ? item.is_visible : 1
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        content: '',
+        item_type: 'feature_card',
+        icon: 'CpuChipIcon',
+        order_index: 0,
+        is_visible: 1
+      });
+    }
+  }, [item, itemType]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (item) {
+      // Update existing item
+      onUpdateItem(product.id, section.id, item.id, formData);
+    } else {
+      // Create new item
+      onCreateItem(product.id, section.id, formData);
+    }
+    onClose();
+  };
+
+  const itemTypes = [
+    { value: 'feature_card', label: 'Feature Card' },
+    { value: 'pricing_plan', label: 'Pricing Plan' },
+    { value: 'spec_card', label: 'Specification Card' },
+    { value: 'security_feature', label: 'Security Feature' },
+    { value: 'support_feature', label: 'Support Feature' },
+    { value: 'migration_step', label: 'Migration Step' },
+    { value: 'use_case', label: 'Use Case' }
+  ];
+
+  const icons = [
+    'CpuChipIcon', 'ShieldCheckIcon', 'ClockIcon', 'CurrencyDollarIcon',
+    'ChartBarIcon', 'GlobeAltIcon', 'UsersIcon', 'ServerIcon',
+    'CircleStackIcon', 'CheckIcon', 'StarIcon', 'ArrowRightIcon'
+  ];
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`${item ? 'Edit' : 'Add'} Item: ${section?.title}`}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Item Title
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter item title"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              placeholder="Enter item description"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Item Type
+            </label>
+            <select
+              value={formData.item_type}
+              onChange={(e) => setFormData({...formData, item_type: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {itemTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Icon
+            </label>
+            <select
+              value={formData.icon}
+              onChange={(e) => setFormData({...formData, icon: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {icons.map(icon => (
+                <option key={icon} value={icon}>
+                  {icon}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Order Index
+            </label>
+            <input
+              type="number"
+              value={formData.order_index}
+              onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              min="0"
+            />
+          </div>
+        </div>
+
+        {/* Content (for complex items like pricing) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Additional Content (JSON format for complex data)
+          </label>
+          <textarea
+            value={formData.content}
+            onChange={(e) => setFormData({...formData, content: e.target.value})}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows={4}
+            placeholder='{"price": "$99/month", "features": ["Feature 1", "Feature 2"]}'
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            For pricing plans, use JSON format with price, features, specifications, etc.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {item ? 'Update Item' : 'Create Item'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 };
 
@@ -993,7 +1719,9 @@ const SolutionEditor = ({ solution, onBack }) => {
     category: '',
     color: '',
     border_color: '',
-    route: ''
+    route: '',
+    gradient_start: '',
+    gradient_end: ''
   });
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1009,7 +1737,9 @@ const SolutionEditor = ({ solution, onBack }) => {
         category: solution.category,
         color: solution.color,
         border_color: solution.border_color,
-        route: solution.route
+        route: solution.route,
+        gradient_start: solution.gradient_start || 'blue',
+        gradient_end: solution.gradient_end || 'blue-700'
       });
       loadSections();
     }
@@ -1119,6 +1849,27 @@ const SolutionEditor = ({ solution, onBack }) => {
       } catch (err) {
         alert('Error deleting section: ' + err.message);
       }
+    }
+  };
+
+  const handleToggleVisibility = async (sectionId, currentVisibility) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_visible: !currentVisibility }),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        alert(`Section ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
+      } else {
+        throw new Error('Failed to toggle section visibility');
+      }
+    } catch (err) {
+      alert('Error toggling section visibility: ' + err.message);
     }
   };
 
@@ -1265,9 +2016,51 @@ const SolutionEditor = ({ solution, onBack }) => {
             </div>
           </div>
 
+          {/* Gradient Color Picker */}
+          <div className="mb-6">
+            <h5 className="text-lg font-semibold text-gray-900 mb-4">Gradient Colors</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gradient Start Color</label>
+                <select
+                  value={cardData.gradient_start}
+                  onChange={(e) => setCardData({...cardData, gradient_start: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="blue">Blue (Financial Services)</option>
+                  <option value="purple">Purple (Financial Services Copy)</option>
+                  <option value="green">Green (Retail)</option>
+                  <option value="orange">Orange (Healthcare)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gradient End Color</label>
+                <select
+                  value={cardData.gradient_end}
+                  onChange={(e) => setCardData({...cardData, gradient_end: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="blue-100">Blue-100 (Financial Services)</option>
+                  <option value="purple-100">Purple-100 (Financial Services Copy)</option>
+                  <option value="green-100">Green-100 (Retail)</option>
+                  <option value="orange-100">Orange-100 (Healthcare)</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Gradient Preview */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+              <div className={`w-full h-16 bg-gradient-to-br from-${cardData.gradient_start}-50 to-${cardData.gradient_end} rounded-lg border border-gray-300 flex items-center justify-center`}>
+                <span className="text-gray-700 font-medium text-sm">Light Gradient Preview</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-between items-center pt-4 border-t border-gray-200">
             <div className="text-sm text-gray-600">
-              <p>💡 <strong>Tip:</strong> Use Tailwind CSS classes for colors (e.g., from-blue-50 to-blue-100)</p>
+              <p>🎨 <strong>Perfect Colors:</strong> Only your 4 beautiful colors are available. New solutions will randomly get one of these colors!</p>
             </div>
             <button
               onClick={handleSaveCard}
@@ -1363,6 +2156,16 @@ const SolutionEditor = ({ solution, onBack }) => {
                           className="text-green-600 hover:text-green-800 text-sm bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Items
+                        </button>
+                        <button
+                          onClick={() => handleToggleVisibility(section.id, section.is_visible !== 0)}
+                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                            section.is_visible !== 0 
+                              ? 'text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100' 
+                              : 'text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100'
+                          }`}
+                        >
+                          {section.is_visible !== 0 ? 'Hide' : 'Unhide'}
                         </button>
                         <button
                           onClick={() => handleDeleteSection(section.id)}
@@ -2664,6 +3467,7 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
     label: '',
     features: ''
   });
+  const [featuresList, setFeaturesList] = useState([]);
 
   useEffect(() => {
     if (item) {
@@ -2676,6 +3480,19 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         label: item.label || '',
         features: item.features || ''
       });
+      
+      // Parse features from JSON
+      try {
+        if (item.features) {
+          const parsedFeatures = JSON.parse(item.features);
+          setFeaturesList(Array.isArray(parsedFeatures) ? parsedFeatures : []);
+        } else {
+          setFeaturesList([]);
+        }
+      } catch (e) {
+        console.error('Error parsing features:', e);
+        setFeaturesList([]);
+      }
     } else {
       setFormData({
         item_type: '',
@@ -2686,6 +3503,7 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         label: '',
         features: ''
       });
+      setFeaturesList([]);
     }
   }, [item]);
 
@@ -2703,6 +3521,42 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
       ...formData,
       [field]: value
     });
+  };
+
+  const updateFeature = (index, value) => {
+    const newFeatures = [...featuresList];
+    newFeatures[index] = value;
+    setFeaturesList(newFeatures);
+    
+    // Update the features field in formData
+    setFormData(prev => ({
+      ...prev,
+      features: JSON.stringify(newFeatures)
+    }));
+  };
+
+  const addFeature = () => {
+    const newFeatures = [...featuresList, ''];
+    setFeaturesList(newFeatures);
+    
+    // Update the features field in formData
+    setFormData(prev => ({
+      ...prev,
+      features: JSON.stringify(newFeatures)
+    }));
+  };
+
+  const removeFeature = (index) => {
+    if (featuresList.length > 1) {
+      const newFeatures = featuresList.filter((_, i) => i !== index);
+      setFeaturesList(newFeatures);
+      
+      // Update the features field in formData
+      setFormData(prev => ({
+        ...prev,
+        features: JSON.stringify(newFeatures)
+      }));
+    }
   };
 
   return (
@@ -2807,18 +3661,45 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
               />
             </div>
 
-            {/* Features (JSON string for complex data) */}
+            {/* Features (Individual bullet points) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Features (JSON format, optional)
+                Features (Bullet Points)
               </label>
-              <textarea
-                value={formData.features}
-                onChange={(e) => handleInputChange('features', e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
-                placeholder='["Feature 1", "Feature 2", "Feature 3"]'
-              />
+              <div className="space-y-2">
+                {featuresList.map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <span className="text-gray-500 text-sm w-6">•</span>
+                    <input
+                      type="text"
+                      value={feature}
+                      onChange={(e) => updateFeature(index, e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      placeholder={`Feature ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(index)}
+                      className="text-red-500 hover:text-red-700 p-1"
+                      disabled={featuresList.length <= 1}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addFeature}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Feature
+                </button>
+              </div>
             </div>
           </div>
 

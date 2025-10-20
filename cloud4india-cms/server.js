@@ -549,6 +549,505 @@ app.delete('/api/products/:id', (req, res) => {
   });
 });
 
+// Get all products (including hidden) - for admin panel
+app.get('/api/admin/products', (req, res) => {
+  db.all('SELECT * FROM products ORDER BY order_index ASC', (err, products) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(products);
+  });
+});
+
+// Get visible products only - for frontend
+app.get('/api/products', (req, res) => {
+  db.all('SELECT * FROM products WHERE is_visible = 1 ORDER BY order_index ASC', (err, products) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(products);
+  });
+});
+
+// Toggle product visibility
+app.put('/api/products/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  
+  // Get current visibility status
+  db.get('SELECT is_visible FROM products WHERE id = ?', [id], (err, product) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    
+    const newVisibility = product.is_visible ? 0 : 1;
+    
+    // Update visibility
+    db.run('UPDATE products SET is_visible = ? WHERE id = ?', [newVisibility, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ 
+        message: `Product ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+        is_visible: newVisibility,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Duplicate product with all sections and items
+app.post('/api/products/:id/duplicate', (req, res) => {
+  const { id } = req.params;
+  const { newName, newRoute } = req.body;
+  
+  // Get the original product
+  db.get('SELECT * FROM products WHERE id = ?', [id], (err, originalProduct) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!originalProduct) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    
+    // Get the next order index
+    db.get('SELECT MAX(order_index) as max_order FROM products', (err, result) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      const nextOrder = (result.max_order || -1) + 1;
+      
+      // Generate a proper route for the duplicate
+      const duplicateName = newName || `${originalProduct.name} (Copy)`;
+      const duplicateRoute = newRoute || duplicateName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      
+      // Create the duplicate product
+      db.run(`INSERT INTO products (name, description, category, color, border_color, order_index, gradient_start, gradient_end, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [duplicateName, originalProduct.description, originalProduct.category, originalProduct.color, originalProduct.border_color, nextOrder, originalProduct.gradient_start, originalProduct.gradient_end, 1], 
+        function(err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          
+          const duplicateProductId = this.lastID;
+          
+          // Duplicate all sections
+          db.all('SELECT * FROM product_sections WHERE product_id = ?', [id], (err, sections) => {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            
+            let sectionsProcessed = 0;
+            const sectionMapping = {}; // Map original section ID to new section ID
+            
+            if (sections.length === 0) {
+              res.json({ 
+                message: 'Product duplicated successfully', 
+                id: duplicateProductId,
+                sectionsDuplicated: 0,
+                itemsDuplicated: 0
+              });
+              return;
+            }
+            
+            sections.forEach((section) => {
+              db.run(`INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`, 
+                [duplicateProductId, section.title, section.description, section.section_type, section.order_index, section.is_visible], 
+                function(err) {
+                  if (err) {
+                    console.error('Error duplicating section:', err.message);
+                    return;
+                  }
+                  
+                  sectionMapping[section.id] = this.lastID;
+                  sectionsProcessed++;
+                  
+                  if (sectionsProcessed === sections.length) {
+                    // All sections duplicated, now duplicate items
+                    duplicateSectionItems(sectionMapping, duplicateProductId);
+                  }
+                });
+            });
+          });
+        });
+    });
+  });
+  
+  function duplicateSectionItems(sectionMapping, duplicateProductId) {
+    let totalItems = 0;
+    let itemsProcessed = 0;
+    
+    // Count total items to duplicate
+    Object.keys(sectionMapping).forEach((originalSectionId) => {
+      db.all('SELECT COUNT(*) as count FROM product_items WHERE section_id = ?', [originalSectionId], (err, result) => {
+        if (err) {
+          console.error('Error counting items:', err.message);
+          return;
+        }
+        totalItems += result[0].count;
+        
+        // If this is the last section, start duplicating items
+        if (Object.keys(sectionMapping).indexOf(originalSectionId) === Object.keys(sectionMapping).length - 1) {
+          duplicateItems();
+        }
+      });
+    });
+    
+    function duplicateItems() {
+      Object.keys(sectionMapping).forEach((originalSectionId) => {
+        const newSectionId = sectionMapping[originalSectionId];
+        
+        db.all('SELECT * FROM product_items WHERE section_id = ?', [originalSectionId], (err, items) => {
+          if (err) {
+            console.error('Error getting items:', err.message);
+            return;
+          }
+          
+          items.forEach((item) => {
+            db.run(`INSERT INTO product_items (section_id, title, description, content, item_type, icon, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+              [newSectionId, item.title, item.description, item.content, item.item_type, item.icon, item.order_index, item.is_visible], 
+              function(err) {
+                if (err) {
+                  console.error('Error duplicating item:', err.message);
+                  return;
+                }
+                
+                itemsProcessed++;
+                
+                if (itemsProcessed === totalItems) {
+                  res.json({ 
+                    message: 'Product duplicated successfully', 
+                    id: duplicateProductId,
+                    sectionsDuplicated: Object.keys(sectionMapping).length,
+                    itemsDuplicated: totalItems
+                  });
+                }
+              });
+          });
+        });
+      });
+    }
+  }
+});
+
+// Product Sections API Routes
+
+// Get all product sections for a specific product
+app.get('/api/products/:productId/sections', (req, res) => {
+  const { productId } = req.params;
+  
+  db.all(`
+    SELECT * FROM product_sections 
+    WHERE product_id = ? AND is_visible = 1 
+    ORDER BY order_index ASC
+  `, [productId], (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(sections);
+  });
+});
+
+// Get all product sections for admin (including hidden)
+app.get('/api/admin/products/:productId/sections', (req, res) => {
+  const { productId } = req.params;
+  
+  db.all(`
+    SELECT * FROM product_sections 
+    WHERE product_id = ? 
+    ORDER BY order_index ASC
+  `, [productId], (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(sections);
+  });
+});
+
+// Get single product section
+app.get('/api/products/:productId/sections/:sectionId', (req, res) => {
+  const { productId, sectionId } = req.params;
+  
+  db.get(`
+    SELECT * FROM product_sections 
+    WHERE id = ? AND product_id = ?
+  `, [sectionId, productId], (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Product section not found' });
+      return;
+    }
+    res.json(section);
+  });
+});
+
+// Create new product section
+app.post('/api/products/:productId/sections', (req, res) => {
+  const { productId } = req.params;
+  const { title, description, section_type, order_index } = req.body;
+  
+  // Get the next order index if not provided
+  const getNextOrder = () => {
+    return new Promise((resolve, reject) => {
+      db.get(`
+        SELECT MAX(order_index) as max_order 
+        FROM product_sections 
+        WHERE product_id = ?
+      `, [productId], (err, result) => {
+        if (err) reject(err);
+        else resolve((result.max_order || -1) + 1);
+      });
+    });
+  };
+  
+  const finalOrderIndex = order_index !== undefined ? order_index : getNextOrder();
+  
+  db.run(`
+    INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `, [productId, title, description, section_type, finalOrderIndex], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.status(201).json({ 
+      id: this.lastID, 
+      message: 'Product section created successfully' 
+    });
+  });
+});
+
+// Update product section
+app.put('/api/products/:productId/sections/:sectionId', (req, res) => {
+  const { productId, sectionId } = req.params;
+  const { title, description, section_type, order_index, is_visible } = req.body;
+  
+  db.run(`
+    UPDATE product_sections SET 
+      title = ?, 
+      description = ?, 
+      section_type = ?, 
+      order_index = ?,
+      is_visible = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND product_id = ?
+  `, [title, description, section_type, order_index, is_visible, sectionId, productId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product section updated successfully', changes: this.changes });
+  });
+});
+
+// Delete product section
+app.delete('/api/products/:productId/sections/:sectionId', (req, res) => {
+  const { productId, sectionId } = req.params;
+  
+  db.run(`
+    DELETE FROM product_sections 
+    WHERE id = ? AND product_id = ?
+  `, [sectionId, productId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product section deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle product section visibility
+app.patch('/api/products/:productId/sections/:sectionId/toggle-visibility', (req, res) => {
+  const { productId, sectionId } = req.params;
+  
+  db.run(`
+    UPDATE product_sections 
+    SET is_visible = NOT is_visible, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND product_id = ?
+  `, [sectionId, productId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product section visibility toggled successfully', changes: this.changes });
+  });
+});
+
+// Product Items API Routes
+
+// Get all items for a specific product section
+app.get('/api/products/:productId/sections/:sectionId/items', (req, res) => {
+  const { productId, sectionId } = req.params;
+  
+  db.all(`
+    SELECT pi.* FROM product_items pi
+    JOIN product_sections ps ON pi.section_id = ps.id
+    WHERE ps.id = ? AND ps.product_id = ? AND pi.is_visible = 1
+    ORDER BY pi.order_index ASC
+  `, [sectionId, productId], (err, items) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(items);
+  });
+});
+
+// Get all items for admin (including hidden)
+app.get('/api/admin/products/:productId/sections/:sectionId/items', (req, res) => {
+  const { productId, sectionId } = req.params;
+  
+  db.all(`
+    SELECT pi.* FROM product_items pi
+    JOIN product_sections ps ON pi.section_id = ps.id
+    WHERE ps.id = ? AND ps.product_id = ?
+    ORDER BY pi.order_index ASC
+  `, [sectionId, productId], (err, items) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(items);
+  });
+});
+
+// Get single product item
+app.get('/api/products/:productId/sections/:sectionId/items/:itemId', (req, res) => {
+  const { productId, sectionId, itemId } = req.params;
+  
+  db.get(`
+    SELECT pi.* FROM product_items pi
+    JOIN product_sections ps ON pi.section_id = ps.id
+    WHERE pi.id = ? AND ps.id = ? AND ps.product_id = ?
+  `, [itemId, sectionId, productId], (err, item) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!item) {
+      res.status(404).json({ error: 'Product item not found' });
+      return;
+    }
+    res.json(item);
+  });
+});
+
+// Create new product item
+app.post('/api/products/:productId/sections/:sectionId/items', (req, res) => {
+  const { productId, sectionId } = req.params;
+  const { title, description, content, item_type, icon, order_index } = req.body;
+  
+  // Get the next order index if not provided
+  const getNextOrder = () => {
+    return new Promise((resolve, reject) => {
+      db.get(`
+        SELECT MAX(order_index) as max_order 
+        FROM product_items 
+        WHERE section_id = ?
+      `, [sectionId], (err, result) => {
+        if (err) reject(err);
+        else resolve((result.max_order || -1) + 1);
+      });
+    });
+  };
+  
+  const finalOrderIndex = order_index !== undefined ? order_index : getNextOrder();
+  
+  db.run(`
+    INSERT INTO product_items (section_id, title, description, content, item_type, icon, order_index, is_visible)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+  `, [sectionId, title, description, content, item_type, icon, finalOrderIndex], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.status(201).json({ 
+      id: this.lastID, 
+      message: 'Product item created successfully' 
+    });
+  });
+});
+
+// Update product item
+app.put('/api/products/:productId/sections/:sectionId/items/:itemId', (req, res) => {
+  const { productId, sectionId, itemId } = req.params;
+  const { title, description, content, item_type, icon, order_index, is_visible } = req.body;
+  
+  db.run(`
+    UPDATE product_items SET 
+      title = ?, 
+      description = ?, 
+      content = ?, 
+      item_type = ?, 
+      icon = ?, 
+      order_index = ?,
+      is_visible = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND section_id = ?
+  `, [title, description, content, item_type, icon, order_index, is_visible, itemId, sectionId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product item updated successfully', changes: this.changes });
+  });
+});
+
+// Delete product item
+app.delete('/api/products/:productId/sections/:sectionId/items/:itemId', (req, res) => {
+  const { productId, sectionId, itemId } = req.params;
+  
+  db.run(`
+    DELETE FROM product_items 
+    WHERE id = ? AND section_id = ?
+  `, [itemId, sectionId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product item deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle product item visibility
+app.patch('/api/products/:productId/sections/:sectionId/items/:itemId/toggle-visibility', (req, res) => {
+  const { productId, sectionId, itemId } = req.params;
+  
+  db.run(`
+    UPDATE product_items 
+    SET is_visible = CASE 
+      WHEN is_visible = 1 THEN 0 
+      ELSE 1 
+    END, 
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND section_id = ?
+  `, [itemId, sectionId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Product item visibility toggled successfully', changes: this.changes });
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', message: 'Cloud4India CMS is running' });
@@ -557,8 +1056,19 @@ app.get('/api/health', (req, res) => {
 // Solutions API Routes
 
 // Get all solutions
-app.get('/api/solutions', (req, res) => {
+// Get all solutions (including hidden) - for admin panel
+app.get('/api/admin/solutions', (req, res) => {
   db.all('SELECT * FROM solutions ORDER BY order_index ASC', (err, solutions) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(solutions);
+  });
+});
+
+app.get('/api/solutions', (req, res) => {
+  db.all('SELECT * FROM solutions WHERE is_visible = 1 ORDER BY order_index ASC', (err, solutions) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -587,17 +1097,30 @@ app.get('/api/solutions/:id', (req, res) => {
 app.post('/api/solutions', (req, res) => {
   const { name, description, category, color, border_color, route } = req.body;
   
-  // Get the next order index
-  db.get('SELECT MAX(order_index) as max_order FROM solutions', (err, result) => {
+  // Your 4 perfect colors (only these will be used)
+  const gradientColors = [
+    { start: 'blue', end: 'blue-100' },      // Financial Services
+    { start: 'purple', end: 'purple-100' },  // Financial Services (Copy)
+    { start: 'green', end: 'green-100' },    // Retail
+    { start: 'orange', end: 'orange-100' }   // Healthcare
+  ];
+  
+  // Get the next order index and count existing solutions for gradient assignment
+  db.get('SELECT MAX(order_index) as max_order, COUNT(*) as total_count FROM solutions', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     
     const nextOrder = (result.max_order || -1) + 1;
+    const totalCount = result.total_count || 0;
     
-    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder], 
+    // Assign gradient color based on total count (cycles through palette)
+    const gradientIndex = totalCount % gradientColors.length;
+    const gradient = gradientColors[gradientIndex];
+    
+    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -606,29 +1129,17 @@ app.post('/api/solutions', (req, res) => {
         res.json({ 
           message: 'Solution created successfully', 
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes,
+          gradient: gradient
         });
       });
-  });
-});
-
-// Products API Routes
-
-// Get all products
-app.get('/api/products', (req, res) => {
-  db.all('SELECT * FROM products ORDER BY order_index ASC', (err, products) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(products);
   });
 });
 
 // Update solution
 app.put('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
-  const { name, description, category, color, border_color, route } = req.body;
+  const { name, description, category, color, border_color, route, gradient_start, gradient_end } = req.body;
   
   db.run(`UPDATE solutions SET 
     name = ?, 
@@ -637,9 +1148,11 @@ app.put('/api/solutions/:id', (req, res) => {
     color = ?, 
     border_color = ?, 
     route = ?,
+    gradient_start = ?,
+    gradient_end = ?,
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`, 
-    [name, description, category, color, border_color, route, id], 
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, id], 
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -653,23 +1166,122 @@ app.put('/api/solutions/:id', (req, res) => {
 app.delete('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
   
-  // First delete all sections for this solution
-  db.run(`DELETE FROM solution_sections WHERE solution_id = ?`, [id], (err) => {
+  // First delete all section items for this solution's sections
+  db.run(`DELETE FROM section_items WHERE section_id IN (SELECT id FROM solution_sections WHERE solution_id = ?)`, [id], (err) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error('Error deleting section items:', err.message);
+      // Continue with deletion even if section items fail
     }
     
-    // Then delete the solution
-    db.run(`DELETE FROM solutions WHERE id = ?`, [id], function(err) {
+    // Then delete all sections for this solution
+    db.run(`DELETE FROM solution_sections WHERE solution_id = ?`, [id], (err) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Solution deleted successfully', changes: this.changes });
+      
+      // Finally delete the solution
+      db.run(`DELETE FROM solutions WHERE id = ?`, [id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Solution deleted successfully', changes: this.changes });
+      });
     });
   });
 });
+
+// Toggle solution visibility
+app.put('/api/solutions/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  
+  // Get current visibility status
+  db.get('SELECT is_visible FROM solutions WHERE id = ?', [id], (err, solution) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!solution) {
+      res.status(404).json({ error: 'Solution not found' });
+      return;
+    }
+    
+    const newVisibility = solution.is_visible ? 0 : 1;
+    
+    // Update visibility
+    db.run('UPDATE solutions SET is_visible = ? WHERE id = ?', [newVisibility, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ 
+        message: `Solution ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+        is_visible: newVisibility,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Helper function to duplicate section items
+function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, res) {
+  // Get all section items for the original solution
+  const originalSectionIds = Array.from(sectionIdMap.keys());
+  const placeholders = originalSectionIds.map(() => '?').join(',');
+  
+  db.all(`SELECT * FROM section_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
+    if (err) {
+      console.error('Error fetching section items:', err.message);
+      res.json({ 
+        message: 'Solution duplicated successfully (sections only)', 
+        id: newSolutionId,
+        warning: 'Section items could not be duplicated'
+      });
+      return;
+    }
+    
+    if (items.length === 0) {
+      res.json({ 
+        message: 'Solution duplicated successfully', 
+        id: newSolutionId
+      });
+      return;
+    }
+    
+    let completed = 0;
+    items.forEach((item) => {
+      const newSectionId = sectionIdMap.get(item.section_id);
+      if (!newSectionId) {
+        console.error('Could not find new section ID for item:', item.id);
+        completed++;
+        if (completed === items.length) {
+          res.json({ 
+            message: 'Solution duplicated successfully', 
+            id: newSolutionId,
+            warning: 'Some section items could not be duplicated'
+          });
+        }
+        return;
+      }
+      
+      db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [newSectionId, item.item_type, item.title, item.description, item.icon, item.value, item.label, item.features, item.order_index], 
+        function(err) {
+          if (err) {
+            console.error('Error duplicating section item:', err.message);
+          }
+          completed++;
+          if (completed === items.length) {
+            res.json({ 
+              message: 'Solution duplicated successfully', 
+              id: newSolutionId
+            });
+          }
+        });
+    });
+  });
+}
 
 // Duplicate solution
 app.post('/api/solutions/:id/duplicate', (req, res) => {
@@ -696,9 +1308,13 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
       
       const nextOrder = (result.max_order || -1) + 1;
       
+      // Generate a proper route for the duplicate
+      const duplicateName = newName || `${originalSolution.name} (Copy)`;
+      const duplicateRoute = newRoute || duplicateName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      
       // Create the duplicate solution
-      db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-        [newName || `${originalSolution.name} (Copy)`, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, newRoute, nextOrder], 
+      db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, duplicateRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end], 
         function(err) {
           if (err) {
             res.status(500).json({ error: err.message });
@@ -724,20 +1340,32 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
             }
             
             let completed = 0;
+            const sectionIdMap = new Map(); // Map old section IDs to new section IDs
+            
             sections.forEach((section, index) => {
-              db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`, 
-                [newSolutionId, section.section_type, section.title, section.content, section.order_index], 
-                (err) => {
+              db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`, 
+                [newSolutionId, section.section_type, section.title, section.content, section.order_index, section.is_visible], 
+                function(err) {
                   if (err) {
                     console.error('Error duplicating section:', err.message);
+                    completed++;
+                    if (completed === sections.length) {
+                      res.json({ 
+                        message: 'Solution duplicated successfully', 
+                        id: newSolutionId,
+                        changes: this.changes 
+                      });
+                    }
+                    return;
                   }
+                  
+                  const newSectionId = this.lastID;
+                  sectionIdMap.set(section.id, newSectionId);
+                  
                   completed++;
                   if (completed === sections.length) {
-                    res.json({ 
-                      message: 'Solution duplicated successfully', 
-                      id: newSolutionId,
-                      changes: this.changes 
-                    });
+                    // Now duplicate all section items
+                    duplicateSectionItems(id, sectionIdMap, newSolutionId, res);
                   }
                 });
             });
@@ -810,22 +1438,41 @@ app.post('/api/solutions/:id/sections', (req, res) => {
 // Update section
 app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content } = req.body;
+  const { section_type, title, content, is_visible } = req.body;
   
-  db.run(`UPDATE solution_sections SET 
-    section_type = ?, 
-    title = ?, 
-    content = ?,
-    updated_at = CURRENT_TIMESTAMP
-    WHERE id = ? AND solution_id = ?`, 
-    [section_type, title, content, sectionId, id], 
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Section updated successfully', changes: this.changes });
-    });
+  // Build dynamic query based on provided fields
+  let updateFields = [];
+  let values = [];
+  
+  if (section_type !== undefined) {
+    updateFields.push('section_type = ?');
+    values.push(section_type);
+  }
+  if (title !== undefined) {
+    updateFields.push('title = ?');
+    values.push(title);
+  }
+  if (content !== undefined) {
+    updateFields.push('content = ?');
+    values.push(content);
+  }
+  if (is_visible !== undefined) {
+    updateFields.push('is_visible = ?');
+    values.push(is_visible);
+  }
+  
+  updateFields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(sectionId, id);
+  
+  const query = `UPDATE solution_sections SET ${updateFields.join(', ')} WHERE id = ? AND solution_id = ?`;
+  
+  db.run(query, values, function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Section updated successfully', changes: this.changes });
+  });
 });
 
 // Delete section
