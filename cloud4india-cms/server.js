@@ -5,8 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = 3000;
 
 // Middleware
 app.use(cors());
@@ -15,7 +14,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Initialize SQLite database
 const dbPath = process.env.DB_PATH || './cms.db';
+console.log(`📊 Initializing SQLite database at: ${dbPath}`);
 const db = new sqlite3.Database(dbPath);
+
+// Run migrations on startup
+const runMigrations = async () => {
+  try {
+    console.log('🔄 Running database migrations...');
+    const { runAllMigrations } = require('./migration-runner');
+    await runAllMigrations();
+    console.log('✅ Database migrations completed');
+  } catch (error) {
+    console.error('❌ Migration error:', error.message);
+    console.log('⚠️  Continuing with existing database...');
+  }
+};
 
 // Create tables
 db.serialize(() => {
@@ -1055,6 +1068,45 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', message: 'Cloud4India CMS is running' });
 });
 
+// Migration status endpoint
+app.get('/api/migrations', (req, res) => {
+  db.all('SELECT * FROM migration_history ORDER BY executed_at DESC', (err, migrations) => {
+    if (err) {
+      res.status(500).json({ error: 'Migration table not found or error reading migrations' });
+      return;
+    }
+    
+    const stats = {
+      total: migrations.length,
+      completed: migrations.filter(m => m.status === 'completed').length,
+      failed: migrations.filter(m => m.status === 'failed').length,
+      last_migration: migrations[0] || null
+    };
+    
+    res.json({
+      status: 'success',
+      statistics: stats,
+      migrations: migrations
+    });
+  });
+});
+
+// Run migrations endpoint (for manual trigger)
+app.post('/api/migrations/run', async (req, res) => {
+  try {
+    console.log('🔄 Manual migration trigger requested...');
+    await runMigrations();
+    res.json({ status: 'success', message: 'Migrations completed successfully' });
+  } catch (error) {
+    console.error('❌ Manual migration failed:', error.message);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Migration failed', 
+      error: error.message 
+    });
+  }
+});
+
 // Solutions API Routes
 
 // Get all solutions
@@ -1573,10 +1625,13 @@ app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) =>
 });
 
 // Start server
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Cloud4India CMS Server running on http://${HOST}:${PORT}`);
-  console.log(`📊 Admin API available at http://${HOST}:${PORT}/api/homepage`);
-  console.log(`❤️  Health check at http://${HOST}:${PORT}/api/health`);
+app.listen(PORT, async () => {
+  console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);
+  console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
+  console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
+  
+  // Run migrations after server starts
+  await runMigrations();
 });
 
 module.exports = app;

@@ -20,7 +20,7 @@ export const useSolutionSections = (solutionId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solutionId}/sections`);
+      const response = await fetch(`${import.meta.env.PROD ? 'http://161.97.155.89:4002' : 'http://localhost:3000'}/api/solutions/${solutionId}/sections`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

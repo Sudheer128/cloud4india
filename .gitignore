@@ -86,10 +86,13 @@ jspm_packages/
 # DynamoDB Local files
 .dynamodb/
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
+# Database files (excluding CMS content database)
+# *.db
+# *.sqlite
+# *.sqlite3
+
+# Keep CMS database for deployment
+!cloud4india-cms/cms.db
 
 # Temporary files
 *.tmp
