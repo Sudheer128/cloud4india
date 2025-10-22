@@ -19,32 +19,34 @@ const config = {
   local: {
     NODE_ENV: 'development',
     APP_ENV: 'local',
-    API_URL: 'http://localhost:3001',
+    API_URL: import.meta.env.VITE_CMS_API_URL || 'http://localhost:4002',
+    CMS_API_URL: import.meta.env.VITE_CMS_API_URL || 'http://localhost:4002',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: true,
-    BASE_URL: 'http://localhost:3001',
+    BASE_URL: import.meta.env.VITE_BASE_URL || 'http://localhost:4001',
     // AI Service Configuration (OpenRouter API)
     AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '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',
     AI_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     AI_MODEL: 'qwen/qwen3-235b-a22b:free', // Qwen free model via OpenRouter
     OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://localhost:3001' // Required for OpenRouter
+    OPENROUTER_SITE_URL: import.meta.env.VITE_BASE_URL || 'http://localhost:4001'
   },
   production: {
     NODE_ENV: 'production',
     APP_ENV: 'production',
-    API_URL: 'http://161.97.155.89:3004',
+    API_URL: import.meta.env.VITE_CMS_API_URL || 'http://161.97.155.89:4002',
+    CMS_API_URL: import.meta.env.VITE_CMS_API_URL || 'http://161.97.155.89:4002',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: false,
-    BASE_URL: 'http://161.97.155.89:3004',
+    BASE_URL: import.meta.env.VITE_BASE_URL || 'http://161.97.155.89:4001',
     // AI Service Configuration (OpenRouter API)
     AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
     AI_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     AI_MODEL: 'qwen/qwen3-coder:free', // Qwen free model via OpenRouter
     OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://161.97.155.89:3004'
+    OPENROUTER_SITE_URL: import.meta.env.VITE_BASE_URL || 'http://161.97.155.89:4001'
   }
 }
 

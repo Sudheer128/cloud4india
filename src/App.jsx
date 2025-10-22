@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import Home from './pages/Home'
 import AdminPanel from './pages/AdminPanel'
-import BasicCloudServers from './pages/BasicCloudServers'
+import ProductsAdmin from './pages/ProductsAdmin'
 import UniversalSolutionPage from './pages/UniversalSolutionPage'
 import UniversalProductPage from './pages/UniversalProductPage'
+import Pricing from './pages/Pricing'
 import Footer from './components/Footer'
 
 function App() {
@@ -16,10 +17,11 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/admin/products" element={<ProductsAdmin />} />
             <Route path="/solutions/:solutionId" element={<UniversalSolutionPage />} />
-            {/* Product pages */}
-            <Route path="/products/basic-cloud-servers" element={<BasicCloudServers />} />
+            {/* Product pages - all products use dynamic CMS system */}
             <Route path="/products/:productId" element={<UniversalProductPage />} />
           </Routes>
         </main>

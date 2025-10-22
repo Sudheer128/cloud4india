@@ -1,43 +1,39 @@
 version: '3.8'
 
 services:
-  # Frontend React Application
+  # Frontend React Application (Local Development)
   cloud4india-frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: cloud4india-frontend
+    container_name: cloud4india-frontend-local
     ports:
       - "4001:80"  # External port 4001 -> Internal port 80
     environment:
       - NODE_ENV=production
-      - VITE_CMS_API_URL=http://161.97.155.89:4002
-      - VITE_BASE_URL=http://161.97.155.89:4001
+      - VITE_CMS_API_URL=http://localhost:4002
+      - VITE_BASE_URL=http://localhost:4001
     restart: unless-stopped
     networks:
       - cloud4india-network
     depends_on:
       - cloud4india-cms
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cloud4india-frontend.rule=Host(`161.97.155.89`) && PathPrefix(`/`)"
-      - "traefik.http.services.cloud4india-frontend.loadbalancer.server.port=80"
 
-  # CMS Backend Application
+  # CMS Backend Application (Local Development)
   cloud4india-cms:
     build:
       context: .
       dockerfile: Dockerfile.cms
-    container_name: cloud4india-cms
+    container_name: cloud4india-cms-local
     ports:
       - "4002:3000"  # External port 4002 -> Internal port 3000
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3000
       - HOST=0.0.0.0
       - DB_PATH=/app/data/cms.db
     volumes:
-      - cms_data:/app/data
+      - cms_data_local:/app/data
     restart: unless-stopped
     networks:
       - cloud4india-network
@@ -47,25 +43,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cloud4india-cms.rule=Host(`161.97.155.89`) && PathPrefix(`/api`)"
-      - "traefik.http.services.cloud4india-cms.loadbalancer.server.port=3000"
 
-  # SQLite Database (using a volume for persistence)
-  # Note: SQLite runs inside the CMS container, this is just for volume management
-  
 volumes:
-  cms_data:
+  cms_data_local:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data
 
 networks:
   cloud4india-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

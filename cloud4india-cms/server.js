@@ -5,7 +5,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Middleware
 app.use(cors());
@@ -13,7 +14,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Initialize SQLite database
-const db = new sqlite3.Database('./cms.db');
+const dbPath = process.env.DB_PATH || './cms.db';
+const db = new sqlite3.Database(dbPath);
 
 // Create tables
 db.serialize(() => {
@@ -1571,10 +1573,10 @@ app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) =>
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);
-  console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
-  console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Cloud4India CMS Server running on http://${HOST}:${PORT}`);
+  console.log(`📊 Admin API available at http://${HOST}:${PORT}/api/homepage`);
+  console.log(`❤️  Health check at http://${HOST}:${PORT}/api/health`);
 });
 
 module.exports = app;

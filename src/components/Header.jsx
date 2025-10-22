@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 
 const Header = () => {
@@ -16,13 +17,13 @@ const Header = () => {
               
               {/* Logo */}
               <div className="flex-shrink-0">
-                <div className="flex items-center">
+                <Link to="/" className="flex items-center">
                   <img 
                     src="/images/cloud4India-logo.png" 
                     alt="Cloud4India Logo" 
                     className="h-12 w-auto max-w-[200px] object-contain"
                   />
-                </div>
+                </Link>
               </div>
               
               {/* Main Navigation */}
@@ -39,9 +40,9 @@ const Header = () => {
                 <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Solutions
                 </a>
-                <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
+                <Link to="/pricing" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Pricing
-                </a>
+                </Link>
                 <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Resources
                 </a>

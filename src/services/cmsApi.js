@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { appConfig } from '../utils/config.js';
 
 // CMS API Configuration
-const CMS_BASE_URL = 'http://localhost:3000/api';
+const CMS_BASE_URL = `${appConfig.CMS_API_URL}/api`;
 
 // Create axios instance with default config
 const cmsApi = axios.create({

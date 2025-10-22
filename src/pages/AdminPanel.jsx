@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AdminLayout from '../components/AdminLayout';
 import { 
   getHomepageContent, 
   updateHeroContent, 
@@ -30,7 +31,7 @@ import {
   toggleProductItemVisibility
 } from '../services/cmsApi';
 import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
-import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -304,6 +305,12 @@ const AdminPanel = () => {
     }
   };
 
+  // Product Editor Handler
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setActiveSection('product-editor');
+  };
+
   // Solutions Handlers for Home Page Management
   const handleCreateSolution = async (solutionData) => {
     try {
@@ -458,21 +465,14 @@ const AdminPanel = () => {
               {!sidebarCollapsed && 'Home Page'}
             </button>
             
-            <button
-              onClick={() => {
-                setActiveSection('products');
-                setEditingSolution(null);
-              }}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                activeSection === 'products'
-                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-              title="Products"
+            <a
+              href="/admin/products"
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors text-gray-600 hover:bg-gray-50"
+              title="Products Administration"
             >
               <CubeIcon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
               {!sidebarCollapsed && 'Products'}
-            </button>
+            </a>
             
             <button
               onClick={() => {
@@ -502,6 +502,7 @@ const AdminPanel = () => {
             {activeSection === 'products' && 'Products Management'}
             {activeSection === 'solutions' && 'Solutions Management'}
             {activeSection === 'solution-editor' && `Edit: ${editingSolution?.name}`}
+            {activeSection === 'product-editor' && `Edit: ${editingProduct?.name}`}
           </h2>
         </div>
 
@@ -532,23 +533,10 @@ const AdminPanel = () => {
           {activeSection === 'products' && (
             <ProductsManagement 
               products={products}
-              onCreateProduct={handleCreateProduct}
-              onUpdateProduct={handleUpdateProduct}
-              onDeleteProduct={handleDeleteProduct}
-              onToggleProductVisibility={handleToggleProductVisibility}
+              onEditProduct={handleEditProduct}
               onDuplicateProduct={handleDuplicateProduct}
-              onCreateProductSection={handleCreateProductSection}
-              onUpdateProductSection={handleUpdateProductSection}
-              onDeleteProductSection={handleDeleteProductSection}
-              onToggleProductSectionVisibility={handleToggleProductSectionVisibility}
-              onCreateProductItem={handleCreateProductItem}
-              onUpdateProductItem={handleUpdateProductItem}
-              onDeleteProductItem={handleDeleteProductItem}
-              onToggleProductItemVisibility={handleToggleProductItemVisibility}
-              editingItem={editingItem}
-              setEditingItem={setEditingItem}
-              editingProduct={editingProduct}
-              setEditingProduct={setEditingProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onToggleVisibility={handleToggleProductVisibility}
             />
           )}
           
@@ -566,6 +554,13 @@ const AdminPanel = () => {
             <SolutionEditor 
               solution={editingSolution}
               onBack={() => setActiveSection('solutions')}
+            />
+          )}
+          
+          {activeSection === 'product-editor' && editingProduct && (
+            <ProductEditor 
+              product={editingProduct}
+              onBack={() => setActiveSection('products')}
             />
           )}
         </div>
@@ -780,156 +775,87 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
 };
 
 // Products Management Component
-const ProductsManagement = ({ 
-  products, 
-  onCreateProduct, 
-  onUpdateProduct, 
-  onDeleteProduct, 
-  onToggleProductVisibility,
-  onDuplicateProduct,
-  onCreateProductSection,
-  onUpdateProductSection,
-  onDeleteProductSection,
-  onToggleProductSectionVisibility,
-  onCreateProductItem,
-  onUpdateProductItem,
-  onDeleteProductItem,
-  onToggleProductItemVisibility,
-  editingItem, 
-  setEditingItem,
-  editingProduct,
-  setEditingProduct
-}) => {
-  const [productSections, setProductSections] = useState({});
-  const [productItems, setProductItems] = useState({});
-  const [loadingSections, setLoadingSections] = useState({});
-  const [loadingItems, setLoadingItems] = useState({});
-
-  // Load sections for a product
-  const loadProductSections = async (productId) => {
-    if (productSections[productId]) return; // Already loaded
-    
-    setLoadingSections(prev => ({ ...prev, [productId]: true }));
-    try {
-      const sections = await getAdminProductSections(productId);
-      setProductSections(prev => ({ ...prev, [productId]: sections }));
-    } catch (error) {
-      console.error('Error loading product sections:', error);
-    } finally {
-      setLoadingSections(prev => ({ ...prev, [productId]: false }));
-    }
-  };
-
-  // Load items for a section
-  const loadSectionItems = async (productId, sectionId) => {
-    const key = `${productId}-${sectionId}`;
-    if (productItems[key]) return; // Already loaded
-    
-    setLoadingItems(prev => ({ ...prev, [key]: true }));
-    try {
-      const items = await getAdminProductItems(productId, sectionId);
-      setProductItems(prev => ({ ...prev, [key]: items }));
-    } catch (error) {
-      console.error('Error loading section items:', error);
-    } finally {
-      setLoadingItems(prev => ({ ...prev, [key]: false }));
-    }
-  };
-
+const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDeleteProduct, onToggleVisibility }) => {
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
-          <p className="text-sm text-gray-600 mt-1">Create and manage product pages with dynamic content</p>
-        </div>
-        <button 
-          onClick={() => setEditingItem('new')}
-          className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors"
-        >
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
+        <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
           <PlusIcon className="w-5 h-5" />
           <span>Add New Product</span>
         </button>
       </div>
 
-      {/* Products List */}
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
-        <div className="hidden md:grid grid-cols-[1.5fr_2fr_1fr_auto] gap-4 px-6 py-3 text-xs font-semibold text-gray-600 bg-gray-50 border-b border-gray-200">
+        <div className="hidden md:grid grid-cols-[1.5fr_2fr_1.5fr_auto] gap-4 px-6 py-3 text-xs font-semibold text-gray-600 bg-gray-50 border-b border-gray-200">
           <div>Product</div>
           <div>Description</div>
-          <div>Status</div>
+          <div>Route</div>
           <div className="text-right">Actions</div>
         </div>
         <ul className="divide-y divide-gray-200">
-          {products?.map((product) => (
+          {products.map((product) => (
             <li key={product.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-              <div className="md:grid md:grid-cols-[1.5fr_2fr_1fr_auto] md:gap-4 items-start">
+              <div className="md:grid md:grid-cols-[1.5fr_2fr_1.5fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     product.category === 'Cloud Servers'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-sky-100 text-sky-700'
                       : product.category === 'Backup Services'
                       ? 'bg-purple-100 text-purple-700'
-                      : 'bg-gray-100 text-gray-700'
+                      : 'bg-emerald-100 text-emerald-700'
                   }`}>
                     {product.category}
                   </span>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{product.name}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {productSections[product.id]?.length || 0} sections
-                    </div>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 mt-2 md:mt-0">{product.description}</div>
-                <div className="flex items-center gap-2 mt-2 md:mt-0">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    product.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {product.is_visible ? 'Visible' : 'Hidden'}
-                  </span>
-                </div>
+                <div className="text-xs text-gray-500 mt-2 md:mt-0">{product.route}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
-                    onClick={() => setEditingProduct(product.id)}
+                    onClick={() => onEditProduct(product)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                    title="Edit Sections"
-                    aria-label="Edit Sections"
-                  >
-                    <DocumentTextIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setEditingItem(product.id)}
-                    className="inline-flex items-center justify-center p-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
-                    title="Edit Product"
-                    aria-label="Edit Product"
+                    title="Edit Page Content"
+                    aria-label="Edit Page Content"
                   >
                     <PencilSquareIcon className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onToggleProductVisibility(product.id)}
-                    className={`inline-flex items-center justify-center p-2 rounded-lg ${
-                      product.is_visible ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
-                    } text-white`}
-                    title={product.is_visible ? 'Hide Product' : 'Show Product'}
-                    aria-label={product.is_visible ? 'Hide Product' : 'Show Product'}
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDuplicateProduct(product.id)}
-                    className="inline-flex items-center justify-center p-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-                    title="Duplicate Product"
-                    aria-label="Duplicate Product"
+                    onClick={() => onDuplicateProduct(product)}
+                    className="inline-flex items-center justify-center p-2 rounded-lg bg-slate-700 text-white hover:bg-slate-800"
+                    title="Duplicate"
+                    aria-label="Duplicate"
                   >
                     <DocumentDuplicateIcon className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onDeleteProduct(product.id)}
+                    onClick={() => onToggleVisibility(product)}
+                    className={`inline-flex items-center justify-center p-2 rounded-lg ${
+                      product.is_visible !== 0 
+                        ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                    title={product.is_visible !== 0 ? 'Hide Product' : 'Show Product'}
+                    aria-label={product.is_visible !== 0 ? 'Hide Product' : 'Show Product'}
+                  >
+                    {product.is_visible !== 0 ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => onDeleteProduct(product)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
-                    title="Delete Product"
-                    aria-label="Delete Product"
+                    title="Delete"
+                    aria-label="Delete"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -939,55 +865,22 @@ const ProductsManagement = ({
           ))}
         </ul>
       </div>
-
-      {/* Product Editor Modal */}
-      {editingItem && (
-        <ProductsEditor 
-          products={products} 
-          onCreate={onCreateProduct}
-          onUpdate={onUpdateProduct}
-          onDelete={onDeleteProduct}
-          editing={editingItem}
-          onEdit={setEditingItem}
-          onCancel={() => setEditingItem(null)}
-        />
-      )}
-
-      {/* Product Sections Editor Modal */}
-      {editingProduct && (
-        <ProductSectionsEditor
-          product={products.find(p => p.id === editingProduct)}
-          productSections={productSections[editingProduct] || []}
-          productItems={productItems}
-          loadingSections={loadingSections[editingProduct]}
-          loadingItems={loadingItems}
-          onCreateSection={onCreateProductSection}
-          onUpdateSection={onUpdateProductSection}
-          onDeleteSection={onDeleteProductSection}
-          onToggleSectionVisibility={onToggleProductSectionVisibility}
-          onCreateItem={onCreateProductItem}
-          onUpdateItem={onUpdateProductItem}
-          onDeleteItem={onDeleteProductItem}
-          onToggleItemVisibility={onToggleProductItemVisibility}
-          onLoadSections={() => loadProductSections(editingProduct)}
-          onLoadItems={(sectionId) => loadSectionItems(editingProduct, sectionId)}
-          onClose={() => setEditingProduct(null)}
-          setEditingItem={setEditingItem}
-        />
-      )}
-
-      {/* Product Item Editor Modal */}
-      {editingItem && editingItem.type && (
-        <ProductItemEditor
-          product={products.find(p => p.id === editingProduct)}
-          section={productSections[editingProduct]?.find(s => s.id === editingItem.sectionId)}
-          item={editingItem.itemId ? productItems[`${editingProduct}-${editingItem.sectionId}`]?.find(i => i.id === editingItem.itemId) : null}
-          itemType={editingItem.type}
-          onCreateItem={onCreateProductItem}
-          onUpdateItem={onUpdateProductItem}
-          onClose={() => setEditingItem(null)}
-        />
-      )}
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">Product Page Management</h3>
+            <p className="mt-1 text-sm text-blue-700">
+              Click the <strong>Edit</strong> button (blue) to manage the complete content of each product page including hero sections, benefits, use cases, and more.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1706,6 +1599,462 @@ const SolutionsEditor = ({ solutions, onCreate, onUpdate, onDelete, onDuplicate,
           </div>
         </form>
       </Modal>
+    </div>
+  );
+};
+
+// Product Editor Component
+const ProductEditor = ({ product, onBack }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [cardData, setCardData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    color: '',
+    border_color: '',
+    route: '',
+    gradient_start: '',
+    gradient_end: ''
+  });
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingSection, setEditingSection] = useState(null);
+  const [managingItems, setManagingItems] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      setCardData({
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        color: product.color,
+        border_color: product.border_color,
+        route: product.route,
+        gradient_start: product.gradient_start || 'green',
+        gradient_end: product.gradient_end || 'orange'
+      });
+      loadSections();
+    }
+  }, [product]);
+
+  const loadSections = async () => {
+    try {
+      setLoading(true);
+      console.log(`Loading sections for product ID: ${product.id}`);
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const sectionsData = await response.json();
+      console.log(`Loaded ${sectionsData.length} sections:`, sectionsData);
+      setSections(sectionsData);
+    } catch (err) {
+      console.error('Error loading sections:', err);
+      setSections([]); // Ensure sections is always an array
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveCard = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cardData),
+      });
+      
+      if (response.ok) {
+        alert('Product card updated successfully!');
+      } else {
+        throw new Error('Failed to update product');
+      }
+    } catch (err) {
+      alert('Error updating product: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateSection = async (sectionData) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sectionData),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        setEditingSection(null);
+        alert('Section created successfully!');
+      } else {
+        throw new Error('Failed to create section');
+      }
+    } catch (err) {
+      alert('Error creating section: ' + err.message);
+    }
+  };
+
+  const handleUpdateSection = async (sectionId, sectionData) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sectionData),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        setEditingSection(null);
+        alert('Section updated successfully!');
+      } else {
+        throw new Error('Failed to update section');
+      }
+    } catch (err) {
+      alert('Error updating section: ' + err.message);
+    }
+  };
+
+  const handleDeleteSection = async (sectionId) => {
+    if (window.confirm('Are you sure you want to delete this section? This will also delete all items in this section.')) {
+      try {
+        const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          await loadSections();
+          alert('Section deleted successfully!');
+        } else {
+          throw new Error('Failed to delete section');
+        }
+      } catch (err) {
+        alert('Error deleting section: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleVisibility = async (sectionId, currentVisibility) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_visible: !currentVisibility }),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        alert(`Section ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
+      } else {
+        throw new Error('Failed to toggle section visibility');
+      }
+    } catch (err) {
+      alert('Error toggling section visibility: ' + err.message);
+    }
+  };
+
+  const sectionTypes = [
+    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
+    { value: 'features', label: 'Key Features', description: 'Product features and capabilities' },
+    { value: 'pricing', label: 'Pricing Plans', description: 'Pricing tiers and cost information' },
+    { value: 'specifications', label: 'Technical Specifications', description: 'Detailed technical specifications and requirements' },
+    { value: 'security', label: 'Security Features', description: 'Security capabilities and compliance information' },
+    { value: 'support', label: 'Support & Documentation', description: 'Support options and documentation resources' },
+    { value: 'migration', label: 'Migration Guide', description: 'Migration process and guidelines' },
+    { value: 'use_cases', label: 'Use Cases', description: 'Real-world use cases and applications' },
+    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' }
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center mb-6">
+        <button
+          onClick={onBack}
+          className="mr-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h3 className="text-xl font-semibold text-gray-900">Edit Product: {product.name}</h3>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6">
+        <nav className="flex space-x-8 border-b border-gray-200">
+          {[
+            { id: 'overview', label: 'Product Overview', description: 'Basic product information' },
+            { id: 'sections', label: 'Page Sections', description: 'Manage page content sections' },
+            { id: 'preview', label: 'Preview', description: 'Preview the product page' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              title={tab.description}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Product Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h4 className="text-lg font-semibold mb-6 flex items-center">
+            <CubeIcon className="h-5 w-5 mr-2 text-blue-600" />
+            Product Overview & Card Details
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+              <input
+                type="text"
+                value={cardData.name}
+                onChange={(e) => setCardData({...cardData, name: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Basic Cloud Servers"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select
+                value={cardData.category}
+                onChange={(e) => setCardData({...cardData, category: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select Category</option>
+                <option value="Cloud Servers">Cloud Servers</option>
+                <option value="Backup Services">Backup Services</option>
+                <option value="Storage">Storage</option>
+                <option value="Database">Database</option>
+                <option value="Networking">Networking</option>
+                <option value="Security">Security</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              value={cardData.description}
+              onChange={(e) => setCardData({...cardData, description: e.target.value})}
+              rows={4}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Brief description of the product..."
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Route (URL Path)</label>
+              <input
+                type="text"
+                value={cardData.route}
+                onChange={(e) => setCardData({...cardData, route: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., /products/basic-cloud-servers"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Background Color</label>
+              <input
+                type="text"
+                value={cardData.color}
+                onChange={(e) => setCardData({...cardData, color: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., from-green-100 to-orange-50"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSaveCard}
+              disabled={saving}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckIcon className="w-4 h-4" />
+                  Save Product Details
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Page Sections Tab */}
+      {activeTab === 'sections' && (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900">Page Content Sections</h4>
+              <p className="text-sm text-gray-600 mt-1">Manage all sections of the product page</p>
+            </div>
+            <button
+              onClick={() => setEditingSection('new')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add New Section
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading sections...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sections.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="text-gray-400 mb-4">
+                    <DocumentTextIcon className="w-12 h-12 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sections yet</h3>
+                  <p className="text-gray-600 mb-4">Get started by creating your first product section.</p>
+                  <button
+                    onClick={() => setEditingSection('new')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Create First Section
+                  </button>
+                </div>
+              ) : (
+                sections.map((section) => (
+                  <div key={section.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            sectionTypes.find(t => t.value === section.section_type)?.value === 'hero' 
+                              ? 'bg-purple-100 text-purple-700'
+                              : sectionTypes.find(t => t.value === section.section_type)?.value === 'features'
+                              ? 'bg-green-100 text-green-700'
+                              : sectionTypes.find(t => t.value === section.section_type)?.value === 'pricing'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
+                          </span>
+                          <span className="text-xs text-gray-500">Order: {section.display_order}</span>
+                        </div>
+                        <h3 className="font-semibold text-gray-900">{section.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Created: {new Date(section.created_at).toLocaleDateString()} • 
+                          Updated: {new Date(section.updated_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => setEditingSection(section)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="Edit Section"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setManagingItems(section)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                          title="Manage Items"
+                        >
+                          <ListBulletIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleVisibility(section.id, section.is_visible)}
+                          className={`p-2 rounded-lg ${
+                            section.is_visible 
+                              ? 'text-orange-600 hover:bg-orange-50' 
+                              : 'text-gray-400 hover:bg-gray-50'
+                          }`}
+                          title={section.is_visible ? 'Hide Section' : 'Show Section'}
+                        >
+                          {section.is_visible ? <EyeIcon className="w-4 h-4" /> : <EyeSlashIcon className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSection(section.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                          title="Delete Section"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview Tab */}
+      {activeTab === 'preview' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h4 className="text-lg font-semibold mb-4">Product Page Preview</h4>
+          <div className="bg-gray-50 rounded-lg p-4 text-center">
+            <p className="text-gray-600">Preview functionality will be available soon.</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Visit <code className="bg-gray-200 px-2 py-1 rounded">localhost:3001{cardData.route}</code> to see the live page.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Section Editor Modal */}
+      {editingSection && (
+        <SectionEditor
+          section={editingSection === 'new' ? null : editingSection}
+          sectionTypes={sectionTypes}
+          onSave={editingSection === 'new' ? handleCreateSection : (data) => handleUpdateSection(editingSection.id, data)}
+          onCancel={() => setEditingSection(null)}
+          isProduct={true}
+        />
+      )}
+
+      {/* Items Manager Modal */}
+      {managingItems && (
+        <SectionItemsManager
+          section={managingItems}
+          productId={product.id}
+          onClose={() => setManagingItems(null)}
+          isProduct={true}
+        />
+      )}
     </div>
   );
 };
@@ -3201,11 +3550,15 @@ const ProductsEditor = ({ products, onCreate, onUpdate, onDelete, editing, onEdi
 };
 
 // Section Items Manager Component
-const SectionItemsManager = ({ section, solutionId, onCancel }) => {
+const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose, isProduct = false }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const entityId = isProduct ? productId : solutionId;
+  const entityType = isProduct ? 'products' : 'solutions';
+  const closeHandler = onClose || onCancel;
 
   useEffect(() => {
     if (section) {
@@ -3216,16 +3569,27 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
   const loadItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solutionId}/sections/${section.id}/items`);
+      const apiPath = isProduct 
+        ? `http://localhost:3000/api/admin/products/${entityId}/sections/${section.id}/items`
+        : `http://localhost:3000/api/solutions/${entityId}/sections/${section.id}/items`;
+      
+      console.log(`Loading items from: ${apiPath}`);
+      console.log(`Entity ID: ${entityId}, Section ID: ${section.id}, Is Product: ${isProduct}`);
+      
+      const response = await fetch(apiPath);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const itemsData = await response.json();
+      console.log(`Loaded ${itemsData.length} items:`, itemsData);
       setItems(itemsData);
     } catch (err) {
       console.error('Error loading section items:', err);
+      console.error('API Path:', isProduct 
+        ? `http://localhost:3000/api/admin/products/${entityId}/sections/${section.id}/items`
+        : `http://localhost:3000/api/solutions/${entityId}/sections/${section.id}/items`);
       setItems([]);
     } finally {
       setLoading(false);
@@ -3235,7 +3599,8 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
   const handleCreateItem = async (itemData) => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solutionId}/sections/${section.id}/items`, {
+      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items`;
+      const response = await fetch(apiPath, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3260,7 +3625,8 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
   const handleUpdateItem = async (itemId, itemData) => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solutionId}/sections/${section.id}/items/${itemId}`, {
+      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const response = await fetch(apiPath, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -3288,7 +3654,8 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/solutions/${solutionId}/sections/${section.id}/items/${itemId}`, {
+      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const response = await fetch(apiPath, {
         method: 'DELETE',
       });
 
@@ -3303,7 +3670,21 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
     }
   };
 
-  const itemTypes = [
+  const itemTypes = isProduct ? [
+    { value: 'feature_card', label: 'Feature Card' },
+    { value: 'pricing_plan', label: 'Pricing Plan' },
+    { value: 'spec_card', label: 'Specification Card' },
+    { value: 'security_feature', label: 'Security Feature' },
+    { value: 'support_feature', label: 'Support Feature' },
+    { value: 'migration_step', label: 'Migration Step' },
+    { value: 'use_case', label: 'Use Case' },
+    { value: 'badge', label: 'Badge' },
+    { value: 'title', label: 'Title' },
+    { value: 'description', label: 'Description' },
+    { value: 'cta_primary', label: 'Primary CTA' },
+    { value: 'cta_secondary', label: 'Secondary CTA' },
+    { value: 'image', label: 'Image' }
+  ] : [
     { value: 'benefit', label: 'Benefit Card' },
     { value: 'feature', label: 'Feature' },
     { value: 'stat', label: 'Statistic' },
@@ -3326,7 +3707,7 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
               </p>
             </div>
             <button
-              onClick={onCancel}
+              onClick={closeHandler}
               className="text-green-100 hover:text-white text-2xl"
             >
               ×
@@ -3364,6 +3745,20 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
                       <div className="flex-1">
                         <div className="flex items-center mb-3">
                           <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
+                            // Product item types
+                            item.item_type === 'feature_card' ? 'bg-green-100 text-green-700' :
+                            item.item_type === 'pricing_plan' ? 'bg-blue-100 text-blue-700' :
+                            item.item_type === 'spec_card' ? 'bg-purple-100 text-purple-700' :
+                            item.item_type === 'security_feature' ? 'bg-red-100 text-red-700' :
+                            item.item_type === 'support_feature' ? 'bg-yellow-100 text-yellow-700' :
+                            item.item_type === 'migration_step' ? 'bg-indigo-100 text-indigo-700' :
+                            item.item_type === 'badge' ? 'bg-pink-100 text-pink-700' :
+                            item.item_type === 'title' ? 'bg-gray-100 text-gray-700' :
+                            item.item_type === 'description' ? 'bg-gray-100 text-gray-700' :
+                            item.item_type === 'cta_primary' ? 'bg-green-100 text-green-700' :
+                            item.item_type === 'cta_secondary' ? 'bg-orange-100 text-orange-700' :
+                            item.item_type === 'image' ? 'bg-cyan-100 text-cyan-700' :
+                            // Solution item types
                             item.item_type === 'benefit' ? 'bg-green-100 text-green-700' :
                             item.item_type === 'feature' ? 'bg-blue-100 text-blue-700' :
                             item.item_type === 'stat' ? 'bg-purple-100 text-purple-700' :

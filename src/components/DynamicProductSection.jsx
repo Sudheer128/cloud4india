@@ -83,24 +83,24 @@ const HeroSection = ({ section, items }) => {
             {badgeItem && (
               <div className="inline-flex items-center px-4 py-2 bg-green-100 rounded-full text-green-800 text-sm font-medium mb-6 border border-green-200">
                 <ServerIcon className="w-4 h-4 mr-2" />
-                {badgeItem.content}
+                {badgeItem.title}
               </div>
             )}
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              {titleItem?.content || section.title || 'Product Name'}
+              {titleItem?.title || section.title || 'Product Name'}
             </h1>
             <p className="text-xl text-gray-700 leading-relaxed mb-8">
-              {descriptionItem?.content || section.description || 'Product description goes here'}
+              {descriptionItem?.title || section.description || 'Product description goes here'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               {primaryCTAItem && (
                 <button className="bg-green-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                  {primaryCTAItem.content}
+                  {primaryCTAItem.title}
                 </button>
               )}
               {secondaryCTAItem && (
                 <button className="border-2 border-orange-300 text-orange-700 px-8 py-4 rounded-lg font-semibold text-lg hover:border-orange-400 hover:bg-orange-50 transition-all duration-300">
-                  {secondaryCTAItem.content}
+                  {secondaryCTAItem.title}
                 </button>
               )}
             </div>
@@ -470,24 +470,35 @@ const UseCasesSection = ({ section, items }) => {
   );
 };
 
+
 // CTA Section Component
 const CTASection = ({ section, items }) => {
+  // Get items by type for dynamic rendering
+  const titleItem = items.find(item => item.item_type === 'title' && item.is_visible);
+  const descriptionItem = items.find(item => item.item_type === 'description' && item.is_visible);
+  const primaryCTAItem = items.find(item => item.item_type === 'cta_primary' && item.is_visible);
+  const secondaryCTAItem = items.find(item => item.item_type === 'cta_secondary' && item.is_visible);
+
   return (
     <section className="py-20 bg-gradient-to-br from-green-50 via-white to-orange-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-4xl font-bold text-gray-900 mb-6">
-          {section.title || 'Ready to Get Started?'}
+          {titleItem?.title || section.title || 'Ready to Get Started?'}
         </h2>
         <p className="text-xl text-gray-700 mb-8">
-          {section.description || 'Join thousands of businesses already using our products'}
+          {descriptionItem?.title || section.description || 'Join thousands of businesses already using our products'}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button className="bg-green-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-            Start Free Trial
-          </button>
-          <button className="border-2 border-orange-300 text-orange-700 px-8 py-4 rounded-lg font-semibold text-lg hover:border-orange-400 hover:bg-orange-50 transition-all duration-300">
-            Contact Sales
-          </button>
+          {primaryCTAItem && (
+            <button className="bg-green-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+              {primaryCTAItem.title}
+            </button>
+          )}
+          {secondaryCTAItem && (
+            <button className="border-2 border-orange-300 text-orange-700 px-8 py-4 rounded-lg font-semibold text-lg hover:border-orange-400 hover:bg-orange-50 transition-all duration-300">
+              {secondaryCTAItem.title}
+            </button>
+          )}
         </div>
       </div>
     </section>
