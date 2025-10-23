@@ -19,8 +19,8 @@ const config = {
   local: {
     NODE_ENV: 'development',
     APP_ENV: 'local',
-    API_URL: 'http://localhost:3000',
-    CMS_URL: 'http://localhost:3000',
+    API_URL: 'http://localhost:4002',
+    CMS_URL: 'http://localhost:4002',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: true,

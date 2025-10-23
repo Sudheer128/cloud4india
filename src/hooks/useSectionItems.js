@@ -21,7 +21,7 @@ export const useSectionItems = (solutionId, sectionId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${import.meta.env.PROD ? 'http://161.97.155.89:4002' : 'http://localhost:3000'}/api/solutions/${solutionId}/sections/${sectionId}/items`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://161.97.155.89:4002' : 'http://localhost:4002')}/api/solutions/${solutionId}/sections/${sectionId}/items`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

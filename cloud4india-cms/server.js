@@ -1624,10 +1624,221 @@ app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) =>
   });
 });
 
+// ============================================================
+// PRICING API ENDPOINTS
+// ============================================================
+
+// Get pricing hero section
+app.get('/api/pricing/hero', (req, res) => {
+  db.get('SELECT * FROM pricing_hero WHERE is_active = 1 ORDER BY id DESC LIMIT 1', (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(row || {});
+  });
+});
+
+// Update pricing hero section
+app.put('/api/pricing/hero/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+  
+  db.run('UPDATE pricing_hero SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [title, description, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Hero section updated successfully', changes: this.changes });
+    });
+});
+
+// Get all pricing categories
+app.get('/api/pricing/categories', (req, res) => {
+  db.all('SELECT * FROM pricing_categories WHERE is_active = 1 ORDER BY order_index', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Get subcategories by category
+app.get('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
+  const { categoryId } = req.params;
+  db.all('SELECT * FROM pricing_subcategories WHERE category_id = ? AND is_active = 1 ORDER BY order_index',
+    [categoryId], (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(rows);
+    });
+});
+
+// Get pricing plans by subcategory
+app.get('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
+  const { subcategoryId } = req.params;
+  db.all('SELECT * FROM pricing_plans WHERE subcategory_id = ? AND is_active = 1 ORDER BY order_index',
+    [subcategoryId], (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(rows);
+    });
+});
+
+// Get all storage options
+app.get('/api/pricing/storage', (req, res) => {
+  db.all('SELECT * FROM storage_options WHERE is_active = 1 ORDER BY order_index', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Get all pricing FAQs
+app.get('/api/pricing/faqs', (req, res) => {
+  db.all('SELECT * FROM pricing_faqs WHERE is_active = 1 ORDER BY order_index', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Create pricing plan
+app.post('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
+  const { subcategoryId } = req.params;
+  const { ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular } = req.body;
+  
+  db.run(`INSERT INTO pricing_plans (subcategory_id, ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [subcategoryId, ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular || 0],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Pricing plan created successfully', id: this.lastID });
+    });
+});
+
+// Update pricing plan
+app.put('/api/pricing/plans/:id', (req, res) => {
+  const { id } = req.params;
+  const { ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular } = req.body;
+  
+  db.run(`UPDATE pricing_plans SET 
+          ram = ?, vcpu = ?, storage = ?, bandwidth = ?, discount = ?, 
+          hourly_price = ?, monthly_price = ?, yearly_price = ?, 
+          instance_type = ?, nodes = ?, is_popular = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?`,
+    [ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular || 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Pricing plan updated successfully', changes: this.changes });
+    });
+});
+
+// Delete pricing plan
+app.delete('/api/pricing/plans/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE pricing_plans SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Pricing plan deleted successfully', changes: this.changes });
+  });
+});
+
+// Create storage option
+app.post('/api/pricing/storage', (req, res) => {
+  const { name, description, price_per_gb, features } = req.body;
+  
+  db.run('INSERT INTO storage_options (name, description, price_per_gb, features) VALUES (?, ?, ?, ?)',
+    [name, description, price_per_gb, JSON.stringify(features)], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Storage option created successfully', id: this.lastID });
+    });
+});
+
+// Update storage option
+app.put('/api/pricing/storage/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, description, price_per_gb, features } = req.body;
+  
+  db.run('UPDATE storage_options SET name = ?, description = ?, price_per_gb = ?, features = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [name, description, price_per_gb, JSON.stringify(features), id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Storage option updated successfully', changes: this.changes });
+    });
+});
+
+// Create FAQ
+app.post('/api/pricing/faqs', (req, res) => {
+  const { question, answer } = req.body;
+  
+  db.run('INSERT INTO pricing_faqs (question, answer) VALUES (?, ?)',
+    [question, answer], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'FAQ created successfully', id: this.lastID });
+    });
+});
+
+// Update FAQ
+app.put('/api/pricing/faqs/:id', (req, res) => {
+  const { id } = req.params;
+  const { question, answer } = req.body;
+  
+  db.run('UPDATE pricing_faqs SET question = ?, answer = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [question, answer, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'FAQ updated successfully', changes: this.changes });
+    });
+});
+
+// Delete FAQ
+app.delete('/api/pricing/faqs/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE pricing_faqs SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'FAQ deleted successfully', changes: this.changes });
+  });
+});
+
 // Start server
 app.listen(PORT, async () => {
   console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);
   console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
+  console.log(`💰 Pricing API available at http://localhost:${PORT}/api/pricing`);
   console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
   
   // Run migrations after server starts

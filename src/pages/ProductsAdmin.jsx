@@ -213,7 +213,7 @@ const ProductEditor = ({ product, onBack }) => {
     try {
       setLoading(true);
       console.log(`Loading sections for product ID: ${product.id}`);
-      const response = await fetch(`http://localhost:3000/api/admin/products/${product.id}/sections`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${product.id}/sections`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -233,7 +233,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleCreateSection = async (sectionData) => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -259,7 +259,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleUpdateSection = async (sectionId, sectionData) => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -288,7 +288,7 @@ const ProductEditor = ({ product, onBack }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
         method: 'DELETE',
       });
 
@@ -306,7 +306,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleToggleVisibility = async (sectionId, currentVisibility) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}/toggle-visibility`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}/toggle-visibility`, {
         method: 'PATCH',
       });
 
@@ -325,7 +325,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleSaveCard = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -641,7 +641,7 @@ const ProductSectionItemsManager = ({ section, productId, onClose }) => {
   const loadItems = async () => {
     try {
       setLoading(true);
-      const apiPath = `http://localhost:3000/api/admin/products/${productId}/sections/${section.id}/items`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${productId}/sections/${section.id}/items`;
       
       console.log(`Loading product items from: ${apiPath}`);
       console.log(`Product ID: ${productId}, Section ID: ${section.id}`);
@@ -657,7 +657,7 @@ const ProductSectionItemsManager = ({ section, productId, onClose }) => {
       setItems(itemsData);
     } catch (err) {
       console.error('Error loading product section items:', err);
-      console.error('API Path:', `http://localhost:3000/api/admin/products/${productId}/sections/${section.id}/items`);
+      console.error('API Path:', `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${productId}/sections/${section.id}/items`);
       setItems([]);
     } finally {
       setLoading(false);
@@ -667,7 +667,7 @@ const ProductSectionItemsManager = ({ section, productId, onClose }) => {
   const handleCreateItem = async (itemData) => {
     try {
       setSaving(true);
-      const apiPath = `http://localhost:3000/api/products/${productId}/sections/${section.id}/items`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${section.id}/items`;
       const response = await fetch(apiPath, {
         method: 'POST',
         headers: {
@@ -694,7 +694,7 @@ const ProductSectionItemsManager = ({ section, productId, onClose }) => {
   const handleUpdateItem = async (itemId, itemData) => {
     try {
       setSaving(true);
-      const apiPath = `http://localhost:3000/api/products/${productId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'PUT',
         headers: {
@@ -724,7 +724,7 @@ const ProductSectionItemsManager = ({ section, productId, onClose }) => {
     }
 
     try {
-      const apiPath = `http://localhost:3000/api/products/${productId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'DELETE',
       });

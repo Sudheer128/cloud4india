@@ -31,7 +31,8 @@ import {
   toggleProductItemVisibility
 } from '../services/cmsApi';
 import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
-import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon } from '@heroicons/react/24/outline';
+import PricingAdmin from './PricingAdmin';
+import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -489,6 +490,22 @@ const AdminPanel = () => {
               <Squares2X2Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
               {!sidebarCollapsed && 'Solutions'}
             </button>
+            
+            <button
+              onClick={() => {
+                setActiveSection('pricing');
+                setEditingSolution(null);
+              }}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
+                activeSection === 'pricing'
+                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              title="Pricing Management"
+            >
+              <CurrencyDollarIcon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+              {!sidebarCollapsed && 'Pricing'}
+            </button>
           </div>
         </nav>
       </div>
@@ -501,6 +518,7 @@ const AdminPanel = () => {
             {activeSection === 'home' && 'Home Page Management'}
             {activeSection === 'products' && 'Products Management'}
             {activeSection === 'solutions' && 'Solutions Management'}
+            {activeSection === 'pricing' && 'Pricing Management'}
             {activeSection === 'solution-editor' && `Edit: ${editingSolution?.name}`}
             {activeSection === 'product-editor' && `Edit: ${editingProduct?.name}`}
           </h2>
@@ -548,6 +566,10 @@ const AdminPanel = () => {
               onDeleteSolution={handleDeleteSolution}
               onToggleVisibility={handleToggleSolutionVisibility}
             />
+          )}
+          
+          {activeSection === 'pricing' && (
+            <PricingAdmin />
           )}
           
           {activeSection === 'solution-editor' && editingSolution && (
@@ -1642,7 +1664,7 @@ const ProductEditor = ({ product, onBack }) => {
     try {
       setLoading(true);
       console.log(`Loading sections for product ID: ${product.id}`);
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -1662,7 +1684,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleSaveCard = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1684,7 +1706,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleCreateSection = async (sectionData) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1706,7 +1728,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleUpdateSection = async (sectionId, sectionData) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1729,7 +1751,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleDeleteSection = async (sectionId) => {
     if (window.confirm('Are you sure you want to delete this section? This will also delete all items in this section.')) {
       try {
-        const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
           method: 'DELETE',
         });
         
@@ -1747,7 +1769,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleToggleVisibility = async (sectionId, currentVisibility) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/products/${product.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2098,7 +2120,7 @@ const SolutionEditor = ({ solution, onBack }) => {
     try {
       setLoading(true);
       console.log(`Loading sections for solution ID: ${solution.id}`);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -2118,7 +2140,7 @@ const SolutionEditor = ({ solution, onBack }) => {
   const handleSaveCard = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2140,7 +2162,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
   const handleCreateSection = async (sectionData) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2162,7 +2184,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
   const handleUpdateSection = async (sectionId, sectionData) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -2185,7 +2207,7 @@ const SolutionEditor = ({ solution, onBack }) => {
   const handleDeleteSection = async (sectionId) => {
     if (window.confirm('Are you sure you want to delete this section?')) {
       try {
-        const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections/${sectionId}`, {
+        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
           method: 'DELETE',
         });
         
@@ -2203,7 +2225,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
   const handleToggleVisibility = async (sectionId, currentVisibility) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/solutions/${solution.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -3570,8 +3592,8 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
     try {
       setLoading(true);
       const apiPath = isProduct 
-        ? `http://localhost:3000/api/admin/products/${entityId}/sections/${section.id}/items`
-        : `http://localhost:3000/api/solutions/${entityId}/sections/${section.id}/items`;
+        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${entityId}/sections/${section.id}/items`
+        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${entityId}/sections/${section.id}/items`;
       
       console.log(`Loading items from: ${apiPath}`);
       console.log(`Entity ID: ${entityId}, Section ID: ${section.id}, Is Product: ${isProduct}`);
@@ -3588,8 +3610,8 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
     } catch (err) {
       console.error('Error loading section items:', err);
       console.error('API Path:', isProduct 
-        ? `http://localhost:3000/api/admin/products/${entityId}/sections/${section.id}/items`
-        : `http://localhost:3000/api/solutions/${entityId}/sections/${section.id}/items`);
+        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${entityId}/sections/${section.id}/items`
+        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${entityId}/sections/${section.id}/items`);
       setItems([]);
     } finally {
       setLoading(false);
@@ -3599,7 +3621,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
   const handleCreateItem = async (itemData) => {
     try {
       setSaving(true);
-      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items`;
       const response = await fetch(apiPath, {
         method: 'POST',
         headers: {
@@ -3625,7 +3647,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
   const handleUpdateItem = async (itemId, itemData) => {
     try {
       setSaving(true);
-      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'PUT',
         headers: {
@@ -3654,7 +3676,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
     }
 
     try {
-      const apiPath = `http://localhost:3000/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'DELETE',
       });
