@@ -389,7 +389,9 @@ export const deleteSolutionSection = async (id, sectionId) => {
  */
 export const getProductSections = async (productId) => {
   try {
-    const response = await cmsApi.get(`/products/${productId}/sections`);
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/products/${productId}/sections?t=${timestamp}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching product sections:', error);
@@ -404,7 +406,9 @@ export const getProductSections = async (productId) => {
  */
 export const getAdminProductSections = async (productId) => {
   try {
-    const response = await cmsApi.get(`/admin/products/${productId}/sections`);
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/admin/products/${productId}/sections?t=${timestamp}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching admin product sections:', error);

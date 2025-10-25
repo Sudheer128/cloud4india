@@ -87,10 +87,10 @@ const HeroSection = ({ section, items }) => {
               </div>
             )}
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              {titleItem?.title || section.title || 'Product Name'}
+              {section.title || titleItem?.title || 'Product Name'}
             </h1>
             <p className="text-xl text-gray-700 leading-relaxed mb-8">
-              {descriptionItem?.title || section.description || 'Product description goes here'}
+              {section.description || descriptionItem?.title || 'Product description goes here'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               {primaryCTAItem && (

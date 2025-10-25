@@ -13,7 +13,7 @@ const UniversalProductPage = () => {
   // Map string routes to numeric IDs
   const routeToIdMap = {
     'basic-cloud-servers': 1,
-    'cpu-intensive-servers': 2,
+    'cpu-intensive-servers': 7,
     'memory-intensive-servers': 3,
     'acronis-cloud-backup': 4
   };

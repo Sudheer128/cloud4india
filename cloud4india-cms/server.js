@@ -725,21 +725,25 @@ app.post('/api/products/:id/duplicate', (req, res) => {
       Object.keys(sectionMapping).forEach((originalSectionId) => {
         const newSectionId = sectionMapping[originalSectionId];
         
-        db.all('SELECT * FROM product_items WHERE section_id = ?', [originalSectionId], (err, items) => {
+        // Get the original section to check its type
+        db.get('SELECT section_type FROM product_sections WHERE id = ?', [originalSectionId], (err, sectionInfo) => {
           if (err) {
-            console.error('Error getting items:', err.message);
+            console.error('Error getting section info:', err.message);
             return;
           }
           
-          items.forEach((item) => {
-            db.run(`INSERT INTO product_items (section_id, title, description, content, item_type, icon, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-              [newSectionId, item.title, item.description, item.content, item.item_type, item.icon, item.order_index, item.is_visible], 
-              function(err) {
-                if (err) {
-                  console.error('Error duplicating item:', err.message);
-                  return;
-                }
-                
+          const isHeroSection = sectionInfo && sectionInfo.section_type === 'hero';
+          
+          db.all('SELECT * FROM product_items WHERE section_id = ?', [originalSectionId], (err, items) => {
+            if (err) {
+              console.error('Error getting items:', err.message);
+              return;
+            }
+            
+            items.forEach((item) => {
+              // Skip title and description items in hero sections to prevent conflicts
+              // The hero component will use section-level data instead
+              if (isHeroSection && (item.item_type === 'title' || item.item_type === 'description')) {
                 itemsProcessed++;
                 
                 if (itemsProcessed === totalItems) {
@@ -750,7 +754,29 @@ app.post('/api/products/:id/duplicate', (req, res) => {
                     itemsDuplicated: totalItems
                   });
                 }
-              });
+                return;
+              }
+              
+              db.run(`INSERT INTO product_items (section_id, title, description, content, item_type, icon, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                [newSectionId, item.title, item.description, item.content, item.item_type, item.icon, item.order_index, item.is_visible], 
+                function(err) {
+                  if (err) {
+                    console.error('Error duplicating item:', err.message);
+                    return;
+                  }
+                  
+                  itemsProcessed++;
+                  
+                  if (itemsProcessed === totalItems) {
+                    res.json({ 
+                      message: 'Product duplicated successfully', 
+                      id: duplicateProductId,
+                      sectionsDuplicated: Object.keys(sectionMapping).length,
+                      itemsDuplicated: totalItems
+                    });
+                  }
+                });
+            });
           });
         });
       });
