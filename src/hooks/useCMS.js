@@ -4,7 +4,10 @@ import {
   getHeroContent, 
   getWhyItems, 
   getProducts,
-  checkCMSHealth 
+  getSolutions,
+  checkCMSHealth,
+  getMainProductsContent,
+  getMainSolutionsContent
 } from '../services/cmsApi';
 
 /**
@@ -148,9 +151,39 @@ export const useProducts = () => {
 };
 
 /**
- * Custom hook to check CMS health
- * @returns {Object} { isHealthy, loading, error, checkHealth }
+ * Custom hook to fetch solutions content
+ * @returns {Object} { data, loading, error, refetch }
  */
+export const useSolutions = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getSolutions();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching solutions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
 export const useCMSHealth = () => {
   const [isHealthy, setIsHealthy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -216,13 +249,86 @@ export const useError = () => {
   };
 };
 
+/**
+ * Custom hook to fetch main products page content
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useMainProductsContent = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getMainProductsContent();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching main products content:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
+/**
+ * Custom hook to fetch main solutions page content
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useMainSolutionsContent = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getMainSolutionsContent();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching main solutions content:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
 // Default export with all hooks
 export default {
   useHomepageContent,
   useHeroContent,
   useWhyItems,
   useProducts,
+  useSolutions,
   useCMSHealth,
   useLoading,
-  useError
+  useError,
+  useMainProductsContent,
+  useMainSolutionsContent
 };

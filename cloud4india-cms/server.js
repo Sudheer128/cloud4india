@@ -619,6 +619,60 @@ app.put('/api/products/:id/toggle-visibility', (req, res) => {
 });
 
 // Duplicate product with all sections and items
+// Helper function to create main page section for duplicated product
+function createMainProductSection(productId, productName, productDescription, callback) {
+  // Get the next order index for main products sections
+  db.get('SELECT MAX(order_index) as max_order FROM main_products_sections', (err, result) => {
+    if (err) {
+      console.error('Error getting max order for main products sections:', err.message);
+      callback(); // Continue even if this fails
+      return;
+    }
+    
+    const nextOrder = (result.max_order || 0) + 1;
+    
+    // Insert new main page section
+    db.run(`
+      INSERT INTO main_products_sections (product_id, title, description, is_visible, order_index) 
+      VALUES (?, ?, ?, 1, ?)
+    `, [productId, productName, productDescription, nextOrder], function(err) {
+      if (err) {
+        console.error('Error creating main products section:', err.message);
+      } else {
+        console.log(`✅ Created main products section for: ${productName}`);
+      }
+      callback(); // Always call callback to continue
+    });
+  });
+}
+
+// Helper function to create main page section for duplicated solution
+function createMainSolutionSection(solutionId, solutionName, solutionDescription, callback) {
+  // Get the next order index for main solutions sections
+  db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
+    if (err) {
+      console.error('Error getting max order for main solutions sections:', err.message);
+      callback(); // Continue even if this fails
+      return;
+    }
+    
+    const nextOrder = (result.max_order || 0) + 1;
+    
+    // Insert new main page section
+    db.run(`
+      INSERT INTO main_solutions_sections (solution_id, title, description, is_visible, order_index) 
+      VALUES (?, ?, ?, 1, ?)
+    `, [solutionId, solutionName, solutionDescription, nextOrder], function(err) {
+      if (err) {
+        console.error('Error creating main solutions section:', err.message);
+      } else {
+        console.log(`✅ Created main solutions section for: ${solutionName}`);
+      }
+      callback(); // Always call callback to continue
+    });
+  });
+}
+
 app.post('/api/products/:id/duplicate', (req, res) => {
   const { id } = req.params;
   const { newName, newRoute } = req.body;
@@ -669,11 +723,14 @@ app.post('/api/products/:id/duplicate', (req, res) => {
             const sectionMapping = {}; // Map original section ID to new section ID
             
             if (sections.length === 0) {
-              res.json({ 
-                message: 'Product duplicated successfully', 
-                id: duplicateProductId,
-                sectionsDuplicated: 0,
-                itemsDuplicated: 0
+              // Create main page section even if no sections exist
+              createMainProductSection(duplicateProductId, duplicateName, originalProduct.description, () => {
+                res.json({ 
+                  message: 'Product duplicated successfully', 
+                  id: duplicateProductId,
+                  sectionsDuplicated: 0,
+                  itemsDuplicated: 0
+                });
               });
               return;
             }
@@ -692,7 +749,7 @@ app.post('/api/products/:id/duplicate', (req, res) => {
                   
                   if (sectionsProcessed === sections.length) {
                     // All sections duplicated, now duplicate items
-                    duplicateSectionItems(sectionMapping, duplicateProductId);
+                    duplicateSectionItems(sectionMapping, duplicateProductId, duplicateName, originalProduct.description);
                   }
                 });
             });
@@ -701,7 +758,7 @@ app.post('/api/products/:id/duplicate', (req, res) => {
     });
   });
   
-  function duplicateSectionItems(sectionMapping, duplicateProductId) {
+  function duplicateSectionItems(sectionMapping, duplicateProductId, productName, productDescription) {
     let totalItems = 0;
     let itemsProcessed = 0;
     
@@ -747,11 +804,14 @@ app.post('/api/products/:id/duplicate', (req, res) => {
                 itemsProcessed++;
                 
                 if (itemsProcessed === totalItems) {
-                  res.json({ 
-                    message: 'Product duplicated successfully', 
-                    id: duplicateProductId,
-                    sectionsDuplicated: Object.keys(sectionMapping).length,
-                    itemsDuplicated: totalItems
+                  // Create main page section for the duplicated product
+                  createMainProductSection(duplicateProductId, productName, productDescription, () => {
+                    res.json({
+                      message: 'Product duplicated successfully',
+                      id: duplicateProductId,
+                      sectionsDuplicated: Object.keys(sectionMapping).length,
+                      itemsDuplicated: totalItems
+                    });
                   });
                 }
                 return;
@@ -768,11 +828,14 @@ app.post('/api/products/:id/duplicate', (req, res) => {
                   itemsProcessed++;
                   
                   if (itemsProcessed === totalItems) {
-                    res.json({ 
-                      message: 'Product duplicated successfully', 
-                      id: duplicateProductId,
-                      sectionsDuplicated: Object.keys(sectionMapping).length,
-                      itemsDuplicated: totalItems
+                    // Create main page section for the duplicated product
+                    createMainProductSection(duplicateProductId, productName, productDescription, () => {
+                      res.json({ 
+                        message: 'Product duplicated successfully', 
+                        id: duplicateProductId,
+                        sectionsDuplicated: Object.keys(sectionMapping).length,
+                        itemsDuplicated: totalItems
+                      });
                     });
                   }
                 });
@@ -1305,7 +1368,7 @@ app.put('/api/solutions/:id/toggle-visibility', (req, res) => {
 });
 
 // Helper function to duplicate section items
-function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, res) {
+function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, solutionName, solutionDescription, res) {
   // Get all section items for the original solution
   const originalSectionIds = Array.from(sectionIdMap.keys());
   const placeholders = originalSectionIds.map(() => '?').join(',');
@@ -1322,9 +1385,12 @@ function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, 
     }
     
     if (items.length === 0) {
-      res.json({ 
-        message: 'Solution duplicated successfully', 
-        id: newSolutionId
+      // Create main page section for the duplicated solution
+      createMainSolutionSection(newSolutionId, solutionName, solutionDescription, () => {
+        res.json({ 
+          message: 'Solution duplicated successfully', 
+          id: newSolutionId
+        });
       });
       return;
     }
@@ -1353,9 +1419,12 @@ function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, 
           }
           completed++;
           if (completed === items.length) {
-            res.json({ 
-              message: 'Solution duplicated successfully', 
-              id: newSolutionId
+            // Create main page section for the duplicated solution
+            createMainSolutionSection(newSolutionId, solutionName, solutionDescription, () => {
+              res.json({ 
+                message: 'Solution duplicated successfully', 
+                id: newSolutionId
+              });
             });
           }
         });
@@ -1411,10 +1480,13 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
             }
             
             if (sections.length === 0) {
-              res.json({ 
-                message: 'Solution duplicated successfully', 
-                id: newSolutionId,
-                changes: this.changes 
+              // Create main page section even if no sections exist
+              createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, () => {
+                res.json({ 
+                  message: 'Solution duplicated successfully', 
+                  id: newSolutionId,
+                  changes: this.changes 
+                });
               });
               return;
             }
@@ -1445,7 +1517,7 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
                   completed++;
                   if (completed === sections.length) {
                     // Now duplicate all section items
-                    duplicateSectionItems(id, sectionIdMap, newSolutionId, res);
+                    duplicateSectionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution.description, res);
                   }
                 });
             });
@@ -1857,6 +1929,180 @@ app.delete('/api/pricing/faqs/:id', (req, res) => {
       return;
     }
     res.json({ message: 'FAQ deleted successfully', changes: this.changes });
+  });
+});
+
+// ===== MAIN PAGES API ENDPOINTS =====
+
+// Get main products page content
+app.get('/api/main-products', (req, res) => {
+  const mainPageData = {};
+  
+  // Get hero content
+  db.get('SELECT * FROM main_products_content WHERE id = 1', (err, heroContent) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    mainPageData.hero = heroContent || {
+      title: 'Our Products',
+      subtitle: 'Cloud Services - Made in India',
+      description: 'Discover our comprehensive suite of cloud computing services designed to power your business transformation.'
+    };
+    
+    // Get product sections
+    db.all(`
+      SELECT mps.*, p.name as product_name, p.description as product_description, p.category
+      FROM main_products_sections mps
+      JOIN products p ON mps.product_id = p.id
+      WHERE mps.is_visible = 1 AND p.is_visible = 1
+      ORDER BY mps.order_index ASC
+    `, (err, sections) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      mainPageData.sections = sections || [];
+      res.json(mainPageData);
+    });
+  });
+});
+
+// Get main solutions page content
+app.get('/api/main-solutions', (req, res) => {
+  const mainPageData = {};
+  
+  // Get hero content
+  db.get('SELECT * FROM main_solutions_content WHERE id = 1', (err, heroContent) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    mainPageData.hero = heroContent || {
+      title: 'Our Solutions',
+      subtitle: 'Enterprise Solutions - Made in India',
+      description: 'Explore our enterprise-grade solutions designed to transform your business operations.'
+    };
+    
+    // Get solution sections
+    db.all(`
+      SELECT mss.*, s.name as solution_name, s.description as solution_description, s.category
+      FROM main_solutions_sections mss
+      JOIN solutions s ON mss.solution_id = s.id
+      WHERE mss.is_visible = 1 AND s.is_visible = 1
+      ORDER BY mss.order_index ASC
+    `, (err, sections) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      mainPageData.sections = sections || [];
+      res.json(mainPageData);
+    });
+  });
+});
+
+// Update main products page hero content
+app.put('/api/main-products/hero', (req, res) => {
+  const { title, subtitle, description } = req.body;
+  
+  db.run(`
+    UPDATE main_products_content 
+    SET title = ?, subtitle = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = 1
+  `, [title, subtitle, description], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      // Insert if doesn't exist
+      db.run(`
+        INSERT INTO main_products_content (id, title, subtitle, description) 
+        VALUES (1, ?, ?, ?)
+      `, [title, subtitle, description], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Main products hero content created successfully' });
+      });
+    } else {
+      res.json({ message: 'Main products hero content updated successfully' });
+    }
+  });
+});
+
+// Update main solutions page hero content
+app.put('/api/main-solutions/hero', (req, res) => {
+  const { title, subtitle, description } = req.body;
+  
+  db.run(`
+    UPDATE main_solutions_content 
+    SET title = ?, subtitle = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = 1
+  `, [title, subtitle, description], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      // Insert if doesn't exist
+      db.run(`
+        INSERT INTO main_solutions_content (id, title, subtitle, description) 
+        VALUES (1, ?, ?, ?)
+      `, [title, subtitle, description], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Main solutions hero content created successfully' });
+      });
+    } else {
+      res.json({ message: 'Main solutions hero content updated successfully' });
+    }
+  });
+});
+
+// Update main products section
+app.put('/api/main-products/sections/:sectionId', (req, res) => {
+  const { sectionId } = req.params;
+  const { title, description, is_visible, order_index } = req.body;
+  
+  db.run(`
+    UPDATE main_products_sections 
+    SET title = ?, description = ?, is_visible = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `, [title, description, is_visible, order_index, sectionId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Main products section updated successfully', changes: this.changes });
+  });
+});
+
+// Update main solutions section
+app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
+  const { sectionId } = req.params;
+  const { title, description, is_visible, order_index } = req.body;
+  
+  db.run(`
+    UPDATE main_solutions_sections 
+    SET title = ?, description = ?, is_visible = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `, [title, description, is_visible, order_index, sectionId], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Main solutions section updated successfully', changes: this.changes });
   });
 });
 

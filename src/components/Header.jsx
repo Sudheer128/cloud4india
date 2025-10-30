@@ -34,12 +34,12 @@ const Header = () => {
                 <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Discover Cloud4India
                 </a>
-                <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
+                <Link to="/products" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Products
-                </a>
-                <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
+                </Link>
+                <Link to="/solutions" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Solutions
-                </a>
+                </Link>
                 <Link to="/pricing" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Pricing
                 </Link>

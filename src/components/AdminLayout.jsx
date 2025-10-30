@@ -4,7 +4,9 @@ import {
   Squares2X2Icon, 
   ChevronDoubleLeftIcon, 
   ChevronDoubleRightIcon,
-  CubeIcon
+  CubeIcon,
+  RectangleGroupIcon,
+  PuzzlePieceIcon
 } from '@heroicons/react/24/outline';
 
 const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) => {
@@ -54,6 +56,20 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
           window.location.href = '/admin#solutions';
         }
       }
+    },
+    {
+      id: 'products-main',
+      label: 'Products Main',
+      icon: RectangleGroupIcon,
+      href: '/admin/products-main',
+      isActive: activeSection === 'products-main'
+    },
+    {
+      id: 'solutions-main',
+      label: 'Solutions Main',
+      icon: PuzzlePieceIcon,
+      href: '/admin/solutions-main',
+      isActive: activeSection === 'solutions-main'
     }
   ];
 

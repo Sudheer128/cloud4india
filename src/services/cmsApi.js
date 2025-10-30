@@ -676,4 +676,105 @@ export default {
   toggleProductVisibility,
   duplicateProduct,
   checkCMSHealth,
+  // Main Pages API functions
+  getMainProductsContent,
+  getMainSolutionsContent,
+  updateMainProductsHero,
+  updateMainSolutionsHero,
+  updateMainProductsSection,
+  updateMainSolutionsSection,
+};
+
+// ===== MAIN PAGES API FUNCTIONS =====
+
+/**
+ * Get main products page content
+ * @returns {Promise<Object>} Main products page data with hero and sections
+ */
+export const getMainProductsContent = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/main-products?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching main products content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get main solutions page content
+ * @returns {Promise<Object>} Main solutions page data with hero and sections
+ */
+export const getMainSolutionsContent = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/main-solutions?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching main solutions content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update main products page hero content
+ * @param {Object} heroData - Hero section data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateMainProductsHero = async (heroData) => {
+  try {
+    const response = await cmsApi.put('/main-products/hero', heroData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating main products hero:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update main solutions page hero content
+ * @param {Object} heroData - Hero section data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateMainSolutionsHero = async (heroData) => {
+  try {
+    const response = await cmsApi.put('/main-solutions/hero', heroData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating main solutions hero:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update main products section
+ * @param {number} sectionId - Section ID
+ * @param {Object} sectionData - Section data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateMainProductsSection = async (sectionId, sectionData) => {
+  try {
+    const response = await cmsApi.put(`/main-products/sections/${sectionId}`, sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating main products section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update main solutions section
+ * @param {number} sectionId - Section ID
+ * @param {Object} sectionData - Section data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateMainSolutionsSection = async (sectionId, sectionData) => {
+  try {
+    const response = await cmsApi.put(`/main-solutions/sections/${sectionId}`, sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating main solutions section:', error);
+    throw error;
+  }
 };
