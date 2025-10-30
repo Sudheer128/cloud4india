@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
+import ScrollToTop from './components/ScrollToTop'
 import Home from './pages/Home'
 import AdminPanel from './pages/AdminPanel'
 import ProductsAdmin from './pages/ProductsAdmin'
@@ -16,6 +17,7 @@ import Footer from './components/Footer'
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-white">
         <Header />
         <main>

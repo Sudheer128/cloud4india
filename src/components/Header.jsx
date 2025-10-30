@@ -28,9 +28,9 @@ const Header = () => {
               
               {/* Main Navigation */}
               <nav className="hidden lg:flex items-center space-x-8">
-                <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
-                  Agentic AI
-                </a>
+                <Link to="/" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
+                  Homepage
+                </Link>
                 <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Discover Cloud4India
                 </a>
