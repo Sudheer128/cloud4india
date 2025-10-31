@@ -25,28 +25,28 @@ const config = {
     APP_VERSION: '1.0.0',
     DEBUG: true,
     BASE_URL: 'http://localhost:3001',
-    // AI Service Configuration (OpenRouter API)
-    AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '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',
-    AI_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-    AI_MODEL: 'qwen/qwen3-235b-a22b:free', // Qwen free model via OpenRouter
+    // AI Service Configuration (OpenAI API)
+    AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
+    AI_API_URL: 'https://api.openai.com/v1/chat/completions',
+    AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
     OPENROUTER_APP_NAME: 'Cloud4India',
     OPENROUTER_SITE_URL: 'http://localhost:3001' // Required for OpenRouter
   },
   production: {
     NODE_ENV: 'production',
     APP_ENV: 'production',
-    API_URL: 'http://161.97.155.89:4002',
-    CMS_URL: 'http://161.97.155.89:4002',
+    API_URL: import.meta.env.VITE_API_URL || 'http://38.242.248.213:4002',
+    CMS_URL: import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: false,
-    BASE_URL: 'http://161.97.155.89:4001',
-    // AI Service Configuration (OpenRouter API)
+    BASE_URL: 'http://38.242.248.213:4001',
+    // AI Service Configuration (OpenAI API)
     AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
-    AI_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-    AI_MODEL: 'qwen/qwen3-coder:free', // Qwen free model via OpenRouter
+    AI_API_URL: 'https://api.openai.com/v1/chat/completions',
+    AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
     OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://161.97.155.89:4001'
+    OPENROUTER_SITE_URL: 'http://38.242.248.213:4001'
   }
 }
 
