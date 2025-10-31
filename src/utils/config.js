@@ -19,8 +19,8 @@ const config = {
   local: {
     NODE_ENV: 'development',
     APP_ENV: 'local',
-    API_URL: 'http://localhost:4002',
-    CMS_URL: 'http://localhost:4002',
+    API_URL: import.meta.env.VITE_API_URL || 'http://localhost:4002',
+    CMS_URL: import.meta.env.VITE_CMS_URL || 'http://localhost:4002',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: true,
@@ -30,7 +30,7 @@ const config = {
     AI_API_URL: 'https://api.openai.com/v1/chat/completions',
     AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
     OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://localhost:3001' // Required for OpenRouter
+    OPENROUTER_SITE_URL: 'http://localhost:3001'
   },
   production: {
     NODE_ENV: 'production',

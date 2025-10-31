@@ -683,18 +683,32 @@ export default {
   updateMainSolutionsHero,
   updateMainProductsSection,
   updateMainSolutionsSection,
+  duplicateMainProductsSection,
+  deleteMainProductsSection,
+  toggleMainProductsSectionVisibility,
+  createMainProductsSection,
+  getAllProductsForSection,
+  getAllMainSolutionsSections,
+  duplicateMainSolutionsSection,
+  deleteMainSolutionsSection,
+  toggleMainSolutionsSectionVisibility,
+  createMainSolutionsSection,
 };
 
 // ===== MAIN PAGES API FUNCTIONS =====
 
 /**
  * Get main products page content
+ * @param {boolean} includeHidden - Include hidden sections (for admin)
  * @returns {Promise<Object>} Main products page data with hero and sections
  */
-export const getMainProductsContent = async () => {
+export const getMainProductsContent = async (includeHidden = false) => {
   try {
     const timestamp = new Date().getTime();
-    const response = await cmsApi.get(`/main-products?t=${timestamp}`);
+    const url = includeHidden 
+      ? `/main-products?t=${timestamp}&all=true`
+      : `/main-products?t=${timestamp}`;
+    const response = await cmsApi.get(url);
     return response.data;
   } catch (error) {
     console.error('Error fetching main products content:', error);
@@ -704,12 +718,16 @@ export const getMainProductsContent = async () => {
 
 /**
  * Get main solutions page content
+ * @param {boolean} includeHidden - Include hidden sections (for admin)
  * @returns {Promise<Object>} Main solutions page data with hero and sections
  */
-export const getMainSolutionsContent = async () => {
+export const getMainSolutionsContent = async (includeHidden = false) => {
   try {
     const timestamp = new Date().getTime();
-    const response = await cmsApi.get(`/main-solutions?t=${timestamp}`);
+    const url = includeHidden 
+      ? `/main-solutions?t=${timestamp}&all=true`
+      : `/main-solutions?t=${timestamp}`;
+    const response = await cmsApi.get(url);
     return response.data;
   } catch (error) {
     console.error('Error fetching main solutions content:', error);
@@ -748,6 +766,80 @@ export const updateMainSolutionsHero = async (heroData) => {
 };
 
 /**
+ * Get all main solutions sections (including hidden ones for admin)
+ * @returns {Promise<Array>} All sections
+ */
+export const getAllMainSolutionsSections = async () => {
+  try {
+    const response = await cmsApi.get('/main-solutions/sections/all');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all main solutions sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Duplicate main solutions section
+ * @param {number} sectionId - Section ID to duplicate
+ * @returns {Promise<Object>} Duplicate response
+ */
+export const duplicateMainSolutionsSection = async (sectionId) => {
+  try {
+    const response = await cmsApi.post(`/main-solutions/sections/${sectionId}/duplicate`);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating main solutions section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete main solutions section
+ * @param {number} sectionId - Section ID to delete
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteMainSolutionsSection = async (sectionId) => {
+  try {
+    const response = await cmsApi.delete(`/main-solutions/sections/${sectionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting main solutions section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle main solutions section visibility
+ * @param {number} sectionId - Section ID to toggle
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleMainSolutionsSectionVisibility = async (sectionId) => {
+  try {
+    const response = await cmsApi.patch(`/main-solutions/sections/${sectionId}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling main solutions section visibility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new main solutions section
+ * @param {Object} sectionData - Section data
+ * @returns {Promise<Object>} Create response
+ */
+export const createMainSolutionsSection = async (sectionData) => {
+  try {
+    const response = await cmsApi.post('/main-solutions/sections', sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating main solutions section:', error);
+    throw error;
+  }
+};
+
+/**
  * Update main products section
  * @param {number} sectionId - Section ID
  * @param {Object} sectionData - Section data
@@ -775,6 +867,94 @@ export const updateMainSolutionsSection = async (sectionId, sectionData) => {
     return response.data;
   } catch (error) {
     console.error('Error updating main solutions section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all main products sections (including hidden ones for admin)
+ * @returns {Promise<Array>} All sections
+ */
+export const getAllMainProductsSections = async () => {
+  try {
+    const response = await cmsApi.get('/main-products/sections/all');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all main products sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Duplicate main products section
+ * @param {number} sectionId - Section ID to duplicate
+ * @returns {Promise<Object>} Duplicate response
+ */
+export const duplicateMainProductsSection = async (sectionId) => {
+  try {
+    const response = await cmsApi.post(`/main-products/sections/${sectionId}/duplicate`);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating main products section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete main products section
+ * @param {number} sectionId - Section ID to delete
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteMainProductsSection = async (sectionId) => {
+  try {
+    const response = await cmsApi.delete(`/main-products/sections/${sectionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting main products section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle visibility of main products section
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleMainProductsSectionVisibility = async (sectionId) => {
+  try {
+    const response = await cmsApi.patch(`/main-products/sections/${sectionId}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling main products section visibility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new main products section
+ * @param {Object} sectionData - Section data (product_id, title, description, is_visible)
+ * @returns {Promise<Object>} Create response
+ */
+export const createMainProductsSection = async (sectionData) => {
+  try {
+    const response = await cmsApi.post('/main-products/sections', sectionData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating main products section:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all products (for dropdown when creating new section)
+ * @returns {Promise<Array>} All products
+ */
+export const getAllProductsForSection = async () => {
+  try {
+    const response = await cmsApi.get('/products');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching products:', error);
     throw error;
   }
 };

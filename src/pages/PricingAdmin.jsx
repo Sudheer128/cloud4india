@@ -2,28 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   PlusIcon, 
   PencilIcon, 
-  TrashIcon, 
-  CheckIcon, 
-  XMarkIcon,
-  CpuChipIcon,
-  CircleStackIcon,
-  CloudIcon,
-  ServerIcon,
-  ShieldCheckIcon,
-  CogIcon
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
 
-// Icon mapping for categories
-const iconMap = {
-  'CpuChipIcon': CpuChipIcon,
-  'CircleStackIcon': CircleStackIcon,
-  'CloudIcon': CloudIcon,
-  'ServerIcon': ServerIcon,
-  'ShieldCheckIcon': ShieldCheckIcon,
-  'CogIcon': CogIcon
-};
 
 const PricingAdmin = () => {
   const [activeTab, setActiveTab] = useState('hero');
@@ -37,45 +20,28 @@ const PricingAdmin = () => {
     description: ''
   });
 
-  // Categories State
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [subcategories, setSubcategories] = useState([]);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [plans, setPlans] = useState([]);
+  // Compute Plans State
+  const [computePlans, setComputePlans] = useState([]);
+  const [activeComputePlanTab, setActiveComputePlanTab] = useState('basic');
 
-  // Storage Options State
-  const [storageOptions, setStorageOptions] = useState([]);
+  // Disk Offerings State
+  const [diskOfferings, setDiskOfferings] = useState([]);
 
   // FAQs State
   const [faqs, setFaqs] = useState([]);
 
   // Editing States
-  const [editingPlan, setEditingPlan] = useState(null);
-  const [editingStorage, setEditingStorage] = useState(null);
+  const [editingComputePlan, setEditingComputePlan] = useState(null);
+  const [editingDiskOffering, setEditingDiskOffering] = useState(null);
   const [editingFaq, setEditingFaq] = useState(null);
 
   // Load initial data
   useEffect(() => {
     loadHeroData();
-    loadCategories();
-    loadStorageOptions();
+    loadComputePlans();
+    loadDiskOfferings();
     loadFaqs();
   }, []);
-
-  // Load subcategories when category changes
-  useEffect(() => {
-    if (selectedCategory) {
-      loadSubcategories(selectedCategory.id);
-    }
-  }, [selectedCategory]);
-
-  // Load plans when subcategory changes
-  useEffect(() => {
-    if (selectedSubcategory) {
-      loadPlans(selectedSubcategory.id);
-    }
-  }, [selectedSubcategory]);
 
   // API Functions
   const loadHeroData = async () => {
@@ -93,63 +59,27 @@ const PricingAdmin = () => {
     }
   };
 
-  const loadCategories = async () => {
+  const loadComputePlans = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pricing/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/pricing/compute-plans`);
       if (response.ok) {
         const data = await response.json();
-        setCategories(data);
-        if (data.length > 0 && !selectedCategory) {
-          setSelectedCategory(data[0]);
-        }
+        setComputePlans(data);
       }
     } catch (err) {
-      console.error('Error loading categories:', err);
+      console.error('Error loading compute plans:', err);
     }
   };
 
-  const loadSubcategories = async (categoryId) => {
+  const loadDiskOfferings = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pricing/categories/${categoryId}/subcategories`);
+      const response = await fetch(`${API_BASE_URL}/api/pricing/disk-offerings`);
       if (response.ok) {
         const data = await response.json();
-        setSubcategories(data);
-        if (data.length > 0) {
-          setSelectedSubcategory(data[0]);
-        } else {
-          setSelectedSubcategory(null);
-          setPlans([]);
-        }
+        setDiskOfferings(data);
       }
     } catch (err) {
-      console.error('Error loading subcategories:', err);
-    }
-  };
-
-  const loadPlans = async (subcategoryId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/pricing/subcategories/${subcategoryId}/plans`);
-      if (response.ok) {
-        const data = await response.json();
-        setPlans(data);
-      }
-    } catch (err) {
-      console.error('Error loading plans:', err);
-    }
-  };
-
-  const loadStorageOptions = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/pricing/storage`);
-      if (response.ok) {
-        const data = await response.json();
-        setStorageOptions(data.map(option => ({
-          ...option,
-          features: option.features ? JSON.parse(option.features) : []
-        })));
-      }
-    } catch (err) {
-      console.error('Error loading storage options:', err);
+      console.error('Error loading disk offerings:', err);
     }
   };
 
@@ -187,12 +117,12 @@ const PricingAdmin = () => {
     }
   };
 
-  const savePlan = async (planData) => {
+  const saveComputePlan = async (planData) => {
     try {
       setSaving(true);
       const url = planData.id 
-        ? `${API_BASE_URL}/api/pricing/plans/${planData.id}`
-        : `${API_BASE_URL}/api/pricing/subcategories/${selectedSubcategory.id}/plans`;
+        ? `${API_BASE_URL}/api/pricing/compute-plans/${planData.id}`
+        : `${API_BASE_URL}/api/pricing/compute-plans`;
       
       const method = planData.id ? 'PUT' : 'POST';
       
@@ -203,64 +133,83 @@ const PricingAdmin = () => {
       });
       
       if (response.ok) {
-        alert(`Plan ${planData.id ? 'updated' : 'created'} successfully!`);
-        loadPlans(selectedSubcategory.id);
-        setEditingPlan(null);
+        alert(`Compute plan ${planData.id ? 'updated' : 'created'} successfully!`);
+        loadComputePlans();
+        setEditingComputePlan(null);
       } else {
-        throw new Error(`Failed to ${planData.id ? 'update' : 'create'} plan`);
+        throw new Error(`Failed to ${planData.id ? 'update' : 'create'} compute plan`);
       }
     } catch (err) {
-      alert(`Error ${planData.id ? 'updating' : 'creating'} plan: ` + err.message);
+      alert(`Error ${planData.id ? 'updating' : 'creating'} compute plan: ` + err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const deletePlan = async (planId) => {
-    if (!window.confirm('Are you sure you want to delete this plan?')) return;
+  const deleteComputePlan = async (planId) => {
+    if (!window.confirm('Are you sure you want to delete this compute plan?')) return;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pricing/plans/${planId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/pricing/compute-plans/${planId}`, {
         method: 'DELETE'
       });
       
       if (response.ok) {
-        alert('Plan deleted successfully!');
-        loadPlans(selectedSubcategory.id);
+        alert('Compute plan deleted successfully!');
+        loadComputePlans();
       } else {
-        throw new Error('Failed to delete plan');
+        throw new Error('Failed to delete compute plan');
       }
     } catch (err) {
-      alert('Error deleting plan: ' + err.message);
+      alert('Error deleting compute plan: ' + err.message);
     }
   };
 
-  const saveStorageOption = async (storageData) => {
+  const saveDiskOffering = async (offeringData) => {
     try {
       setSaving(true);
-      const url = storageData.id 
-        ? `${API_BASE_URL}/api/pricing/storage/${storageData.id}`
-        : `${API_BASE_URL}/api/pricing/storage`;
+      const url = offeringData.id 
+        ? `${API_BASE_URL}/api/pricing/disk-offerings/${offeringData.id}`
+        : `${API_BASE_URL}/api/pricing/disk-offerings`;
       
-      const method = storageData.id ? 'PUT' : 'POST';
+      const method = offeringData.id ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storageData)
+        body: JSON.stringify(offeringData)
       });
       
       if (response.ok) {
-        alert(`Storage option ${storageData.id ? 'updated' : 'created'} successfully!`);
-        loadStorageOptions();
-        setEditingStorage(null);
+        alert(`Disk offering ${offeringData.id ? 'updated' : 'created'} successfully!`);
+        loadDiskOfferings();
+        setEditingDiskOffering(null);
       } else {
-        throw new Error(`Failed to ${storageData.id ? 'update' : 'create'} storage option`);
+        throw new Error(`Failed to ${offeringData.id ? 'update' : 'create'} disk offering`);
       }
     } catch (err) {
-      alert(`Error ${storageData.id ? 'updating' : 'creating'} storage option: ` + err.message);
+      alert(`Error ${offeringData.id ? 'updating' : 'creating'} disk offering: ` + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteDiskOffering = async (offeringId) => {
+    if (!window.confirm('Are you sure you want to delete this disk offering?')) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pricing/disk-offerings/${offeringId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        alert('Disk offering deleted successfully!');
+        loadDiskOfferings();
+      } else {
+        throw new Error('Failed to delete disk offering');
+      }
+    } catch (err) {
+      alert('Error deleting disk offering: ' + err.message);
     }
   };
 
@@ -312,20 +261,16 @@ const PricingAdmin = () => {
     }
   };
 
-  // Component: Plan Editor
-  const PlanEditor = ({ plan, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(plan || {
-      ram: '',
+
+  // Component: Compute Plan Editor
+  const ComputePlanEditor = ({ plan, onSave, onCancel }) => {
+    const [formData, setFormData] = useState(plan ? { ...plan } : {
+      plan_type: 'basic',
+      name: '',
       vcpu: '',
-      storage: '',
-      bandwidth: '',
-      discount: '',
-      hourly_price: '',
+      memory: '',
       monthly_price: '',
-      yearly_price: '',
-      instance_type: '',
-      nodes: '',
-      is_popular: false
+      hourly_price: ''
     });
 
     const handleSubmit = (e) => {
@@ -333,147 +278,86 @@ const PricingAdmin = () => {
       onSave(formData);
     };
 
-    const isKubernetes = selectedSubcategory?.slug === 'kubernetes';
-
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-xl font-bold mb-6">{plan ? 'Edit Plan' : 'Create New Plan'}</h3>
+          <h3 className="text-xl font-bold mb-6">{plan ? 'Edit Compute Plan' : 'Create New Compute Plan'}</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isKubernetes ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Instance Type</label>
-                  <input
-                    type="text"
-                    value={formData.instance_type || ''}
-                    onChange={(e) => setFormData({...formData, instance_type: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., Shared 80 GB"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nodes</label>
-                  <input
-                    type="text"
-                    value={formData.nodes || ''}
-                    onChange={(e) => setFormData({...formData, nodes: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., 1"
-                    required
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">RAM</label>
-                  <input
-                    type="text"
-                    value={formData.ram || ''}
-                    onChange={(e) => setFormData({...formData, ram: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., 4 GB"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Storage</label>
-                  <input
-                    type="text"
-                    value={formData.storage || ''}
-                    onChange={(e) => setFormData({...formData, storage: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., 80 GB SSD"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bandwidth</label>
-                  <input
-                    type="text"
-                    value={formData.bandwidth || ''}
-                    onChange={(e) => setFormData({...formData, bandwidth: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., 3 TB"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount</label>
-                  <input
-                    type="text"
-                    value={formData.discount || ''}
-                    onChange={(e) => setFormData({...formData, discount: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="e.g., 20%"
-                  />
-                </div>
-              </>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plan Type</label>
+              <select
+                value={formData.plan_type}
+                onChange={(e) => setFormData({...formData, plan_type: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+                <option value="basic">Basic Compute Plans</option>
+                <option value="cpuIntensive">CPU Intensive</option>
+                <option value="memoryIntensive">Memory Intensive</option>
+              </select>
+            </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">vCPU</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
                 type="text"
-                value={formData.vcpu || ''}
-                onChange={(e) => setFormData({...formData, vcpu: e.target.value})}
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="e.g., 2 vCPU"
+                placeholder="e.g., BP_1vC-1GB"
                 required
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">vCPU</label>
                 <input
                   type="text"
-                  value={formData.hourly_price || ''}
-                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  value={formData.vcpu}
+                  onChange={(e) => setFormData({...formData, vcpu: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹4.80"
+                  placeholder="e.g., 1 vCPU"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Memory</label>
                 <input
                   type="text"
-                  value={formData.monthly_price || ''}
-                  onChange={(e) => setFormData({...formData, monthly_price: e.target.value})}
+                  value={formData.memory}
+                  onChange={(e) => setFormData({...formData, memory: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹3,400"
+                  placeholder="e.g., 1.0 GB"
                   required
                 />
               </div>
             </div>
             
-            {!isKubernetes && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
                 <input
                   type="text"
-                  value={formData.yearly_price || ''}
-                  onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
+                  value={formData.monthly_price}
+                  onChange={(e) => setFormData({...formData, monthly_price: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹32,640"
+                  placeholder="e.g., ₹512"
+                  required
                 />
               </div>
-            )}
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="is_popular"
-                checked={formData.is_popular || false}
-                onChange={(e) => setFormData({...formData, is_popular: e.target.checked})}
-                className="mr-2"
-              />
-              <label htmlFor="is_popular" className="text-sm font-medium text-gray-700">
-                Mark as Popular Plan
-              </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <input
+                  type="text"
+                  value={formData.hourly_price}
+                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹0.7"
+                  required
+                />
+              </div>
             </div>
             
             <div className="flex gap-4 pt-4">
@@ -498,13 +382,14 @@ const PricingAdmin = () => {
     );
   };
 
-  // Component: Storage Editor
-  const StorageEditor = ({ storage, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(storage || {
+  // Component: Disk Offering Editor
+  const DiskOfferingEditor = ({ offering, onSave, onCancel }) => {
+    const [formData, setFormData] = useState(offering ? { ...offering } : {
       name: '',
-      description: '',
-      price_per_gb: '',
-      features: []
+      storage_type: 'NVMe',
+      size: '',
+      monthly_price: '',
+      hourly_price: ''
     });
 
     const handleSubmit = (e) => {
@@ -512,28 +397,10 @@ const PricingAdmin = () => {
       onSave(formData);
     };
 
-    const addFeature = () => {
-      setFormData({
-        ...formData,
-        features: [...formData.features, '']
-      });
-    };
-
-    const updateFeature = (index, value) => {
-      const newFeatures = [...formData.features];
-      newFeatures[index] = value;
-      setFormData({...formData, features: newFeatures});
-    };
-
-    const removeFeature = (index) => {
-      const newFeatures = formData.features.filter((_, i) => i !== index);
-      setFormData({...formData, features: newFeatures});
-    };
-
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-          <h3 className="text-xl font-bold mb-6">{storage ? 'Edit Storage Option' : 'Create New Storage Option'}</h3>
+          <h3 className="text-xl font-bold mb-6">{offering ? 'Edit Disk Offering' : 'Create New Disk Offering'}</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -543,62 +410,58 @@ const PricingAdmin = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="e.g., Block Storage"
+                placeholder="e.g., 20 GB"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 h-24"
-                placeholder="High-performance SSD storage for your applications"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price per GB</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Storage Type</label>
               <input
                 type="text"
-                value={formData.price_per_gb}
-                onChange={(e) => setFormData({...formData, price_per_gb: e.target.value})}
+                value={formData.storage_type}
+                onChange={(e) => setFormData({...formData, storage_type: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="e.g., ₹2.50"
+                placeholder="e.g., NVMe"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Features</label>
-              {formData.features.map((feature, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={feature}
-                    onChange={(e) => updateFeature(index, e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="Enter feature"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addFeature}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                <PlusIcon className="w-4 h-4 inline mr-1" />
-                Add Feature
-              </button>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
+              <input
+                type="text"
+                value={formData.size}
+                onChange={(e) => setFormData({...formData, size: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                placeholder="e.g., 20.0 GB"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
+                <input
+                  type="text"
+                  value={formData.monthly_price}
+                  onChange={(e) => setFormData({...formData, monthly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹160"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <input
+                  type="text"
+                  value={formData.hourly_price}
+                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹0.25"
+                  required
+                />
+              </div>
             </div>
             
             <div className="flex gap-4 pt-4">
@@ -607,7 +470,7 @@ const PricingAdmin = () => {
                 disabled={saving}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
               >
-                {saving ? 'Saving...' : (storage ? 'Update Storage' : 'Create Storage')}
+                {saving ? 'Saving...' : (offering ? 'Update Offering' : 'Create Offering')}
               </button>
               <button
                 type="button"
@@ -700,8 +563,8 @@ const PricingAdmin = () => {
             <nav className="-mb-px flex space-x-8">
               {[
                 { id: 'hero', name: 'Hero Section' },
-                { id: 'plans', name: 'Pricing Plans' },
-                { id: 'storage', name: 'Storage Options' },
+                { id: 'compute-plans', name: 'Compute Plans' },
+                { id: 'disk-offerings', name: 'Disk Offerings' },
                 { id: 'faqs', name: 'FAQs' }
               ].map((tab) => (
                 <button
@@ -758,140 +621,77 @@ const PricingAdmin = () => {
           </div>
         )}
 
-        {/* Pricing Plans Tab */}
-        {activeTab === 'plans' && (
+        {/* Compute Plans Tab */}
+        {activeTab === 'compute-plans' && (
           <div className="space-y-6">
-            {/* Category Selection */}
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Select Category</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {categories.map((category) => {
-                  const IconComponent = iconMap[category.icon] || CpuChipIcon;
-                  return (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        selectedCategory?.id === category.id
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <IconComponent className="w-8 h-8 mx-auto mb-2" />
-                      <div className="text-sm font-medium">{category.name}</div>
-                    </button>
-                  );
-                })}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Compute Plans</h2>
+                <button
+                  onClick={() => setEditingComputePlan({})}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center"
+                >
+                  <PlusIcon className="w-4 h-4 mr-2" />
+                  Add Compute Plan
+                </button>
               </div>
-            </div>
 
-            {/* Subcategory Selection */}
-            {selectedCategory && subcategories.length > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  {selectedCategory.name} - Select Subcategory
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {subcategories.map((subcategory) => (
+              {/* Tab Navigation */}
+              <div className="mb-6 border-b border-gray-200">
+                <nav className="flex space-x-8">
+                  {[
+                    { id: 'basic', label: 'Basic Compute Plans' },
+                    { id: 'cpuIntensive', label: 'CPU Intensive' },
+                    { id: 'memoryIntensive', label: 'Memory Intensive' }
+                  ].map((tab) => (
                     <button
-                      key={subcategory.id}
-                      onClick={() => setSelectedSubcategory(subcategory)}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
-                        selectedSubcategory?.id === subcategory.id
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                      key={tab.id}
+                      onClick={() => setActiveComputePlanTab(tab.id)}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        activeComputePlanTab === tab.id
+                          ? 'border-orange-500 text-orange-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                       }`}
                     >
-                      <div className="font-medium text-gray-900">{subcategory.name}</div>
-                      <div className="text-sm text-gray-600 mt-1">{subcategory.description}</div>
+                      {tab.label}
                     </button>
                   ))}
-                </div>
+                </nav>
               </div>
-            )}
 
-            {/* Plans Management */}
-            {selectedSubcategory && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {selectedSubcategory.name} Plans
-                  </h2>
-                  <button
-                    onClick={() => setEditingPlan({})}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center"
-                  >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    Add Plan
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full table-auto">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        {selectedSubcategory.slug === 'kubernetes' ? (
-                          <>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Instance Type</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Nodes</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">RAM</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">vCPU</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Hourly</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Monthly</th>
-                          </>
-                        ) : (
-                          <>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">RAM</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">vCPU</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Storage</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Bandwidth</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Discount</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Monthly</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Popular</th>
-                          </>
-                        )}
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plans.map((plan) => (
+              {/* Plans Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full table-auto">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">vCPU</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Memory RAM</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {computePlans
+                      .filter(plan => plan.plan_type === activeComputePlanTab)
+                      .map((plan) => (
                         <tr key={plan.id} className="border-t border-gray-200">
-                          {selectedSubcategory.slug === 'kubernetes' ? (
-                            <>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.instance_type}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.nodes}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.ram}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.vcpu}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.hourly_price}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
-                            </>
-                          ) : (
-                            <>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.ram}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.vcpu}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.storage}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.bandwidth}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.discount}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
-                              <td className="px-4 py-3 text-sm">
-                                {plan.is_popular ? (
-                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Popular</span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </td>
-                            </>
-                          )}
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.vcpu}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.memory}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.hourly_price}</td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <button
-                                onClick={() => setEditingPlan(plan)}
+                                onClick={() => setEditingComputePlan(plan)}
                                 className="text-blue-600 hover:text-blue-800"
                               >
                                 <PencilIcon className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => deletePlan(plan.id)}
+                                onClick={() => deleteComputePlan(plan.id)}
                                 className="text-red-600 hover:text-red-800"
                               >
                                 <TrashIcon className="w-4 h-4" />
@@ -900,57 +700,81 @@ const PricingAdmin = () => {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    {computePlans.filter(plan => plan.plan_type === activeComputePlanTab).length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                          No plans found for this category. Click "Add Compute Plan" to create one.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* Storage Options Tab */}
-        {activeTab === 'storage' && (
+        {/* Disk Offerings Tab */}
+        {activeTab === 'disk-offerings' && (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Storage Options</h2>
+              <h2 className="text-xl font-bold text-gray-900">Disk Offerings</h2>
               <button
-                onClick={() => setEditingStorage({})}
+                onClick={() => setEditingDiskOffering({})}
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center"
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
-                Add Storage Option
+                Add Disk Offering
               </button>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {storageOptions.map((storage) => (
-                <div key={storage.id} className="border border-gray-200 rounded-lg p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{storage.name}</h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingStorage(storage)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-4">{storage.description}</p>
-                  
-                  <div className="text-2xl font-bold text-green-600 mb-4">{storage.price_per_gb}</div>
-                  
-                  <ul className="space-y-2">
-                    {storage.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-700">
-                        <CheckIcon className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Name</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Storage Type</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Size</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diskOfferings.map((offering) => (
+                    <tr key={offering.id} className="border-t border-gray-200">
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.storage_type}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.size}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.monthly_price}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.hourly_price}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditingDiskOffering(offering)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteDiskOffering(offering.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {diskOfferings.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                        No disk offerings found. Click "Add Disk Offering" to create one.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -997,19 +821,19 @@ const PricingAdmin = () => {
         )}
 
         {/* Modals */}
-        {editingPlan && (
-          <PlanEditor
-            plan={editingPlan.id ? editingPlan : null}
-            onSave={savePlan}
-            onCancel={() => setEditingPlan(null)}
+        {editingComputePlan && (
+          <ComputePlanEditor
+            plan={editingComputePlan.id ? editingComputePlan : null}
+            onSave={saveComputePlan}
+            onCancel={() => setEditingComputePlan(null)}
           />
         )}
 
-        {editingStorage && (
-          <StorageEditor
-            storage={editingStorage.id ? editingStorage : null}
-            onSave={saveStorageOption}
-            onCancel={() => setEditingStorage(null)}
+        {editingDiskOffering && (
+          <DiskOfferingEditor
+            offering={editingDiskOffering.id ? editingDiskOffering : null}
+            onSave={saveDiskOffering}
+            onCancel={() => setEditingDiskOffering(null)}
           />
         )}
 

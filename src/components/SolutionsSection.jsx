@@ -1,44 +1,27 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
-import { useSolutions } from '../hooks/useSolutions'
-import { SolutionsLoading } from './LoadingComponents'
+import { useMainSolutionsContent } from '../hooks/useCMS'
+import { ContentWrapper } from './LoadingComponents'
 
 const SolutionsSection = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const { data: mainPageData, loading, error, refetch } = useMainSolutionsContent()
   
-  // Fetch solutions from CMS
-  const { solutions, loading, error } = useSolutions()
-
-  // Show loading state
-  if (loading) {
-    return <SolutionsLoading />
-  }
-
-  // Show error state with fallback
-  if (error) {
-    console.error('Failed to load solutions from CMS:', error)
-    // You could show an error message or fallback to static data here
-  }
+  // Use sections from mainPageData instead of solutions
+  const solutions = mainPageData?.sections || []
 
   const categories = ['all', 'Industry', 'Technology']
 
-  // Map CMS data to component format and filter
-  const filteredSolutions = solutions
-    .map(solution => ({
-      ...solution,
-      // Map CMS fields to component expected format
-      borderColor: solution.border_color || 'border-gray-200',
-      // Ensure route starts with /
-      route: solution.route?.startsWith('/') ? solution.route : `/${solution.route}`
-    }))
-    .filter(solution => {
-      const matchesSearch = solution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           solution.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = selectedCategory === 'all' || solution.category === selectedCategory
-      return matchesSearch && matchesCategory
-    })
+  const filteredSolutions = solutions?.filter(solution => {
+    const solutionName = solution.title || solution.name || '';
+    const solutionDesc = solution.description || '';
+    const matchesSearch = solutionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         solutionDesc.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || solution.category === selectedCategory
+    return matchesSearch && matchesCategory
+  }) || []
 
   return (
     <section className="py-16 bg-white">
@@ -100,41 +83,54 @@ const SolutionsSection = () => {
         </div>
 
         {/* Solutions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSolutions.map((solution) => {
-            // Create gradient class from database fields (now using light gradients)
-            const gradientClass = `from-${solution.gradient_start}-50 to-${solution.gradient_end}`;
-            
-            return (
-              <Link
-                key={solution.id}
-                to={`/solutions/${solution.id}`}
-                className={`bg-gradient-to-br ${gradientClass} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block text-gray-900`}
-              >
-                <div className="mb-4">
-                  <span className="inline-block bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
-                    {solution.category}
-                  </span>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                    {solution.name}
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {solution.description}
-                  </p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-all">
-                    <span>View solutions</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <ContentWrapper 
+          loading={loading} 
+          error={error} 
+          data={solutions} 
+          onRetry={refetch}
+          loadingText="Loading solutions..."
+          emptyMessage="No solutions available"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSolutions.map((solution) => {
+              // Use solution ID for dynamic routing - fallback to section id if no solution_id
+              const solutionId = solution.solution_id || solution.id;
+              const solutionName = solution.title || solution.name || '';
+              const solutionCategory = solution.category || 'Enterprise Solutions';
+              
+              return (
+                <Link
+                  key={solution.id}
+                  to={`/solutions/${solutionId}`}
+                  className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block"
+                >
+                  <div className="mb-4">
+                    {solutionCategory && (
+                      <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
+                        {solutionCategory}
+                      </span>
+                    )}
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                      {solutionName}
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      {solution.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
+                      <span>{solution.button_text || 'View solution'}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </ContentWrapper>
 
         {/* Show more button */}
         {filteredSolutions.length === solutions.length && (

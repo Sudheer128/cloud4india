@@ -4,6 +4,14 @@
 FROM node:18-alpine AS build
 WORKDIR /app
 
+# Accept build arguments for Vite environment variables
+ARG VITE_API_URL
+ARG VITE_CMS_URL
+
+# Set environment variables for Vite (these will be embedded at build time)
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CMS_URL=$VITE_CMS_URL
+
 # Copy package files
 COPY package*.json ./
 

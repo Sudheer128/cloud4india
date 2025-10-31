@@ -14,13 +14,16 @@ import {
   usePricingSubcategories, 
   usePricingPlans, 
   useStorageOptions, 
-  usePricingFAQs 
+  usePricingFAQs,
+  useComputePlans,
+  useDiskOfferings
 } from '../hooks/usePricingData'
+import ChooseImageSection from '../components/ChooseImageSection'
 
 const Pricing = () => {
   const [activeTab, setActiveTab] = useState('compute')
   const [activeComputeSection, setActiveComputeSection] = useState('shared-cpu')
-  const [billingCycle, setBillingCycle] = useState('monthly')
+  const [activeComputePlanTab, setActiveComputePlanTab] = useState('basic')
 
   // Fetch data from CMS
   const { hero, loading: heroLoading } = usePricingHero()
@@ -29,6 +32,8 @@ const Pricing = () => {
   const { plans } = usePricingPlans(subcategories.find(sub => sub.slug === activeComputeSection)?.id)
   const { storageOptions } = useStorageOptions()
   const { faqs } = usePricingFAQs()
+  const { computePlans: computePlansData } = useComputePlans()
+  const { diskOfferings: diskOfferingsData } = useDiskOfferings()
 
   // Icon mapping for categories from CMS
   const iconMap = {
@@ -195,6 +200,40 @@ const Pricing = () => {
 
   // Storage options are now fetched from CMS via useStorageOptions hook
 
+  // Transform compute plans data from API
+  const computePlanTabs = {
+    basic: computePlansData.filter(p => p.plan_type === 'basic').map(p => ({
+      name: p.name,
+      vcpu: p.vcpu,
+      memory: p.memory,
+      monthlyPrice: p.monthly_price,
+      hourlyPrice: p.hourly_price
+    })),
+    cpuIntensive: computePlansData.filter(p => p.plan_type === 'cpuIntensive').map(p => ({
+      name: p.name,
+      vcpu: p.vcpu,
+      memory: p.memory,
+      monthlyPrice: p.monthly_price,
+      hourlyPrice: p.hourly_price
+    })),
+    memoryIntensive: computePlansData.filter(p => p.plan_type === 'memoryIntensive').map(p => ({
+      name: p.name,
+      vcpu: p.vcpu,
+      memory: p.memory,
+      monthlyPrice: p.monthly_price,
+      hourlyPrice: p.hourly_price
+    }))
+  }
+
+  // Transform disk offerings data from API
+  const diskOfferings = diskOfferingsData.map(offering => ({
+    name: offering.name,
+    storageType: offering.storage_type,
+    size: offering.size,
+    monthlyPrice: offering.monthly_price,
+    hourlyPrice: offering.hourly_price
+  }))
+
   const PricingCard = ({ plan, isPopular = false, isFirst = false, isLast = false, cardType = 'compute' }) => {
     let roundedClass = '';
     if (isLast) {
@@ -203,12 +242,7 @@ const Pricing = () => {
       roundedClass = ''; // All other items - no rounding (including first item)
     }
 
-    // Handle both CMS data format and hardcoded format
-    const displayPrice = billingCycle === 'hourly' ? 
-      (plan.hourly_price || plan.hourlyPrice) : 
-      billingCycle === 'monthly' ? 
-      (plan.monthly_price || plan.monthlyPrice) : 
-      (plan.yearly_price || plan.yearlyPrice);
+    // No longer needed - we show both hourly and monthly
 
     return (
       <div className={`relative bg-white ${roundedClass} shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
@@ -239,13 +273,12 @@ const Pricing = () => {
                 <div className="font-semibold text-gray-900 mb-1">{plan.vcpu}</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-gray-900 mb-1">{plan.hourly_price}</div>
+                <div className="font-bold text-lg text-gray-900 mb-1">{plan.hourly_price}</div>
+                <div className="text-xs text-gray-500">/hour</div>
               </div>
               <div className="text-center">
                 <div className="font-bold text-lg text-gray-900 mb-1">{plan.monthly_price}</div>
-                <button className="mt-2 bg-orange-200 hover:bg-orange-300 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
-                  <ArrowRightIcon className="w-4 h-4" />
-                </button>
+                <div className="text-xs text-gray-500">/month</div>
               </div>
             </div>
           ) : cardType === 'storage' ? (
@@ -291,18 +324,19 @@ const Pricing = () => {
               </div>
               <div className="text-center">
                 <div className="font-bold text-lg text-gray-900 mb-1">
-                  {displayPrice || 'Contact Sales'}
+                  {plan.hourly_price || plan.hourlyPrice || 'Contact Sales'}
                 </div>
-                {displayPrice && (
-                  <div className="text-xs text-gray-500">
-                    /{billingCycle === 'hourly' ? 'hour' : billingCycle}
-                  </div>
+                {(plan.hourly_price || plan.hourlyPrice) && (
+                  <div className="text-xs text-gray-500">/hour</div>
                 )}
               </div>
               <div className="text-center">
-                <button className="bg-green-200 hover:bg-green-300 text-gray-900 px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
-                  <ArrowRightIcon className="w-4 h-4" />
-                </button>
+                <div className="font-bold text-lg text-gray-900 mb-1">
+                  {plan.monthly_price || plan.monthlyPrice || 'Contact Sales'}
+                </div>
+                {(plan.monthly_price || plan.monthlyPrice) && (
+                  <div className="text-xs text-gray-500">/month</div>
+                )}
               </div>
             </div>
           )}
@@ -358,6 +392,9 @@ const Pricing = () => {
         </div>
       </section>
 
+      {/* Choose Image Section */}
+      <ChooseImageSection />
+
       {/* Main Pricing Section */}
       <section className="pb-20">
         <div className="max-w-7xl mx-auto px-6">
@@ -365,173 +402,150 @@ const Pricing = () => {
             Affordable Cloud Server Pricing and Plans in India
           </h2>
 
-          <div className="flex gap-8">
-            {/* Sidebar Navigation */}
-            <div className="w-80 flex-shrink-0">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                {categoriesData.map((category) => {
-                  const IconComponent = category.icon
-                  const isActive = activeTab === category.id
-                  
-                  return (
-                    <div key={category.id}>
-                      <button
-                        onClick={() => setActiveTab(category.id)}
-                        className={`w-full flex items-center justify-between px-6 py-4 text-left transition-all duration-200 ${
-                          isActive 
-                            ? 'bg-green-50 border-r-4 border-green-300 text-green-700' 
-                            : 'hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <IconComponent className={`w-5 h-5 ${isActive ? 'text-green-500' : 'text-gray-500'}`} />
-                          <span className="font-semibold">{category.name}</span>
-                        </div>
-                        <span className={`text-2xl ${isActive ? 'text-green-500' : 'text-gray-400'}`}>
-                          {isActive ? '−' : '+'}
-                        </span>
-                      </button>
-                      
-                      {/* Subsections */}
-                      {isActive && (
-                        <div className="bg-gray-50 border-t border-gray-200">
-                          {category.id === 'compute' && computeSections.map((section) => (
-                            <button
-                              key={section.id}
-                              onClick={() => setActiveComputeSection(section.id)}
-                              className={`w-full text-left px-12 py-3 transition-colors ${
-                                activeComputeSection === section.id
-                                  ? 'bg-green-100 text-green-700 border-r-2 border-green-300'
-                                  : 'text-gray-600 hover:text-green-500 hover:bg-green-50'
-                              }`}
-                            >
-                              {section.name}
-                            </button>
-                          ))}
-                          {category.id === 'storage' && storageSections.map((section) => (
-                            <button
-                              key={section.id}
-                              className="w-full text-left px-12 py-3 text-gray-600 hover:text-green-500 hover:bg-green-50 transition-colors"
-                            >
-                              {section.name}
-                            </button>
-                          ))}
-                          {category.id === 'networking' && networkingSections.map((section) => (
-                            <button
-                              key={section.id}
-                              className="w-full text-left px-12 py-3 text-gray-600 hover:text-green-500 hover:bg-green-50 transition-colors"
-                            >
-                              {section.name}
-                            </button>
-                          ))}
-                          {category.id === 'databases' && databaseSections.map((section) => (
-                            <button
-                              key={section.id}
-                              className="w-full text-left px-12 py-3 text-gray-600 hover:text-green-500 hover:bg-green-50 transition-colors"
-                            >
-                              {section.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="flex-1">
-              {/* Billing Toggle - Always visible */}
-              <div className="flex justify-end mb-8">
-                <div className="flex bg-gray-100 rounded-xl p-1">
-                  {['hourly', 'monthly', 'yearly'].map((cycle) => (
-                    <button
-                      key={cycle}
-                      onClick={() => setBillingCycle(cycle)}
-                      className={`px-6 py-2 rounded-lg font-semibold capitalize transition-all duration-200 ${
-                        billingCycle === cycle
-                          ? 'bg-white text-green-500 shadow-md'
-                          : 'text-gray-600 hover:text-green-500'
-                      }`}
-                    >
-                      {cycle}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* Main Content Area - Centered */}
+          <div className="max-w-6xl mx-auto">
 
               {/* Compute Section */}
               {activeTab === 'compute' && (
                 <div>
-                  {/* Dynamic Pricing Plans */}
-                  {subcategories.find(sub => sub.slug === activeComputeSection) && (
-                    <div>
-                      <div className="mb-8">
-                        <h3 className="text-3xl font-bold text-gray-900 mb-2">
-                          {subcategories.find(sub => sub.slug === activeComputeSection)?.name} Pricing and Plans
-                        </h3>
-                        <p className="text-gray-600">
-                          {subcategories.find(sub => sub.slug === activeComputeSection)?.description}
-                        </p>
-                      </div>
+                  <div className="mb-8">
+                    <h3 className="text-3xl font-bold text-gray-900 mb-2">Compute Offering</h3>
+                    <p className="text-gray-600">
+                      Choose a plan based on the amount of CPU, memory, and storage required for your project. The cost will adjust according to the resources you select.
+                    </p>
+                  </div>
 
-                      {/* Table Header */}
-                      <div className={`bg-${subcategories.find(sub => sub.slug === activeComputeSection)?.header_color || 'green-100'} rounded-t-2xl p-6 text-gray-900`}>
-                        <div className={`grid gap-4 text-sm font-semibold ${activeComputeSection === 'kubernetes' ? 'grid-cols-6' : 'grid-cols-7'}`}>
-                          {activeComputeSection === 'kubernetes' ? (
-                            <>
-                              <div className="text-center">Instance Type</div>
-                              <div className="text-center">Nodes</div>
-                              <div className="text-center">RAM</div>
-                              <div className="text-center">vCPU</div>
-                              <div className="text-center">Hourly</div>
-                              <div className="text-center">Monthly</div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="text-center">RAM</div>
-                              <div className="text-center">vCPU</div>
-                              <div className="text-center">SSD Disk</div>
-                              <div className="text-center">Bandwidth</div>
-                              <div className="text-center">Discount</div>
-                              <div className="text-center">Price</div>
-                              <div className="text-center">Action</div>
-                            </>
-                          )}
+                  {/* Tab Navigation */}
+                  <div className="mb-6 border-b border-gray-200">
+                    <nav className="flex space-x-8">
+                      {[
+                        { id: 'basic', label: 'Basic Compute Plans' },
+                        { id: 'cpuIntensive', label: 'CPU Intensive' },
+                        { id: 'memoryIntensive', label: 'Memory Intensive' }
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveComputePlanTab(tab.id)}
+                          className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                            activeComputePlanTab === tab.id
+                              ? 'border-orange-500 text-orange-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+
+                  {/* Table Header */}
+                  <div className="bg-green-100 rounded-t-2xl p-6 text-gray-900">
+                    <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
+                      <div className="text-center">Name</div>
+                      <div className="text-center">vCPU</div>
+                      <div className="text-center">Memory RAM</div>
+                      <div className="text-center">Price Monthly</div>
+                      <div className="text-center">Price Hourly</div>
+                    </div>
+                  </div>
+
+                  {/* Pricing Table Rows */}
+                  <div className="space-y-0">
+                    {computePlanTabs[activeComputePlanTab]?.map((plan, index) => (
+                      <div
+                        key={plan.name}
+                        className={`bg-white border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                          index === computePlanTabs[activeComputePlanTab].length - 1 
+                            ? 'rounded-b-2xl border-gray-200' 
+                            : 'border-gray-200 border-b-0'
+                        }`}
+                      >
+                        <div className="p-6">
+                          <div className="grid grid-cols-5 gap-4 text-sm items-center">
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-900">{plan.name}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-900">{plan.vcpu}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-900">{plan.memory}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-gray-900">{plan.monthlyPrice}</div>
+                              <div className="text-xs text-gray-500">/Month</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-gray-900">{plan.hourlyPrice}</div>
+                              <div className="text-xs text-gray-500">/Hour</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Pricing Cards */}
-                      <div className="space-y-0">
-                        {plans.map((plan, index) => (
-                          <PricingCard 
-                            key={plan.id || index} 
-                            plan={plan} 
-                            isPopular={Boolean(plan.is_popular)} 
-                            isFirst={index === 0}
-                            isLast={index === plans.length - 1}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fallback for hardcoded sections if no CMS data */}
-                  {!subcategories.find(sub => sub.slug === activeComputeSection) && (
-                    <div className="text-center py-20">
-                      <h3 className="text-3xl font-bold text-gray-900 mb-4">Coming Soon</h3>
-                      <p className="text-gray-600 mb-8 max-w-2xl mx-auto">This pricing section is being updated. Please check back soon for detailed pricing information.</p>
-                      <button className="bg-green-200 hover:bg-green-300 text-gray-900 px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
-                        Contact Sales
-                      </button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Storage Section */}
-              {activeTab === 'storage' && (
+              {/* Disk Offering Section */}
+              <div className="mt-16">
+                <div className="mb-8">
+                  <h3 className="text-3xl font-bold text-gray-900 mb-2">Disk Offering</h3>
+                  <p className="text-gray-600">
+                    Choose the disk storage size that best fits your requirements. All storage options use high-performance NVMe technology.
+                  </p>
+                </div>
+
+                {/* Table Header */}
+                <div className="bg-green-100 rounded-t-2xl p-6 text-gray-900">
+                  <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
+                    <div className="text-center">Name</div>
+                    <div className="text-center">Storage Type</div>
+                    <div className="text-center">Size</div>
+                    <div className="text-center">Price Monthly</div>
+                    <div className="text-center">Price Hourly</div>
+                  </div>
+                </div>
+
+                {/* Disk Offering Table Rows */}
+                <div className="space-y-0">
+                  {diskOfferings.map((disk, index) => (
+                    <div
+                      key={disk.name}
+                      className={`bg-white border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                        index === diskOfferings.length - 1 
+                          ? 'rounded-b-2xl border-gray-200' 
+                          : 'border-gray-200 border-b-0'
+                      }`}
+                    >
+                      <div className="p-6">
+                        <div className="grid grid-cols-5 gap-4 text-sm items-center">
+                          <div className="text-center">
+                            <div className="font-semibold text-gray-900">{disk.name}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-gray-900">{disk.storageType}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-gray-900">{disk.size}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-lg text-gray-900">{disk.monthlyPrice}</div>
+                            <div className="text-xs text-gray-500">/Month</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-lg text-gray-900">{disk.hourlyPrice}</div>
+                            <div className="text-xs text-gray-500">/Hour</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+          {/* Storage Section */}
+          {activeTab === 'storage' && (
                 <div>
                   <div className="mb-8">
                     <h3 className="text-3xl font-bold text-gray-900 mb-2">Storage Pricing and Plans</h3>
@@ -625,7 +639,6 @@ const Pricing = () => {
                   )}
                 </div>
               )}
-            </div>
           </div>
         </div>
       </section>

@@ -1,19 +1,24 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
-import { useProducts } from '../hooks/useCMS'
+import { useMainProductsContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 
 const ProductsSection = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const { data: products, loading, error, refetch } = useProducts()
+  const { data: mainPageData, loading, error, refetch } = useMainProductsContent()
+  
+  // Use sections from mainPageData instead of products
+  const products = mainPageData?.sections || []
 
   const categories = ['all', 'Generative AI', 'Artificial Intelligence (AI)', 'Compute', 'Storage', 'Database', 'Networking']
 
   const filteredProducts = products?.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const productName = product.title || product.name || '';
+    const productDesc = product.description || '';
+    const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         productDesc.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
     return matchesSearch && matchesCategory
   }) || []
@@ -88,21 +93,25 @@ const ProductsSection = () => {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => {
-              // Use product ID for dynamic routing
-              const productId = product.id;
+              // Use product ID for dynamic routing - fallback to section id if no product_id
+              const productId = product.product_id || product.id;
+              const productName = product.title || product.name || '';
+              const productCategory = product.category || 'Cloud Services';
               
               return (
                 <Link
                   key={product.id}
                   to={`/products/${productId}`}
-                  className={`bg-gradient-to-br ${product.color} border ${product.border_color} rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block`}
+                  className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block"
                 >
                   <div className="mb-4">
-                    <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
-                      {product.category}
-                    </span>
+                    {productCategory && (
+                      <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
+                        {productCategory}
+                      </span>
+                    )}
                     <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-aws-blue transition-colors">
-                      {product.name}
+                      {productName}
                     </h3>
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {product.description}
@@ -111,7 +120,7 @@ const ProductsSection = () => {
                   
                   <div className="flex items-center justify-between">
                     <span className="text-aws-blue hover:text-aws-orange font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
-                      <span>View product</span>
+                      <span>{product.button_text || 'View product'}</span>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>

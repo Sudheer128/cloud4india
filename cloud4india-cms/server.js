@@ -23,11 +23,86 @@ const runMigrations = async () => {
     console.log('🔄 Running database migrations...');
     const { runAllMigrations } = require('./migration-runner');
     await runAllMigrations();
+    
+    // Add new columns to main_products_sections if they don't exist
+    await addMainProductsSectionColumns();
+    
     console.log('✅ Database migrations completed');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
     console.log('⚠️  Continuing with existing database...');
   }
+};
+
+// Add new columns to main_products_sections table
+const addMainProductsSectionColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'popular_tag', sql: "ALTER TABLE main_products_sections ADD COLUMN popular_tag TEXT DEFAULT 'Most Popular';" },
+      { name: 'category', sql: "ALTER TABLE main_products_sections ADD COLUMN category TEXT;" },
+      { name: 'features', sql: "ALTER TABLE main_products_sections ADD COLUMN features TEXT DEFAULT '[]';" },
+      { name: 'price', sql: "ALTER TABLE main_products_sections ADD COLUMN price TEXT DEFAULT '₹2,999';" },
+      { name: 'price_period', sql: "ALTER TABLE main_products_sections ADD COLUMN price_period TEXT DEFAULT '/month';" },
+      { name: 'free_trial_tag', sql: "ALTER TABLE main_products_sections ADD COLUMN free_trial_tag TEXT DEFAULT 'Free Trial';" },
+      { name: 'button_text', sql: "ALTER TABLE main_products_sections ADD COLUMN button_text TEXT DEFAULT 'Explore Solution';" }
+    ];
+    
+    let completed = 0;
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          // Column might already exist, that's okay
+          if (err.message.includes('duplicate column')) {
+            console.log(`   ⏭️  Column ${col.name} already exists`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name}: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name}`);
+        }
+        completed++;
+        if (completed === columns.length) {
+          // Populate default values for existing rows
+          db.run(`
+            UPDATE main_products_sections 
+            SET 
+              popular_tag = COALESCE(popular_tag, 'Most Popular'),
+              features = COALESCE(features, '["High Performance Computing", "Enterprise Security", "99.9% Uptime SLA"]'),
+              price = COALESCE(price, '₹2,999'),
+              price_period = COALESCE(price_period, '/month'),
+              free_trial_tag = COALESCE(free_trial_tag, 'Free Trial'),
+              button_text = COALESCE(button_text, 'Explore Solution')
+            WHERE 
+              popular_tag IS NULL 
+              OR features IS NULL 
+              OR price IS NULL
+          `, (err) => {
+            if (err) {
+              console.log(`   ⚠️  Error updating defaults: ${err.message}`);
+            } else {
+              console.log('   ✅ Updated existing rows with default values');
+            }
+            
+            // Copy category from products table
+            db.run(`
+              UPDATE main_products_sections 
+              SET category = (
+                SELECT category FROM products WHERE products.id = main_products_sections.product_id
+              )
+              WHERE category IS NULL
+            `, (err) => {
+              if (err) {
+                console.log(`   ⚠️  Error copying categories: ${err.message}`);
+              } else {
+                console.log('   ✅ Copied categories from products table');
+              }
+              resolve();
+            });
+          });
+        }
+      });
+    });
+  });
 };
 
 // Create tables
@@ -1763,6 +1838,63 @@ app.get('/api/pricing/categories', (req, res) => {
   });
 });
 
+// Create new pricing category
+app.post('/api/pricing/categories', (req, res) => {
+  const { name, slug, icon, description, order_index } = req.body;
+  
+  // Get the next order index if not provided
+  db.get('SELECT MAX(order_index) as max_order FROM pricing_categories', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
+    
+    db.run(`INSERT INTO pricing_categories (name, slug, icon, description, order_index) 
+            VALUES (?, ?, ?, ?, ?)`,
+      [name, slug, icon || 'CpuChipIcon', description || '', nextOrder],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Category created successfully', id: this.lastID });
+      });
+  });
+});
+
+// Update pricing category
+app.put('/api/pricing/categories/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, slug, icon, description, order_index } = req.body;
+  
+  db.run(`UPDATE pricing_categories SET 
+          name = ?, slug = ?, icon = ?, description = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?`,
+    [name, slug, icon, description, order_index || 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Category updated successfully', changes: this.changes });
+    });
+});
+
+// Delete pricing category (soft delete)
+app.delete('/api/pricing/categories/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE pricing_categories SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Category deleted successfully', changes: this.changes });
+  });
+});
+
 // Get subcategories by category
 app.get('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
   const { categoryId } = req.params;
@@ -1776,6 +1908,64 @@ app.get('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
     });
 });
 
+// Create new pricing subcategory
+app.post('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
+  const { categoryId } = req.params;
+  const { name, slug, description, header_color, order_index } = req.body;
+  
+  // Get the next order index if not provided
+  db.get('SELECT MAX(order_index) as max_order FROM pricing_subcategories WHERE category_id = ?', [categoryId], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
+    
+    db.run(`INSERT INTO pricing_subcategories (category_id, name, slug, description, header_color, order_index) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      [categoryId, name, slug, description || '', header_color || 'green-100', nextOrder],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Subcategory created successfully', id: this.lastID });
+      });
+  });
+});
+
+// Update pricing subcategory
+app.put('/api/pricing/subcategories/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, slug, description, header_color, order_index } = req.body;
+  
+  db.run(`UPDATE pricing_subcategories SET 
+          name = ?, slug = ?, description = ?, header_color = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?`,
+    [name, slug, description, header_color, order_index || 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Subcategory updated successfully', changes: this.changes });
+    });
+});
+
+// Delete pricing subcategory (soft delete)
+app.delete('/api/pricing/subcategories/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE pricing_subcategories SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Subcategory deleted successfully', changes: this.changes });
+  });
+});
+
 // Get pricing plans by subcategory
 app.get('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
   const { subcategoryId } = req.params;
@@ -1787,6 +1977,272 @@ app.get('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
       }
       res.json(rows);
     });
+});
+
+// Create compute_plans and disk_offerings tables if they don't exist
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS compute_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_type TEXT NOT NULL,
+    name TEXT NOT NULL,
+    vcpu TEXT NOT NULL,
+    memory TEXT NOT NULL,
+    monthly_price TEXT NOT NULL,
+    hourly_price TEXT NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  
+  db.run(`CREATE TABLE IF NOT EXISTS disk_offerings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    storage_type TEXT NOT NULL,
+    size TEXT NOT NULL,
+    monthly_price TEXT NOT NULL,
+    hourly_price TEXT NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  
+  // Seed default compute plans data if table is empty
+  db.get('SELECT COUNT(*) as count FROM compute_plans', (err, row) => {
+    if (err) {
+      console.error('Error checking compute_plans count:', err.message);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Seeding default compute plans...');
+      
+      const basicPlans = [
+        { name: 'BP_1vC-1GB', vcpu: '1 vCPU', memory: '1.0 GB', monthly_price: '₹512', hourly_price: '₹0.7' },
+        { name: 'BP_2vC-4GB', vcpu: '2 vCPU', memory: '4.0 GB', monthly_price: '₹1,504', hourly_price: '₹2.05' },
+        { name: 'BP_4vC-8GB', vcpu: '4 vCPU', memory: '8.0 GB', monthly_price: '₹3,008', hourly_price: '₹4.11' },
+        { name: 'BP_8vC-16GB', vcpu: '8 vCPU', memory: '16.0 GB', monthly_price: '₹6,016', hourly_price: '₹8.22' },
+        { name: 'BP_8vC-32GB', vcpu: '8 vCPU', memory: '32.0 GB', monthly_price: '₹9,856', hourly_price: '₹13.46' },
+        { name: 'BP_16vC-32GB', vcpu: '16 vCPU', memory: '32.0 GB', monthly_price: '₹12,032', hourly_price: '₹16.44' },
+        { name: 'BP_16vC-64GB', vcpu: '16 vCPU', memory: '64.0 GB', monthly_price: '₹19,712', hourly_price: '₹26.93' }
+      ];
+      
+      const cpuIntensivePlans = [
+        { name: 'CI_2vC-1GB', vcpu: '2 vCPU', memory: '1.0 GB', monthly_price: '₹784', hourly_price: '₹1.07' },
+        { name: 'CI_2vC-2GB', vcpu: '2 vCPU', memory: '2.0 GB', monthly_price: '₹1,024', hourly_price: '₹1.4' },
+        { name: 'CI_32vC-64GB', vcpu: '32 vCPU', memory: '64.0 GB', monthly_price: '₹24,064', hourly_price: '₹32.87' },
+        { name: 'CI_48vC-96GB', vcpu: '48 vCPU', memory: '96.0 GB', monthly_price: '₹36,096', hourly_price: '₹49.31' }
+      ];
+      
+      const memoryIntensivePlans = [
+        { name: 'MI_1vC-4GB', vcpu: '1 vCPU', memory: '4.0 GB', monthly_price: '₹1,232', hourly_price: '₹1.68' },
+        { name: 'MI_1vC-8GB', vcpu: '1 vCPU', memory: '8.0 GB', monthly_price: '₹2,192', hourly_price: '₹2.99' },
+        { name: 'MI_2vC-16GB', vcpu: '2 vCPU', memory: '16.0 GB', monthly_price: '₹4,384', hourly_price: '₹5.99' },
+        { name: 'MI_4vC-16GB', vcpu: '4 vCPU', memory: '16.0 GB', monthly_price: '₹4,928', hourly_price: '₹6.73' },
+        { name: 'MI_4vC-32GB', vcpu: '4 vCPU', memory: '32.0 GB', monthly_price: '₹8,768', hourly_price: '₹11.98' },
+        { name: 'MI_8vC-64GB', vcpu: '8 vCPU', memory: '64.0 GB', monthly_price: '₹17,536', hourly_price: '₹23.96' },
+        { name: 'MI_16vC-128GB', vcpu: '16 vCPU', memory: '128.0 GB', monthly_price: '₹35,072', hourly_price: '₹47.91' }
+      ];
+      
+      [...basicPlans.map(p => ({...p, plan_type: 'basic'})),
+       ...cpuIntensivePlans.map(p => ({...p, plan_type: 'cpuIntensive'})),
+       ...memoryIntensivePlans.map(p => ({...p, plan_type: 'memoryIntensive'}))].forEach((plan, index) => {
+        db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [plan.plan_type, plan.name, plan.vcpu, plan.memory, plan.monthly_price, plan.hourly_price, index],
+          (err) => {
+            if (err) {
+              console.error('Error inserting compute plan:', err.message);
+            }
+          });
+      });
+      
+      console.log('✅ Default compute plans seeded successfully!');
+    }
+  });
+  
+  // Seed default disk offerings data if table is empty
+  db.get('SELECT COUNT(*) as count FROM disk_offerings', (err, row) => {
+    if (err) {
+      console.error('Error checking disk_offerings count:', err.message);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Seeding default disk offerings...');
+      
+      const diskOfferings = [
+        { name: '20 GB', storage_type: 'NVMe', size: '20.0 GB', monthly_price: '₹160', hourly_price: '₹0.25' },
+        { name: '50 GB', storage_type: 'NVMe', size: '50.0 GB', monthly_price: '₹400', hourly_price: '₹0.55' },
+        { name: '100GB', storage_type: 'NVMe', size: '100.0 GB', monthly_price: '₹800', hourly_price: '₹1.09' },
+        { name: '250 GB', storage_type: 'NVMe', size: '250.0 GB', monthly_price: '₹2,000', hourly_price: '₹2.73' },
+        { name: '500 GB', storage_type: 'NVMe', size: '500.0 GB', monthly_price: '₹4,000', hourly_price: '₹5.46' },
+        { name: '1 TB', storage_type: 'NVMe', size: '1.0 TB', monthly_price: '₹8,192', hourly_price: '₹11.19' },
+        { name: '2 TB', storage_type: 'NVMe', size: '2.0 TB', monthly_price: '₹16,384', hourly_price: '₹22.38' }
+      ];
+      
+      diskOfferings.forEach((offering, index) => {
+        db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, order_index)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+          [offering.name, offering.storage_type, offering.size, offering.monthly_price, offering.hourly_price, index],
+          (err) => {
+            if (err) {
+              console.error('Error inserting disk offering:', err.message);
+            }
+          });
+      });
+      
+      console.log('✅ Default disk offerings seeded successfully!');
+    }
+  });
+});
+
+// Get all compute plans
+app.get('/api/pricing/compute-plans', (req, res) => {
+  const { plan_type } = req.query;
+  let query = 'SELECT * FROM compute_plans WHERE is_active = 1';
+  const params = [];
+  
+  if (plan_type) {
+    query += ' AND plan_type = ?';
+    params.push(plan_type);
+  }
+  
+  query += ' ORDER BY plan_type, order_index';
+  
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Create compute plan
+app.post('/api/pricing/compute-plans', (req, res) => {
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index } = req.body;
+  
+  db.get('SELECT MAX(order_index) as max_order FROM compute_plans WHERE plan_type = ?', [plan_type], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
+    
+    db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [plan_type, name, vcpu, memory, monthly_price, hourly_price, nextOrder],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Compute plan created successfully', id: this.lastID });
+      });
+  });
+});
+
+// Update compute plan
+app.put('/api/pricing/compute-plans/:id', (req, res) => {
+  const { id } = req.params;
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index } = req.body;
+  
+  db.run(`UPDATE compute_plans SET
+          plan_type = ?, name = ?, vcpu = ?, memory = ?, monthly_price = ?, hourly_price = ?,
+          order_index = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+    [plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index || 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Compute plan updated successfully', changes: this.changes });
+    });
+});
+
+// Delete compute plan
+app.delete('/api/pricing/compute-plans/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE compute_plans SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Compute plan deleted successfully', changes: this.changes });
+  });
+});
+
+// Get all disk offerings
+app.get('/api/pricing/disk-offerings', (req, res) => {
+  db.all('SELECT * FROM disk_offerings WHERE is_active = 1 ORDER BY order_index', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Create disk offering
+app.post('/api/pricing/disk-offerings', (req, res) => {
+  const { name, storage_type, size, monthly_price, hourly_price, order_index } = req.body;
+  
+  db.get('SELECT MAX(order_index) as max_order FROM disk_offerings', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
+    
+    db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, order_index)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      [name, storage_type, size, monthly_price, hourly_price, nextOrder],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Disk offering created successfully', id: this.lastID });
+      });
+  });
+});
+
+// Update disk offering
+app.put('/api/pricing/disk-offerings/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, storage_type, size, monthly_price, hourly_price, order_index } = req.body;
+  
+  db.run(`UPDATE disk_offerings SET
+          name = ?, storage_type = ?, size = ?, monthly_price = ?, hourly_price = ?,
+          order_index = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+    [name, storage_type, size, monthly_price, hourly_price, order_index || 0, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Disk offering updated successfully', changes: this.changes });
+    });
+});
+
+// Delete disk offering
+app.delete('/api/pricing/disk-offerings/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('UPDATE disk_offerings SET is_active = 0 WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Disk offering deleted successfully', changes: this.changes });
+  });
 });
 
 // Get all storage options
@@ -1937,6 +2393,7 @@ app.delete('/api/pricing/faqs/:id', (req, res) => {
 // Get main products page content
 app.get('/api/main-products', (req, res) => {
   const mainPageData = {};
+  const { all } = req.query; // For admin view, show all sections including hidden
   
   // Get hero content
   db.get('SELECT * FROM main_products_content WHERE id = 1', (err, heroContent) => {
@@ -1951,20 +2408,62 @@ app.get('/api/main-products', (req, res) => {
       description: 'Discover our comprehensive suite of cloud computing services designed to power your business transformation.'
     };
     
-    // Get product sections
-    db.all(`
-      SELECT mps.*, p.name as product_name, p.description as product_description, p.category
-      FROM main_products_sections mps
-      JOIN products p ON mps.product_id = p.id
-      WHERE mps.is_visible = 1 AND p.is_visible = 1
-      ORDER BY mps.order_index ASC
-    `, (err, sections) => {
+    // Get product sections - show all if "all" query param is present (for admin)
+    // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
+    const sectionsQuery = all === 'true' 
+      ? `
+        SELECT 
+          mps.*, 
+          COALESCE(p.name, mps.title) as product_name, 
+          COALESCE(p.description, mps.description) as product_description,
+          COALESCE(mps.category, p.category) as category,
+          COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
+          COALESCE(mps.features, '[]') as features,
+          COALESCE(mps.price, '₹2,999') as price,
+          COALESCE(mps.price_period, '/month') as price_period,
+          COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
+          COALESCE(mps.button_text, 'Explore Solution') as button_text
+        FROM main_products_sections mps
+        LEFT JOIN products p ON mps.product_id = p.id
+        ORDER BY mps.order_index ASC
+      `
+      : `
+        SELECT 
+          mps.*, 
+          COALESCE(p.name, mps.title) as product_name, 
+          COALESCE(p.description, mps.description) as product_description,
+          COALESCE(mps.category, p.category) as category,
+          COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
+          COALESCE(mps.features, '[]') as features,
+          COALESCE(mps.price, '₹2,999') as price,
+          COALESCE(mps.price_period, '/month') as price_period,
+          COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
+          COALESCE(mps.button_text, 'Explore Solution') as button_text
+        FROM main_products_sections mps
+        LEFT JOIN products p ON mps.product_id = p.id
+        WHERE mps.is_visible = 1 AND (p.is_visible = 1 OR p.id IS NULL)
+        ORDER BY mps.order_index ASC
+      `;
+    
+    db.all(sectionsQuery, (err, sections) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      mainPageData.sections = sections || [];
+      // Parse features JSON for each section
+      const parsedSections = (sections || []).map(section => {
+        try {
+          section.features = typeof section.features === 'string' 
+            ? JSON.parse(section.features) 
+            : (Array.isArray(section.features) ? section.features : []);
+        } catch (e) {
+          section.features = [];
+        }
+        return section;
+      });
+      
+      mainPageData.sections = parsedSections;
       res.json(mainPageData);
     });
   });
@@ -1973,6 +2472,7 @@ app.get('/api/main-products', (req, res) => {
 // Get main solutions page content
 app.get('/api/main-solutions', (req, res) => {
   const mainPageData = {};
+  const { all } = req.query; // For admin view, show all sections including hidden
   
   // Get hero content
   db.get('SELECT * FROM main_solutions_content WHERE id = 1', (err, heroContent) => {
@@ -1984,23 +2484,73 @@ app.get('/api/main-solutions', (req, res) => {
     mainPageData.hero = heroContent || {
       title: 'Our Solutions',
       subtitle: 'Enterprise Solutions - Made in India',
-      description: 'Explore our enterprise-grade solutions designed to transform your business operations.'
+      description: 'Explore our enterprise-grade solutions designed to transform your business operations.',
+      stat1_label: 'Global Customers',
+      stat1_value: '10K+',
+      stat2_label: 'Uptime SLA', 
+      stat2_value: '99.9%',
+      stat3_label: 'Data Centers',
+      stat3_value: '15+',
+      stat4_label: 'Support Rating',
+      stat4_value: '4.9★'
     };
     
-    // Get solution sections
-    db.all(`
-      SELECT mss.*, s.name as solution_name, s.description as solution_description, s.category
-      FROM main_solutions_sections mss
-      JOIN solutions s ON mss.solution_id = s.id
-      WHERE mss.is_visible = 1 AND s.is_visible = 1
-      ORDER BY mss.order_index ASC
-    `, (err, sections) => {
+    // Get solution sections - show all if "all" query param is present (for admin)
+    // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
+    const sectionsQuery = all === 'true' 
+      ? `
+        SELECT 
+          mss.*, 
+          COALESCE(s.name, mss.title) as solution_name, 
+          COALESCE(s.description, mss.description) as solution_description,
+          COALESCE(mss.category, s.category) as category,
+          COALESCE(mss.popular_tag, 'Most Popular') as popular_tag,
+          COALESCE(mss.features, '[]') as features,
+          COALESCE(mss.price, '₹2,999') as price,
+          COALESCE(mss.price_period, '/month') as price_period,
+          COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
+          COALESCE(mss.button_text, 'Explore Solution') as button_text
+        FROM main_solutions_sections mss
+        LEFT JOIN solutions s ON mss.solution_id = s.id
+        ORDER BY mss.order_index ASC
+      `
+      : `
+        SELECT 
+          mss.*, 
+          COALESCE(s.name, mss.title) as solution_name, 
+          COALESCE(s.description, mss.description) as solution_description,
+          COALESCE(mss.category, s.category) as category,
+          COALESCE(mss.popular_tag, 'Most Popular') as popular_tag,
+          COALESCE(mss.features, '[]') as features,
+          COALESCE(mss.price, '₹2,999') as price,
+          COALESCE(mss.price_period, '/month') as price_period,
+          COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
+          COALESCE(mss.button_text, 'Explore Solution') as button_text
+        FROM main_solutions_sections mss
+        LEFT JOIN solutions s ON mss.solution_id = s.id
+        WHERE mss.is_visible = 1 AND (s.is_visible = 1 OR s.id IS NULL)
+        ORDER BY mss.order_index ASC
+      `;
+    
+    db.all(sectionsQuery, (err, sections) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      mainPageData.sections = sections || [];
+      // Parse features JSON for each section
+      const parsedSections = sections.map(section => ({
+        ...section,
+        features: (() => {
+          try {
+            return typeof section.features === 'string' ? JSON.parse(section.features) : (section.features || []);
+          } catch (e) {
+            return [];
+          }
+        })()
+      }));
+      
+      mainPageData.sections = parsedSections || [];
       res.json(mainPageData);
     });
   });
@@ -2008,13 +2558,32 @@ app.get('/api/main-solutions', (req, res) => {
 
 // Update main products page hero content
 app.put('/api/main-products/hero', (req, res) => {
-  const { title, subtitle, description } = req.body;
+  const { 
+    title, 
+    subtitle, 
+    description,
+    stat1_label,
+    stat1_value,
+    stat2_label,
+    stat2_value,
+    stat3_label,
+    stat3_value,
+    stat4_label,
+    stat4_value
+  } = req.body;
   
   db.run(`
     UPDATE main_products_content 
-    SET title = ?, subtitle = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+    SET title = ?, subtitle = ?, description = ?, 
+        stat1_label = ?, stat1_value = ?, stat2_label = ?, stat2_value = ?,
+        stat3_label = ?, stat3_value = ?, stat4_label = ?, stat4_value = ?,
+        updated_at = CURRENT_TIMESTAMP 
     WHERE id = 1
-  `, [title, subtitle, description], function(err) {
+  `, [
+    title, subtitle, description,
+    stat1_label, stat1_value, stat2_label, stat2_value,
+    stat3_label, stat3_value, stat4_label, stat4_value
+  ], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -2023,9 +2592,17 @@ app.put('/api/main-products/hero', (req, res) => {
     if (this.changes === 0) {
       // Insert if doesn't exist
       db.run(`
-        INSERT INTO main_products_content (id, title, subtitle, description) 
-        VALUES (1, ?, ?, ?)
-      `, [title, subtitle, description], function(err) {
+        INSERT INTO main_products_content (
+          id, title, subtitle, description,
+          stat1_label, stat1_value, stat2_label, stat2_value,
+          stat3_label, stat3_value, stat4_label, stat4_value
+        ) 
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        title, subtitle, description,
+        stat1_label, stat1_value, stat2_label, stat2_value,
+        stat3_label, stat3_value, stat4_label, stat4_value
+      ], function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -2038,15 +2615,59 @@ app.put('/api/main-products/hero', (req, res) => {
   });
 });
 
+// Add main solutions content columns if they don't exist
+function addMainSolutionsContentColumns() {
+  const columnsToAdd = [
+    'stat1_label TEXT DEFAULT "Global Customers"',
+    'stat1_value TEXT DEFAULT "10K+"',
+    'stat2_label TEXT DEFAULT "Uptime SLA"',
+    'stat2_value TEXT DEFAULT "99.9%"',
+    'stat3_label TEXT DEFAULT "Data Centers"',
+    'stat3_value TEXT DEFAULT "15+"',
+    'stat4_label TEXT DEFAULT "Support Rating"',
+    'stat4_value TEXT DEFAULT "4.9★"'
+  ];
+
+  columnsToAdd.forEach(column => {
+    const columnName = column.split(' ')[0];
+    db.run(`ALTER TABLE main_solutions_content ADD COLUMN ${column}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Error adding column ${columnName} to main_solutions_content:`, err.message);
+      } else if (!err) {
+        console.log(`✅ Added column ${columnName} to main_solutions_content`);
+      }
+    });
+  });
+}
+
 // Update main solutions page hero content
 app.put('/api/main-solutions/hero', (req, res) => {
-  const { title, subtitle, description } = req.body;
+  const { 
+    title, 
+    subtitle, 
+    description,
+    stat1_label,
+    stat1_value,
+    stat2_label,
+    stat2_value,
+    stat3_label,
+    stat3_value,
+    stat4_label,
+    stat4_value
+  } = req.body;
   
   db.run(`
     UPDATE main_solutions_content 
-    SET title = ?, subtitle = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+    SET title = ?, subtitle = ?, description = ?, 
+        stat1_label = ?, stat1_value = ?, stat2_label = ?, stat2_value = ?,
+        stat3_label = ?, stat3_value = ?, stat4_label = ?, stat4_value = ?,
+        updated_at = CURRENT_TIMESTAMP 
     WHERE id = 1
-  `, [title, subtitle, description], function(err) {
+  `, [
+    title, subtitle, description,
+    stat1_label, stat1_value, stat2_label, stat2_value,
+    stat3_label, stat3_value, stat4_label, stat4_value
+  ], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -2055,9 +2676,17 @@ app.put('/api/main-solutions/hero', (req, res) => {
     if (this.changes === 0) {
       // Insert if doesn't exist
       db.run(`
-        INSERT INTO main_solutions_content (id, title, subtitle, description) 
-        VALUES (1, ?, ?, ?)
-      `, [title, subtitle, description], function(err) {
+        INSERT INTO main_solutions_content (
+          id, title, subtitle, description,
+          stat1_label, stat1_value, stat2_label, stat2_value,
+          stat3_label, stat3_value, stat4_label, stat4_value
+        ) 
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        title, subtitle, description,
+        stat1_label, stat1_value, stat2_label, stat2_value,
+        stat3_label, stat3_value, stat4_label, stat4_value
+      ], function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -2073,13 +2702,53 @@ app.put('/api/main-solutions/hero', (req, res) => {
 // Update main products section
 app.put('/api/main-products/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  const { title, description, is_visible, order_index } = req.body;
+  const { 
+    title, 
+    description, 
+    is_visible, 
+    order_index,
+    popular_tag,
+    category,
+    features,
+    price,
+    price_period,
+    free_trial_tag,
+    button_text
+  } = req.body;
+  
+  // Convert features array to JSON string if it's an array
+  const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
   
   db.run(`
     UPDATE main_products_sections 
-    SET title = ?, description = ?, is_visible = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+    SET 
+      title = ?, 
+      description = ?, 
+      is_visible = ?, 
+      order_index = ?,
+      popular_tag = ?,
+      category = ?,
+      features = ?,
+      price = ?,
+      price_period = ?,
+      free_trial_tag = ?,
+      button_text = ?,
+      updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
-  `, [title, description, is_visible, order_index, sectionId], function(err) {
+  `, [
+    title, 
+    description, 
+    is_visible, 
+    order_index || 0,
+    popular_tag || null,
+    category || null,
+    featuresJson,
+    price || null,
+    price_period || null,
+    free_trial_tag || null,
+    button_text || null,
+    sectionId
+  ], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -2088,21 +2757,543 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
   });
 });
 
+// Add main solutions sections columns if they don't exist
+function addMainSolutionsSectionColumns() {
+  const columnsToAdd = [
+    'popular_tag TEXT',
+    'category TEXT', 
+    'features TEXT DEFAULT "[]"',
+    'price TEXT',
+    'price_period TEXT',
+    'free_trial_tag TEXT',
+    'button_text TEXT'
+  ];
+
+  columnsToAdd.forEach(column => {
+    const columnName = column.split(' ')[0];
+    db.run(`ALTER TABLE main_solutions_sections ADD COLUMN ${column}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Error adding column ${columnName} to main_solutions_sections:`, err.message);
+      } else if (!err) {
+        console.log(`✅ Added column ${columnName} to main_solutions_sections`);
+      }
+    });
+  });
+
+  // Set default values for existing records
+  setTimeout(() => {
+    db.run(`
+      UPDATE main_solutions_sections 
+      SET 
+        popular_tag = CASE WHEN popular_tag IS NULL THEN 'Most Popular' ELSE popular_tag END,
+        features = CASE WHEN features IS NULL THEN '[]' ELSE features END,
+        price = CASE WHEN price IS NULL THEN '₹2,999' ELSE price END,
+        price_period = CASE WHEN price_period IS NULL THEN '/month' ELSE price_period END,
+        free_trial_tag = CASE WHEN free_trial_tag IS NULL THEN 'Free Trial' ELSE free_trial_tag END,
+        button_text = CASE WHEN button_text IS NULL THEN 'Explore Solution' ELSE button_text END
+      WHERE popular_tag IS NULL OR features IS NULL OR price IS NULL OR price_period IS NULL OR free_trial_tag IS NULL OR button_text IS NULL
+    `, (err) => {
+      if (err) {
+        console.error('Error setting default values for main_solutions_sections:', err.message);
+      } else {
+        console.log('✅ Set default values for main_solutions_sections');
+      }
+    });
+  }, 1000);
+}
+
 // Update main solutions section
 app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  const { title, description, is_visible, order_index } = req.body;
+  const { 
+    title, 
+    description, 
+    is_visible, 
+    order_index,
+    popular_tag,
+    category,
+    features,
+    price,
+    price_period,
+    free_trial_tag,
+    button_text
+  } = req.body;
+  
+  // Convert features array to JSON string if it's an array
+  const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
   
   db.run(`
     UPDATE main_solutions_sections 
-    SET title = ?, description = ?, is_visible = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
+    SET 
+      title = ?, 
+      description = ?, 
+      is_visible = ?, 
+      order_index = ?,
+      popular_tag = ?,
+      category = ?,
+      features = ?,
+      price = ?,
+      price_period = ?,
+      free_trial_tag = ?,
+      button_text = ?,
+      updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
-  `, [title, description, is_visible, order_index, sectionId], function(err) {
+  `, [
+    title, 
+    description, 
+    is_visible, 
+    order_index || 0,
+    popular_tag || null,
+    category || null,
+    featuresJson,
+    price || null,
+    price_period || null,
+    free_trial_tag || null,
+    button_text || null,
+    sectionId
+  ], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     res.json({ message: 'Main solutions section updated successfully', changes: this.changes });
+  });
+});
+
+// Get all main products sections (including hidden ones for admin)
+app.get('/api/main-products/sections/all', (req, res) => {
+  db.all(`
+    SELECT mps.*, p.name as product_name, p.description as product_description, p.category
+    FROM main_products_sections mps
+    JOIN products p ON mps.product_id = p.id
+    ORDER BY mps.order_index ASC
+  `, (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(sections || []);
+  });
+});
+
+// Duplicate main products section
+app.post('/api/main-products/sections/:sectionId/duplicate', (req, res) => {
+  const { sectionId } = req.params;
+  
+  // Get the original section with all fields
+  db.get(`
+    SELECT mps.*, p.name as product_name, p.description as product_description 
+    FROM main_products_sections mps
+    JOIN products p ON mps.product_id = p.id
+    WHERE mps.id = ?
+  `, [sectionId], (err, originalSection) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!originalSection) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Get the next order index
+    db.get('SELECT MAX(order_index) as max_order FROM main_products_sections', (err, result) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      const nextOrder = (result.max_order || 0) + 1;
+      
+      // Create duplicate section with all fields
+      db.run(`
+        INSERT INTO main_products_sections (
+          product_id, title, description, is_visible, order_index,
+          popular_tag, category, features, price, price_period, free_trial_tag, button_text
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        originalSection.product_id, 
+        `${originalSection.title} (Copy)`, 
+        originalSection.description || null, 
+        originalSection.is_visible !== undefined ? originalSection.is_visible : 1, 
+        nextOrder,
+        originalSection.popular_tag || null,
+        originalSection.category || null,
+        originalSection.features || '[]',
+        originalSection.price || null,
+        originalSection.price_period || null,
+        originalSection.free_trial_tag || null,
+        originalSection.button_text || null
+      ], function(err) {
+        if (err) {
+          console.error('Error duplicating section:', err);
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        res.json({ 
+          message: 'Section duplicated successfully', 
+          id: this.lastID,
+          changes: this.changes 
+        });
+      });
+    });
+  });
+});
+
+// Delete main products section
+app.delete('/api/main-products/sections/:sectionId', (req, res) => {
+  const { sectionId } = req.params;
+  
+  db.run('DELETE FROM main_products_sections WHERE id = ?', [sectionId], function(err) {
+    if (err) {
+      console.error('Error deleting section:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    res.json({ message: 'Section deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle visibility of main products section
+app.patch('/api/main-products/sections/:sectionId/toggle-visibility', (req, res) => {
+  const { sectionId } = req.params;
+  
+  // Get current visibility
+  db.get('SELECT is_visible FROM main_products_sections WHERE id = ?', [sectionId], (err, section) => {
+    if (err) {
+      console.error('Error getting section visibility:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!section) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    const newVisibility = section.is_visible === 1 ? 0 : 1;
+    
+    db.run(`
+      UPDATE main_products_sections 
+      SET is_visible = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `, [newVisibility, sectionId], function(err) {
+      if (err) {
+        console.error('Error toggling visibility:', err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        message: `Section ${newVisibility === 1 ? 'shown' : 'hidden'} successfully`, 
+        is_visible: newVisibility,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Get all main solutions sections (including hidden ones for admin)
+app.get('/api/main-solutions/sections/all', (req, res) => {
+  db.all(`
+    SELECT 
+      mss.*, 
+      COALESCE(s.name, mss.title) as solution_name, 
+      COALESCE(s.description, mss.description) as solution_description,
+      COALESCE(mss.category, s.category) as category,
+      COALESCE(mss.popular_tag, 'Most Popular') as popular_tag,
+      COALESCE(mss.features, '[]') as features,
+      COALESCE(mss.price, '₹2,999') as price,
+      COALESCE(mss.price_period, '/month') as price_period,
+      COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
+      COALESCE(mss.button_text, 'Explore Solution') as button_text
+    FROM main_solutions_sections mss
+    LEFT JOIN solutions s ON mss.solution_id = s.id
+    ORDER BY mss.order_index ASC
+  `, (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    // Parse features JSON for each section
+    const parsedSections = sections.map(section => ({
+      ...section,
+      features: (() => {
+        try {
+          return typeof section.features === 'string' ? JSON.parse(section.features) : (section.features || []);
+        } catch (e) {
+          return [];
+        }
+      })()
+    }));
+    
+    res.json(parsedSections || []);
+  });
+});
+
+// Duplicate main solutions section
+app.post('/api/main-solutions/sections/:sectionId/duplicate', (req, res) => {
+  const { sectionId } = req.params;
+  
+  // Get the original section with all fields
+  db.get(`
+    SELECT 
+      mss.*, 
+      COALESCE(s.name, mss.title) as solution_name, 
+      COALESCE(s.description, mss.description) as solution_description
+    FROM main_solutions_sections mss
+    LEFT JOIN solutions s ON mss.solution_id = s.id
+    WHERE mss.id = ?
+  `, [sectionId], (err, originalSection) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!originalSection) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Get the next order index
+    db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      const nextOrder = (result.max_order || 0) + 1;
+      
+      // Create duplicate section with all fields
+      db.run(`
+        INSERT INTO main_solutions_sections (
+          solution_id, title, description, is_visible, order_index,
+          popular_tag, category, features, price, price_period, free_trial_tag, button_text
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        originalSection.solution_id || null,
+        `${originalSection.title} (Copy)`,
+        originalSection.description || '',
+        originalSection.is_visible || 1,
+        nextOrder,
+        originalSection.popular_tag || null,
+        originalSection.category || null,
+        originalSection.features || '[]',
+        originalSection.price || null,
+        originalSection.price_period || null,
+        originalSection.free_trial_tag || null,
+        originalSection.button_text || null
+      ], function(err) {
+        if (err) {
+          console.error('Error duplicating section:', err);
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        res.json({ 
+          message: 'Section duplicated successfully', 
+          id: this.lastID,
+          changes: this.changes 
+        });
+      });
+    });
+  });
+});
+
+// Delete main solutions section
+app.delete('/api/main-solutions/sections/:sectionId', (req, res) => {
+  const { sectionId } = req.params;
+  
+  db.run('DELETE FROM main_solutions_sections WHERE id = ?', [sectionId], function(err) {
+    if (err) {
+      console.error('Error deleting section:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    res.json({ message: 'Section deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle visibility of main solutions section
+app.patch('/api/main-solutions/sections/:sectionId/toggle-visibility', (req, res) => {
+  const { sectionId } = req.params;
+  
+  // Get current visibility
+  db.get('SELECT is_visible FROM main_solutions_sections WHERE id = ?', [sectionId], (err, section) => {
+    if (err) {
+      console.error('Error getting section visibility:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!section) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Toggle visibility
+    const newVisibility = section.is_visible ? 0 : 1;
+    
+    db.run('UPDATE main_solutions_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function(err) {
+      if (err) {
+        console.error('Error toggling section visibility:', err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+        is_visible: newVisibility,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Create new main solutions section (standalone)
+app.post('/api/main-solutions/sections', (req, res) => {
+  const { 
+    title, 
+    description, 
+    is_visible,
+    popular_tag,
+    category,
+    features,
+    price,
+    price_period,
+    free_trial_tag,
+    button_text
+  } = req.body;
+  
+  if (!title) {
+    res.status(400).json({ error: 'title is required' });
+    return;
+  }
+  
+  // Get the next order index
+  db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = (result.max_order || 0) + 1;
+    
+    // Convert features array to JSON string if it's an array
+    const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
+    
+    db.run(`
+      INSERT INTO main_solutions_sections (
+        solution_id, title, description, is_visible, order_index,
+        popular_tag, category, features, price, price_period, free_trial_tag, button_text
+      ) 
+      VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      title, 
+      description || '', 
+      is_visible !== undefined ? is_visible : 1, 
+      nextOrder,
+      popular_tag || null,
+      category || null,
+      featuresJson,
+      price || null,
+      price_period || null,
+      free_trial_tag || null,
+      button_text || null
+    ], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        message: 'Section created successfully', 
+        id: this.lastID,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Create new main products section (standalone)
+app.post('/api/main-products/sections', (req, res) => {
+  const { 
+    title, 
+    description, 
+    is_visible,
+    popular_tag,
+    category,
+    features,
+    price,
+    price_period,
+    free_trial_tag,
+    button_text
+  } = req.body;
+  
+  if (!title) {
+    res.status(400).json({ error: 'title is required' });
+    return;
+  }
+  
+  // Get the next order index
+  db.get('SELECT MAX(order_index) as max_order FROM main_products_sections', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = (result.max_order || 0) + 1;
+    
+    // Convert features array to JSON string if it's an array
+    const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
+    
+    db.run(`
+      INSERT INTO main_products_sections (
+        product_id, title, description, is_visible, order_index,
+        popular_tag, category, features, price, price_period, free_trial_tag, button_text
+      ) 
+      VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      title, 
+      description || '', 
+      is_visible !== undefined ? is_visible : 1, 
+      nextOrder,
+      popular_tag || null,
+      category || null,
+      featuresJson,
+      price || null,
+      price_period || null,
+      free_trial_tag || null,
+      button_text || null
+    ], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        message: 'Section created successfully', 
+        id: this.lastID,
+        changes: this.changes 
+      });
+    });
   });
 });
 
@@ -2115,6 +3306,12 @@ app.listen(PORT, async () => {
   
   // Run migrations after server starts
   await runMigrations();
+  
+  // Add missing columns to solutions tables
+  setTimeout(() => {
+    addMainSolutionsSectionColumns();
+    addMainSolutionsContentColumns();
+  }, 2000);
 });
 
 module.exports = app;

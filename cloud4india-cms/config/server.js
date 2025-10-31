@@ -6,7 +6,7 @@ export default {
     
     // CORS configuration for React app
     cors: {
-      origin: ['http://localhost:4002', 'http://localhost:3001', 'http://localhost:4001', 'http://161.97.155.89:4001', 'http://161.97.155.89:4002'],
+      origin: ['http://localhost:4002', 'http://localhost:3001', 'http://localhost:4001', 'http://38.242.248.213:4001', 'http://38.242.248.213:4002'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       headers: ['Content-Type', 'Authorization'],
     },

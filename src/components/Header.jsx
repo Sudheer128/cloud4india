@@ -1,9 +1,17 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import PricingDropdown from './PricingDropdown'
 
 const Header = () => {
   const [activeDropdown, setActiveDropdown] = useState(null)
+  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false)
+
+  const handleProductsClick = (e) => {
+    e.preventDefault()
+    setIsProductsDropdownOpen(!isProductsDropdownOpen)
+    setActiveDropdown(activeDropdown === 'products' ? null : 'products')
+  }
 
   return (
     <>
@@ -34,9 +42,15 @@ const Header = () => {
                 <a href="#" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Discover Cloud4India
                 </a>
-                <Link to="/products" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
+                <button
+                  data-products-link
+                  onClick={handleProductsClick}
+                  className={`text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors ${
+                    isProductsDropdownOpen ? 'text-orange-500' : ''
+                  }`}
+                >
                   Products
-                </Link>
+                </button>
                 <Link to="/solutions" className="text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors">
                   Solutions
                 </Link>
@@ -67,6 +81,15 @@ const Header = () => {
           </div>
         </div>
       </header>
+      
+      {/* Products Dropdown */}
+      <PricingDropdown 
+        isOpen={isProductsDropdownOpen} 
+        onClose={() => {
+          setIsProductsDropdownOpen(false)
+          setActiveDropdown(null)
+        }} 
+      />
     </>
   )
 }

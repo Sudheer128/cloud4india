@@ -57,15 +57,10 @@ const processRequestQueue = async () => {
 // Actual API request function
 const makeActualRequest = async ({ title, currentDescription, context }) => {
   try {
-    // Validate API key format
-    if (!AI_API_KEY || !AI_API_KEY.startsWith('sk-or-v1-')) {
-      throw new Error('Invalid OpenRouter API key format. Key should start with "sk-or-v1-"');
+    // Validate API key format for OpenAI
+    if (!AI_API_KEY || !AI_API_KEY.startsWith('sk-')) {
+      throw new Error('Invalid OpenAI API key format. Key should start with "sk-"');
     }
-
-    // Get referer URL safely
-    const refererUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : 'http://localhost:3001';
 
     const requestBody = {
       model: AI_MODEL,
@@ -85,7 +80,7 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
       max_tokens: 300
     };
     
-    console.log('OpenRouter API Request:', {
+    console.log('OpenAI API Request:', {
       url: AI_API_URL,
       model: AI_MODEL,
       messageLength: currentDescription.length
@@ -95,21 +90,19 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${AI_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': refererUrl,
-        'X-Title': 'Cloud4India CMS'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody),
     });
 
     // Log response status
-    console.log('OpenRouter Response Status:', response.status);
+    console.log('OpenAI Response Status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
       
-      console.error('OpenRouter API Error Details:', {
+      console.error('OpenAI API Error Details:', {
         status: response.status,
         statusText: response.statusText,
         errorData: errorData,
@@ -118,30 +111,30 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
       });
       
       if (response.status === 401 || response.status === 403) {
-        throw new Error('Invalid or expired OpenRouter API key. Please check your API key at https://openrouter.ai/keys');
+        throw new Error('Invalid or expired OpenAI API key. Please check your API key at https://platform.openai.com/api-keys');
       } else if (response.status === 404) {
-        throw new Error(`Model "${AI_MODEL}" not found. Please verify the model name at https://openrouter.ai/models`);
+        throw new Error(`Model "${AI_MODEL}" not found. Please verify the model name is correct for OpenAI API.`);
       } else if (response.status === 429) {
-        throw new Error('OpenRouter API rate limit exceeded. Please try again in a few moments.');
+        throw new Error('OpenAI API rate limit exceeded. Please try again in a few moments.');
       } else if (response.status === 402) {
-        throw new Error('Insufficient credits. Please add credits to your OpenRouter account at https://openrouter.ai/credits');
+        throw new Error('Insufficient credits. Please add credits to your OpenAI account at https://platform.openai.com/billing');
       } else if (response.status === 500 || response.status === 502 || response.status === 503) {
-        throw new Error('OpenRouter service is temporarily unavailable. Please try again later.');
+        throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
       } else {
-        throw new Error(`OpenRouter API error (${response.status}): ${errorMessage}`);
+        throw new Error(`OpenAI API error (${response.status}): ${errorMessage}`);
       }
     }
 
     const data = await response.json();
     
-    console.log('OpenRouter API Response:', {
+    console.log('OpenAI API Response:', {
       hasChoices: !!data.choices,
       choicesLength: data.choices?.length,
       finishReason: data.choices?.[0]?.finish_reason,
       usage: data.usage
     });
     
-    // Handle OpenRouter/OpenAI-style response format
+    // Handle OpenAI response format
     let generatedText = '';
     
     if (data.choices && data.choices[0] && data.choices[0].message) {
@@ -167,9 +160,9 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
     }
     
     if (!generatedText) {
-      console.error('Unexpected OpenRouter API response structure:', data);
+      console.error('Unexpected OpenAI API response structure:', data);
       console.error('Available properties in response:', Object.keys(data));
-      throw new Error('No text content found in OpenRouter API response. The model may not be available. Check console for details.');
+      throw new Error('No text content found in OpenAI API response. The model may not be available. Check console for details.');
     }
 
     // Clean up the response - remove any thinking tags or extra markup
@@ -186,10 +179,10 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
 
     return generatedText;
   } catch (error) {
-    console.log('Error enhancing description with OpenRouter AI:', error);
+    console.log('Error enhancing description with OpenAI:', error);
     
     // If it's already our custom error, re-throw it
-    if (error.message.includes('OpenRouter') || 
+    if (error.message.includes('OpenAI') || 
         error.message.includes('Invalid') || 
         error.message.includes('rate limit') || 
         error.message.includes('Model') ||
@@ -199,10 +192,10 @@ const makeActualRequest = async ({ title, currentDescription, context }) => {
     
     // For network or other errors
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error: Unable to connect to OpenRouter. Please check your internet connection.');
+      throw new Error('Network error: Unable to connect to OpenAI. Please check your internet connection.');
     }
     
-    throw new Error('Failed to connect to OpenRouter AI service. Please check your internet connection and try again.');
+    throw new Error('Failed to connect to OpenAI service. Please check your internet connection and try again.');
   }
 };
 
@@ -221,7 +214,7 @@ export const enhanceDescription = async (title, currentDescription, context = 'g
   });
 };
 
-// Fallback function for when OpenRouter AI service is not available
+// Fallback function for when OpenAI service is not available
 export const generateFallbackDescription = (title, currentDescription, context) => {
   const templates = {
     'why_item': `${title}: ${currentDescription} Our cloud platform delivers enterprise-grade reliability, security, and performance to help your business scale efficiently.`,

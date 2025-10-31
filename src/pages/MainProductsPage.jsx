@@ -15,12 +15,17 @@ import {
   CheckIcon,
   StarIcon
 } from '@heroicons/react/24/outline';
-import { useMainProductsContent } from '../hooks/useCMS';
+import { useProducts, useMainProductsContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const MainProductsPage = () => {
-  const { data: mainPageData, loading, error } = useMainProductsContent();
+  const { data: mainPageData, loading: heroLoading } = useMainProductsContent();
   const [hoveredCard, setHoveredCard] = useState(null);
+  
+  // Use sections from mainPageData instead of products
+  const products = mainPageData?.sections || [];
+  const loading = heroLoading;
+  const error = null;
 
   if (loading) {
     return (
@@ -75,28 +80,39 @@ const MainProductsPage = () => {
               {mainPageData?.hero?.description || 'Accelerate your digital transformation with our cutting-edge cloud infrastructure. Built for scale, optimized for performance, designed for the future.'}
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <button className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-1">
-                <span className="relative z-10 flex items-center">
-                  Explore Solutions
-                  <RocketLaunchIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </button>
-              
-              <button className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+            {/* CTA Button */}
+            <div className="flex justify-center items-center mb-16">
+              <Link 
+                to="/pricing"
+                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
+              >
                 View Pricing
-              </button>
+              </Link>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
               {[
-                { label: 'Global Customers', value: '10K+', icon: GlobeAltIcon },
-                { label: 'Uptime SLA', value: '99.9%', icon: ChartBarIcon },
-                { label: 'Data Centers', value: '15+', icon: ServerIcon },
-                { label: 'Support Rating', value: '4.9★', icon: StarIcon }
+                { 
+                  label: mainPageData?.hero?.stat1_label || 'Global Customers', 
+                  value: mainPageData?.hero?.stat1_value || '10K+', 
+                  icon: GlobeAltIcon 
+                },
+                { 
+                  label: mainPageData?.hero?.stat2_label || 'Uptime SLA', 
+                  value: mainPageData?.hero?.stat2_value || '99.9%', 
+                  icon: ChartBarIcon 
+                },
+                { 
+                  label: mainPageData?.hero?.stat3_label || 'Data Centers', 
+                  value: mainPageData?.hero?.stat3_value || '15+', 
+                  icon: ServerIcon 
+                },
+                { 
+                  label: mainPageData?.hero?.stat4_label || 'Support Rating', 
+                  value: mainPageData?.hero?.stat4_value || '4.9★', 
+                  icon: StarIcon 
+                }
               ].map((stat, index) => (
                 <div key={index} className="text-center group">
                   <stat.icon className="w-8 h-8 text-blue-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
@@ -124,15 +140,40 @@ const MainProductsPage = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mainPageData?.sections && mainPageData.sections.map((section, index) => (
-              <ProductCard 
-                key={section.id} 
-                section={section} 
-                index={index}
-                isHovered={hoveredCard === section.id}
-                onHover={setHoveredCard}
-              />
-            ))}
+            {products && products.length > 0 ? (
+              products.map((product, index) => {
+                // Map product to section format for ProductCard
+                // Use section data if available, otherwise fall back to product data
+                const section = {
+                  id: product.id,
+                  product_id: product.product_id || product.id,
+                  title: product.title || product.name,
+                  description: product.description,
+                  category: product.category,
+                  popular_tag: product.popular_tag || 'Most Popular',
+                  features: product.features || [],
+                  price: product.price || '₹2,999',
+                  price_period: product.price_period || '/month',
+                  free_trial_tag: product.free_trial_tag || 'Free Trial',
+                  button_text: product.button_text || 'Explore Solution'
+                };
+                return (
+                  <ProductCard 
+                    key={product.id} 
+                    section={section} 
+                    index={index}
+                    isHovered={hoveredCard === product.id}
+                    onHover={setHoveredCard}
+                  />
+                );
+              })
+            ) : (
+              !loading && (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-gray-500">No products available</p>
+                </div>
+              )
+            )}
           </div>
         </div>
       </section>
@@ -154,24 +195,24 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
 
   const IconComponent = getProductIcon(section.title);
 
-  // Enhanced features based on product type
-  const getFeatures = (title) => {
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes('server')) {
-      return [
-        { icon: BoltIcon, text: 'High Performance Computing' },
-        { icon: LockClosedIcon, text: 'Enterprise Security' },
-        { icon: ChartBarIcon, text: '99.9% Uptime SLA' }
-      ];
+  // Use features from section data if available, filter out empty ones
+  const getFeatures = () => {
+    if (section.features && Array.isArray(section.features)) {
+      // Filter out empty features and map to feature objects
+      const validFeatures = section.features.filter(f => f && f.trim());
+      if (validFeatures.length > 0) {
+        const iconMap = [BoltIcon, LockClosedIcon, ChartBarIcon];
+        return validFeatures.map((text, index) => ({
+          icon: iconMap[index % iconMap.length],
+          text: text.trim()
+        }));
+      }
     }
-    return [
-      { icon: BoltIcon, text: 'Lightning Fast' },
-      { icon: LockClosedIcon, text: 'Secure & Compliant' },
-      { icon: ChartBarIcon, text: 'Scalable Architecture' }
-    ];
+    // Return empty array if no valid features (don't show fallback defaults)
+    return [];
   };
 
-  const features = getFeatures(section.title);
+  const features = getFeatures();
 
   return (
     <div 
@@ -202,18 +243,20 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
               <IconComponent className={`w-8 h-8 transition-colors duration-300 ${isHovered ? 'text-white' : 'text-gray-600'}`} />
             </div>
             
-            {/* Popular Badge */}
-            {index === 0 && (
+            {/* Popular Badge - Only show if popular_tag exists */}
+            {section.popular_tag && section.popular_tag.trim() && (
               <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                Most Popular
+                {section.popular_tag}
               </span>
             )}
           </div>
 
-          {/* Category */}
-          <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-4">
-            {section.category || 'Cloud Service'}
-          </div>
+          {/* Category - Only show if category exists */}
+          {section.category && section.category.trim() && (
+            <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-4">
+              {section.category}
+            </div>
+          )}
 
           {/* Title */}
           <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-900 transition-colors">
@@ -225,30 +268,38 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             {section.description}
           </p>
 
-          {/* Features */}
-          <div className="space-y-3 mb-8">
-            {features.map((feature, idx) => (
-              <div key={idx} className="flex items-center space-x-3">
-                <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckIcon className="w-3 h-3 text-green-600" />
+          {/* Features - Only show if there are valid features */}
+          {features.length > 0 && (
+            <div className="space-y-3 mb-8">
+              {features.map((feature, idx) => (
+                <div key={idx} className="flex items-center space-x-3">
+                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckIcon className="w-3 h-3 text-green-600" />
+                  </div>
+                  <span className="text-sm text-gray-700">{feature.text}</span>
                 </div>
-                <span className="text-sm text-gray-700">{feature.text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Pricing */}
-          <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-2xl font-bold text-gray-900">₹2,999</span>
-                <span className="text-gray-600 ml-2">/month</span>
-              </div>
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                Free Trial
-              </span>
+              ))}
             </div>
-          </div>
+          )}
+
+          {/* Pricing - Only show if price exists */}
+          {section.price && section.price.trim() && (
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-2xl font-bold text-gray-900">{section.price}</span>
+                  {section.price_period && section.price_period.trim() && (
+                    <span className="text-gray-600 ml-2">{section.price_period}</span>
+                  )}
+                </div>
+                {section.free_trial_tag && section.free_trial_tag.trim() && (
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                    {section.free_trial_tag}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Action Button */}
           <Link 
@@ -262,7 +313,7 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             `}
           >
             <span className="relative z-10 flex items-center">
-              Explore Solution
+              {section.button_text || 'Explore Solution'}
               <ArrowRightIcon className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
             </span>
             {isHovered && (
