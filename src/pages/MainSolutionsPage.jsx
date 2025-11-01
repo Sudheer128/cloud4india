@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ServerIcon, 
@@ -16,7 +16,9 @@ import {
   StarIcon,
   BanknotesIcon,
   ShoppingBagIcon,
-  HeartIcon
+  HeartIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 import { useSolutions, useMainSolutionsContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -24,11 +26,70 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const MainSolutionsPage = () => {
   const { data: mainPageData, loading: heroLoading } = useMainSolutionsContent();
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterMenuRef = useRef(null);
   
   // Use sections from mainPageData instead of solutions
   const solutions = mainPageData?.sections || [];
   const loading = heroLoading;
   const error = null;
+
+  // Get unique categories from solutions
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set();
+    solutions.forEach(solution => {
+      if (solution.category && solution.category.trim()) {
+        uniqueCategories.add(solution.category);
+      }
+    });
+    return ['all', ...Array.from(uniqueCategories).sort()];
+  }, [solutions]);
+
+  // Filter solutions based on search and category
+  const filteredSolutions = useMemo(() => {
+    return solutions.filter(solution => {
+      const solutionName = solution.title || solution.name || '';
+      const solutionDesc = solution.description || '';
+      const matchesSearch = solutionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           solutionDesc.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || solution.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [solutions, searchTerm, selectedCategory]);
+
+  // Get visible solutions based on pagination
+  const visibleSolutions = filteredSolutions.slice(0, visibleCount);
+  
+  // Reset visible count when search or filter changes
+  useEffect(() => {
+    setVisibleCount(8);
+  }, [searchTerm, selectedCategory]);
+
+  // Close filter menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
+        setShowFilterMenu(false);
+      }
+    };
+
+    if (showFilterMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFilterMenu]);
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 8);
+  };
+
+  const hasMore = visibleCount < filteredSolutions.length;
 
   if (loading) {
     return (
@@ -131,20 +192,72 @@ const MainSolutionsPage = () => {
       {/* Solutions Grid Section */}
       <section className="relative py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Choose Your <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Perfect Solution</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From startups to enterprises, our comprehensive suite of cloud solutions scales with your ambitions
+          {/* Page Title */}
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
+            Search All Solutions
+          </h1>
+
+          {/* Filter and Search Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Filter Button */}
+            <div className="relative" ref={filterMenuRef}>
+              <button
+                onClick={() => setShowFilterMenu(!showFilterMenu)}
+                className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors bg-white"
+              >
+                <FunnelIcon className="w-5 h-5 text-gray-700" />
+                <span className="text-sm font-medium text-gray-700">Filter</span>
+              </button>
+              
+              {/* Filter Dropdown */}
+              {showFilterMenu && (
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-96 overflow-y-auto">
+                  <div className="p-2">
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setShowFilterMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
+                          selectedCategory === category
+                            ? 'bg-blue-50 text-blue-700 font-medium'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {category === 'all' ? 'All Categories' : category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search solutions & services"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Solution Count Display */}
+          <div className="mb-8">
+            <p className="text-sm text-gray-600">
+              Displaying {filteredSolutions.length > 0 ? 1 : 0}-{Math.min(visibleCount, filteredSolutions.length)} ({filteredSolutions.length})
             </p>
           </div>
 
           {/* Solutions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {solutions && solutions.length > 0 ? (
-              solutions.map((solution, index) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+            {visibleSolutions && visibleSolutions.length > 0 ? (
+              visibleSolutions.map((solution, index) => {
                 // Map solution to section format for SolutionCard
                 // Use section data if available, otherwise fall back to solution data
                 const section = {
@@ -173,11 +286,23 @@ const MainSolutionsPage = () => {
             ) : (
               !loading && (
                 <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No solutions available</p>
+                  <p className="text-gray-500">No solutions found</p>
                 </div>
               )
             )}
           </div>
+
+          {/* Show More Button */}
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={handleShowMore}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Show 8 more
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </div>

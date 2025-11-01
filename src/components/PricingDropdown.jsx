@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 
 const PricingDropdown = ({ isOpen, onClose }) => {
-  const [activeCategory, setActiveCategory] = useState('all')
+  const [activeCategory, setActiveCategory] = useState('m365')
   const dropdownRef = useRef(null)
 
   // Pricing categories
   const categories = [
-    { id: 'all', label: 'All' },
     { id: 'm365', label: 'Microsoft 365 Licenses' },
     { id: 'acronis-server', label: 'Acronis Server Backup' },
     { id: 'acronis-m365', label: 'Acronis M365 Backup' },
@@ -64,9 +63,7 @@ const PricingDropdown = ({ isOpen, onClose }) => {
 
 
   // Filter products based on active category
-  const displayProducts = activeCategory === 'all' 
-    ? products.all 
-    : products[activeCategory] || []
+  const displayProducts = products[activeCategory] || []
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -93,14 +90,14 @@ const PricingDropdown = ({ isOpen, onClose }) => {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-20 z-40"
+        className="fixed inset-0 bg-black bg-opacity-40 z-40"
         onClick={onClose}
       />
       
       {/* Dropdown */}
       <div 
         ref={dropdownRef}
-        className="fixed top-16 left-0 right-0 bg-white shadow-2xl border-t border-gray-200 z-50 max-h-[85vh] overflow-hidden"
+        className="fixed top-16 left-0 right-0 bg-white shadow-2xl border-t border-gray-200 z-50 max-h-[85vh] overflow-hidden rounded-b-xl"
       >
         <div className="max-w-7xl mx-auto px-8 py-8">
           <div className="flex gap-8">
@@ -153,9 +150,9 @@ const PricingDropdown = ({ isOpen, onClose }) => {
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="mb-6 flex-shrink-0">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {categories.find(c => c.id === activeCategory)?.label || 'All Products'}
+                  {categories.find(c => c.id === activeCategory)?.label || 'Products'}
                 </h2>
-                {activeCategory !== 'all' && displayProducts.length === 0 && (
+                {displayProducts.length === 0 && (
                   <p className="text-gray-500 text-sm mt-2">No products available in this category.</p>
                 )}
               </div>
@@ -164,17 +161,22 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {displayProducts.map((product) => (
-                      <div
+                      <Link
                         key={product.id}
-                        className="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-all duration-200 border border-gray-200 hover:border-gray-300 hover:shadow-md"
+                        to={`/products/${product.id}`}
+                        onClick={onClose}
+                        className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                       >
-                        <div>
-                          <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight">
-                            {product.name}
-                          </h3>
-                          <p className="text-gray-700 text-xl font-medium">{product.price}/month</p>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
+                              {product.name}
+                            </h3>
+                            <p className="text-gray-700 text-xl font-medium">{product.price}/month</p>
+                          </div>
+                          <ArrowRightIcon className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0" />
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
