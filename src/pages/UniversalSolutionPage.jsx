@@ -805,7 +805,7 @@ const UniversalSolutionPage = () => {
                     Success Story
                   </div>
                   <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                    {getSectionByOrder(3).title}
+                    {getSectionByOrder(3).title}nt h
                   </h2>
                   <p className="text-xl text-blue-100 leading-relaxed mb-8">
                     {getSectionByOrder(3).content}
