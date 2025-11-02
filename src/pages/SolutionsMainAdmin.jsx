@@ -65,7 +65,6 @@ const SolutionsMainAdmin = () => {
     button_text: ''
   });
 
-  // Fetch main solutions content (include hidden sections for admin)
   const fetchMainSolutionsContent = async () => {
     try {
       setLoading(true);
@@ -316,7 +315,7 @@ const SolutionsMainAdmin = () => {
 
   if (loading) {
     return (
-      <AdminLayout activeSection="solutions-main" title="Solutions Main Page">
+      <AdminLayout activeSection="solutions-main" title="Apps Main Page">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -326,7 +325,7 @@ const SolutionsMainAdmin = () => {
 
   if (error) {
     return (
-      <AdminLayout activeSection="solutions-main" title="Solutions Main Page">
+      <AdminLayout activeSection="solutions-main" title="Apps Main Page">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">Error: {error}</p>
           <button 
@@ -341,7 +340,7 @@ const SolutionsMainAdmin = () => {
   }
 
   return (
-    <AdminLayout activeSection="solutions-main" title="Solutions Main Page">
+    <AdminLayout activeSection="solutions-main" title="Apps Main Page">
       <div className="space-y-6">
         
         {/* Hero Section */}
@@ -491,7 +490,7 @@ const SolutionsMainAdmin = () => {
           ) : (
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Solutions'}</h3>
+                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Apps'}</h3>
                 <p className="text-sm text-gray-600">{mainPageData?.hero?.subtitle || 'Enterprise Solutions - Made in India'}</p>
                 <p className="text-sm text-gray-500 mt-2">{mainPageData?.hero?.description || 'Explore our enterprise-grade solutions designed to transform your business operations.'}</p>
               </div>
@@ -522,18 +521,18 @@ const SolutionsMainAdmin = () => {
         {/* Solution Sections */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Solution Sections</h2>
+            <h2 className="text-xl font-semibold text-gray-900">App Sections</h2>
             <button
               onClick={() => setShowNewSectionModal(true)}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
               <PlusIcon className="w-4 h-4" />
-              Add New Solution
+              Add New App
             </button>
           </div>
           
           {mainPageData?.sections?.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No solution sections found.</p>
+            <p className="text-gray-500 text-center py-8">No app sections found.</p>
           ) : (
             <div className="space-y-4">
               {mainPageData?.sections?.map((section) => (
@@ -641,7 +640,7 @@ const SolutionsMainAdmin = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Edit Solution Section</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Edit App Section</h3>
               <button
                 onClick={() => {
                   setShowEditModal(false);
@@ -665,7 +664,7 @@ const SolutionsMainAdmin = () => {
                   value={sectionForm.title}
                   onChange={(e) => setSectionForm({...sectionForm, title: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter solution title"
+                  placeholder="Enter app title"
                 />
               </div>
 
@@ -680,7 +679,7 @@ const SolutionsMainAdmin = () => {
                   onChange={(e) => setSectionForm({...sectionForm, description: e.target.value})}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter solution description"
+                  placeholder="Enter app description"
                 />
               </div>
 
@@ -803,7 +802,7 @@ const SolutionsMainAdmin = () => {
                   required
                   value={sectionForm.button_text}
                   onChange={(e) => setSectionForm({...sectionForm, button_text: e.target.value})}
-                  placeholder="Explore Solution"
+                  placeholder="Explore App"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">Text on the main CTA button</p>
@@ -839,7 +838,7 @@ const SolutionsMainAdmin = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Add New Solution Section</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Add New App Section</h3>
               <button
                 onClick={() => {
                   setShowNewSectionModal(false);
@@ -873,7 +872,7 @@ const SolutionsMainAdmin = () => {
                   value={newSectionForm.title}
                   onChange={(e) => setNewSectionForm({...newSectionForm, title: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter solution title"
+                  placeholder="Enter app title"
                 />
               </div>
 
@@ -888,7 +887,7 @@ const SolutionsMainAdmin = () => {
                   onChange={(e) => setNewSectionForm({...newSectionForm, description: e.target.value})}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter solution description"
+                  placeholder="Enter app description"
                 />
               </div>
 
@@ -1011,7 +1010,7 @@ const SolutionsMainAdmin = () => {
                   required
                   value={newSectionForm.button_text}
                   onChange={(e) => setNewSectionForm({...newSectionForm, button_text: e.target.value})}
-                  placeholder="Explore Solution"
+                  placeholder="Explore App"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">Text on the main CTA button</p>
@@ -1025,7 +1024,7 @@ const SolutionsMainAdmin = () => {
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
               >
                 <CheckIcon className="w-4 h-4" />
-                Create Solution
+                Create App
               </button>
               <button
                 onClick={() => {

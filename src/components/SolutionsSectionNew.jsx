@@ -4,12 +4,11 @@ import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { useMainSolutionsContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 
-const SolutionsSection = () => {
+const SolutionsSectionNew = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: mainPageData, loading, error, refetch } = useMainSolutionsContent()
   
-  // Use sections from mainPageData instead of solutions
   const solutions = mainPageData?.sections || []
 
   const categories = ['all', 'Industry', 'Technology']
@@ -23,66 +22,76 @@ const SolutionsSection = () => {
     return matchesSearch && matchesCategory
   }) || []
 
+  const getCategoryColor = () => {
+    return {
+      active: 'bg-saree-teal text-white',
+      inactive: 'bg-white border-2 border-gray-300 text-gray-900 hover:bg-gray-100'
+    }
+  }
+
+  const getSolutionColor = () => {
+    return {
+      border: 'border-gray-200 hover:border-saree-teal-dark',
+      badge: 'bg-saree-amber text-white',
+      title: '',
+      link: 'text-saree-teal hover:text-saree-teal-dark'
+    }
+  }
+
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-4xl font-light text-gray-900">Explore our Apps</h2>
-          <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-            View all solutions
-          </a>
         </div>
 
-        {/* Search and Filter Bar */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-2 border border-gray-300 rounded-full px-4 py-2 hover:border-gray-400 transition-colors">
-              <FunnelIcon className="h-4 w-4" />
-              <span className="text-sm">Filter by category</span>
+            <button className="flex items-center space-x-2 border-2 border-gray-300 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors bg-white">
+              <FunnelIcon className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-900">Filter by category</span>
             </button>
           </div>
           
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
               <input
                 type="text"
                 placeholder="Search categories"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
               />
             </div>
           </div>
         </div>
 
-        {/* Results Count */}
         <div className="mb-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-700 font-medium">
             Displaying 1-{filteredSolutions.length} ({solutions.length})
           </p>
         </div>
 
-        {/* Category Filter Pills */}
         <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory === category
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {category === 'all' ? 'All Categories' : category}
-            </button>
-          ))}
+          {categories.map((category) => {
+            const colors = getCategoryColor()
+            
+            return (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
+                  selectedCategory === category ? colors.active : colors.inactive
+                }`}
+              >
+                {category === 'all' ? 'All Categories' : category}
+              </button>
+            )
+          })}
         </div>
 
-        {/* Solutions Grid */}
         <ContentWrapper 
           loading={loading} 
           error={error} 
@@ -92,25 +101,29 @@ const SolutionsSection = () => {
           emptyMessage="No solutions available"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSolutions.map((solution) => {
-              // Use solution ID for dynamic routing - fallback to section id if no solution_id
+            {filteredSolutions.map((solution, index) => {
               const solutionId = solution.solution_id || solution.id;
               const solutionName = solution.title || solution.name || '';
               const solutionCategory = solution.category || 'Enterprise Solutions';
+              const colors = getSolutionColor()
               
               return (
                 <Link
                   key={solution.id}
                   to={`/solutions/${solutionId}`}
-                  className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block"
+                  className={`relative bg-white border ${colors.border} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block overflow-hidden`}
                 >
-                  <div className="mb-4">
+                  {/* single-color hover wash: light teal, under content */}
+                  <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0">
+                    <div className="absolute inset-0 bg-saree-teal/10" />
+                  </div>
+                  <div className="mb-4 relative z-10">
                     {solutionCategory && (
-                      <span className="inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-3">
+                      <span className={`inline-block ${colors.badge} px-3 py-1 rounded-full text-xs font-semibold mb-3`}>
                         {solutionCategory}
                       </span>
                     )}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                    <h3 className={`text-xl font-semibold text-gray-900 mb-3 transition-colors`}>
                       {solutionName}
                     </h3>
                     <p className="text-gray-600 text-sm leading-relaxed">
@@ -118,8 +131,8 @@ const SolutionsSection = () => {
                     </p>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform">
+                  <div className="flex items-center justify-between relative z-10">
+                    <span className={`${colors.link} font-semibold text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform`}>
                       <span>{solution.button_text || 'View solution'}</span>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -132,11 +145,13 @@ const SolutionsSection = () => {
           </div>
         </ContentWrapper>
 
-        {/* Show more button */}
         {filteredSolutions.length === solutions.length && (
           <div className="text-center mt-12">
-            <button className="bg-white border-2 border-gray-800 text-gray-800 px-8 py-3 rounded-lg font-medium hover:bg-gray-800 hover:text-white transition-all duration-300">
-              Show 15 more
+            <button 
+              onClick={() => window.location.href = 'http://38.242.248.213:4001/solutions'}
+              className="bg-saree-teal text-white border-2 border-saree-teal px-8 py-3 rounded-lg font-semibold hover:bg-saree-teal-dark transition-all duration-300 transform hover:scale-105 shadow-lg"
+            >
+              View more Apps
             </button>
           </div>
         )}
@@ -145,4 +160,4 @@ const SolutionsSection = () => {
   )
 }
 
-export default SolutionsSection
+export default SolutionsSectionNew

@@ -7,6 +7,45 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Phulkari Color Palette - Extracted from Traditional Fabric
+        // Based on vibrant rainbow stripe pattern
+        'phulkari-red': '#DC2626',           // Vivid fiery red
+        'phulkari-red-dark': '#B91C1C',      // Darker red
+        'phulkari-red-light': '#FEE2E2',     // Light red
+        'phulkari-fuchsia': '#D946EF',       // Rich fuchsia/magenta pink
+        'phulkari-fuchsia-dark': '#A21CAF',  // Darker fuchsia
+        'phulkari-fuchsia-light': '#FAE8FF', // Light fuchsia
+        'phulkari-peach': '#FED7AA',         // Soft warm beige/light peach
+        'phulkari-peach-dark': '#FB923C',    // Darker peach
+        'phulkari-peach-light': '#FFF7ED',   // Very light peach
+        'phulkari-gold': '#FBBF24',          // Sunny golden yellow
+        'phulkari-gold-dark': '#F59E0B',    // Darker gold
+        'phulkari-gold-light': '#FEF3C7',   // Light gold
+        'phulkari-lime': '#84CC16',          // Lively bright lime green
+        'phulkari-lime-dark': '#65A30D',     // Darker lime
+        'phulkari-lime-light': '#ECFCCB',   // Light lime
+        'phulkari-turquoise': '#06B6D4',     // Clear vibrant turquoise
+        'phulkari-turquoise-dark': '#0891B2', // Darker turquoise
+        'phulkari-turquoise-light': '#CFFAFE', // Light turquoise
+        'phulkari-blue-light': '#E0F2FE',    // Pale blue-green
+        'phulkari-blue-light-dark': '#0EA5E9', // Darker version
+        // Saree-inspired palette from provided image (teal/amber/green)
+        'saree-teal': '#12A7A7',
+        'saree-teal-dark': '#0E7E7E',
+        'saree-teal-light': '#D5F3F3',
+        'saree-amber': '#F59E0B',
+        'saree-amber-dark': '#B45309',
+        'saree-amber-light': '#FEF3C7',
+        'saree-lime': '#64C936',
+        'saree-lime-dark': '#4A9A29',
+        'saree-lime-light': '#E9F8E9',
+        'saree-rose': '#E64B5D',
+        'saree-rose-dark': '#B73747',
+        'saree-rose-light': '#FCE5E8',
+        'saree-coral': '#FF6A3D',
+        'saree-coral-dark': '#CC5531',
+        'saree-coral-light': '#FFE7DE',
+        // Original AWS colors (unchanged)
         'aws-navy': '#232F3E',
         'aws-orange': '#FF9900',
         'aws-blue': '#0073BB',

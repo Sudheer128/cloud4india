@@ -112,47 +112,46 @@ const MainProductsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Hero Section - Modern Dark Theme */}
+      {/* Hero Section - Modern Dark Theme - Compact */}
       <section className="relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-full text-blue-300 text-sm font-medium mb-8 border border-blue-500/30">
-              <CloudIcon className="w-5 h-5 mr-2" />
+            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-full text-blue-300 text-xs font-medium mb-4 border border-blue-500/30">
+              <CloudIcon className="w-4 h-4 mr-2" />
               {mainPageData?.hero?.subtitle || 'Enterprise Cloud Solutions - Made in India'}
             </div>
 
             {/* Main Heading */}
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
               <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
                 {mainPageData?.hero?.title || 'Cloud Products'}
               </span>
             </h1>
 
             {/* Description */}
-            <p className="text-xl md:text-2xl text-white/80 leading-relaxed mb-12 max-w-4xl mx-auto">
+            <p className="text-base md:text-lg text-white/80 leading-relaxed mb-6 max-w-3xl mx-auto">
               {mainPageData?.hero?.description || 'Accelerate your digital transformation with our cutting-edge cloud infrastructure. Built for scale, optimized for performance, designed for the future.'}
             </p>
 
             {/* CTA Button */}
-            <div className="flex justify-center items-center mb-16">
+            <div className="flex justify-center items-center mb-8">
               <Link 
                 to="/pricing"
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
+                className="px-6 py-2.5 bg-white/10 backdrop-blur-sm text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200"
               >
                 View Pricing
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
               {[
                 { 
                   label: mainPageData?.hero?.stat1_label || 'Global Customers', 
@@ -176,9 +175,9 @@ const MainProductsPage = () => {
                 }
               ].map((stat, index) => (
                 <div key={index} className="text-center group">
-                  <stat.icon className="w-8 h-8 text-blue-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-sm text-white/60">{stat.label}</div>
+                  <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-1.5 group-hover:scale-110 transition-transform duration-200" />
+                  <div className="text-lg font-bold text-white mb-0.5">{stat.value}</div>
+                  <div className="text-xs text-white/60">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -187,28 +186,28 @@ const MainProductsPage = () => {
       </section>
 
       {/* Products Grid Section */}
-      <section className="relative py-24 bg-white">
+      <section className="relative py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5">
             Search All Products
           </h1>
 
           {/* Filter and Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             {/* Filter Button */}
             <div className="relative" ref={filterMenuRef}>
               <button
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors bg-white"
+                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors bg-white text-sm"
               >
-                <FunnelIcon className="w-5 h-5 text-gray-700" />
+                <FunnelIcon className="w-4 h-4 text-gray-700" />
                 <span className="text-sm font-medium text-gray-700">Filter</span>
               </button>
               
               {/* Filter Dropdown */}
               {showFilterMenu && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-96 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-80 overflow-y-auto">
                   <div className="p-2">
                     {categories.map((category) => (
                       <button
@@ -217,7 +216,7 @@ const MainProductsPage = () => {
                           setSelectedCategory(category);
                           setShowFilterMenu(false);
                         }}
-                        className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                           selectedCategory === category
                             ? 'bg-blue-50 text-blue-700 font-medium'
                             : 'text-gray-700 hover:bg-gray-50'
@@ -233,26 +232,26 @@ const MainProductsPage = () => {
 
             {/* Search Input */}
             <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search products & services"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
           </div>
 
           {/* Product Count Display */}
-          <div className="mb-8">
-            <p className="text-sm text-gray-600">
+          <div className="mb-5">
+            <p className="text-xs text-gray-600">
               Displaying {filteredProducts.length > 0 ? 1 : 0}-{Math.min(visibleCount, filteredProducts.length)} ({filteredProducts.length})
             </p>
           </div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
             {visibleProducts && visibleProducts.length > 0 ? (
               visibleProducts.map((product, index) => {
                 // Map product to section format for ProductCard
@@ -291,10 +290,10 @@ const MainProductsPage = () => {
 
           {/* Show More Button */}
           {hasMore && (
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-6">
               <button
                 onClick={handleShowMore}
-                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
                 Show 8 more
               </button>
@@ -306,7 +305,7 @@ const MainProductsPage = () => {
   );
 };
 
-// Modern Product Card Component
+// Modern Product Card Component - Optimized & Compact
 const ProductCard = ({ section, index, isHovered, onHover }) => {
   // Icon mapping for different product types
   const getProductIcon = (title) => {
@@ -327,7 +326,7 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
       const validFeatures = section.features.filter(f => f && f.trim());
       if (validFeatures.length > 0) {
         const iconMap = [BoltIcon, LockClosedIcon, ChartBarIcon];
-        return validFeatures.map((text, index) => ({
+        return validFeatures.slice(0, 3).map((text, index) => ({
           icon: iconMap[index % iconMap.length],
           text: text.trim()
         }));
@@ -342,35 +341,36 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
   return (
     <div 
       className="group relative"
+      style={{ willChange: 'transform' }}
       onMouseEnter={() => onHover(section.id)}
       onMouseLeave={() => onHover(null)}
     >
       {/* Card */}
       <div className={`
-        relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden
-        transition-all duration-500 transform
-        ${isHovered ? 'scale-105 shadow-2xl shadow-blue-500/20' : 'hover:scale-102'}
+        relative bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden
+        transition-all duration-200 transform
+        ${isHovered ? 'scale-[1.02] shadow-xl shadow-blue-500/10' : ''}
       `}>
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-purple-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
         
         {/* Content */}
-        <div className="relative p-8">
+        <div className="relative p-5">
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex items-start justify-between mb-4">
             <div className={`
-              w-16 h-16 rounded-xl flex items-center justify-center transition-all duration-300
+              w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200
               ${isHovered 
-                ? 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg' 
+                ? 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-md' 
                 : 'bg-gradient-to-br from-gray-100 to-gray-200'
               }
             `}>
-              <IconComponent className={`w-8 h-8 transition-colors duration-300 ${isHovered ? 'text-white' : 'text-gray-600'}`} />
+              <IconComponent className={`w-6 h-6 transition-colors duration-200 ${isHovered ? 'text-white' : 'text-gray-600'}`} />
             </div>
             
             {/* Popular Badge - Only show if popular_tag exists */}
             {section.popular_tag && section.popular_tag.trim() && (
-              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 {section.popular_tag}
               </span>
             )}
@@ -378,30 +378,30 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
 
           {/* Category - Only show if category exists */}
           {section.category && section.category.trim() && (
-            <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-4">
+            <div className="inline-flex items-center px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium mb-3">
               {section.category}
             </div>
           )}
 
           {/* Title */}
-          <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-900 transition-colors">
+          <h3 className="text-lg font-bold text-gray-900 mb-2.5 group-hover:text-blue-900 transition-colors line-clamp-2">
             {section.title}
           </h3>
 
           {/* Description */}
-          <p className="text-gray-600 mb-6 leading-relaxed line-clamp-3">
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-2">
             {section.description}
           </p>
 
           {/* Features - Only show if there are valid features */}
           {features.length > 0 && (
-            <div className="space-y-3 mb-8">
+            <div className="space-y-2 mb-5">
               {features.map((feature, idx) => (
-                <div key={idx} className="flex items-center space-x-3">
-                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckIcon className="w-3 h-3 text-green-600" />
+                <div key={idx} className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckIcon className="w-2.5 h-2.5 text-green-600" />
                   </div>
-                  <span className="text-sm text-gray-700">{feature.text}</span>
+                  <span className="text-xs text-gray-700 line-clamp-1">{feature.text}</span>
                 </div>
               ))}
             </div>
@@ -409,16 +409,16 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
 
           {/* Pricing - Only show if price exists */}
           {section.price && section.price.trim() && (
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 mb-6">
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-3 mb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-2xl font-bold text-gray-900">{section.price}</span>
+                  <span className="text-xl font-bold text-gray-900">{section.price}</span>
                   {section.price_period && section.price_period.trim() && (
-                    <span className="text-gray-600 ml-2">{section.price_period}</span>
+                    <span className="text-gray-600 text-sm ml-1">{section.price_period}</span>
                   )}
                 </div>
                 {section.free_trial_tag && section.free_trial_tag.trim() && (
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     {section.free_trial_tag}
                   </span>
                 )}
@@ -430,33 +430,33 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
           <Link 
             to={`/products/${section.product_id}`}
             className={`
-              group/btn relative w-full inline-flex items-center justify-center px-6 py-4 rounded-xl font-semibold transition-all duration-300
+              group/btn relative w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
               ${isHovered 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
                 : 'bg-gray-900 text-white hover:bg-gray-800'
               }
             `}
           >
             <span className="relative z-10 flex items-center">
               {section.button_text || 'Explore Solution'}
-              <ArrowRightIcon className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+              <ArrowRightIcon className="w-4 h-4 ml-1.5 group-hover/btn:translate-x-1 transition-transform duration-200" />
             </span>
             {isHovered && (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200"></div>
             )}
           </Link>
         </div>
 
         {/* Hover Effect Border */}
         <div className={`
-          absolute inset-0 rounded-2xl border-2 transition-all duration-300
-          ${isHovered ? 'border-blue-500/50' : 'border-transparent'}
+          absolute inset-0 rounded-xl border-2 transition-all duration-200
+          ${isHovered ? 'border-blue-500/30' : 'border-transparent'}
         `}></div>
       </div>
 
-      {/* Background Glow Effect */}
+      {/* Background Glow Effect - Simplified for performance */}
       {isHovered && (
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl -z-10 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl blur-lg -z-10"></div>
       )}
     </div>
   );

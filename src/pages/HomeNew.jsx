@@ -4,9 +4,8 @@ import ComprehensiveSectionNew from '../components/ComprehensiveSectionNew'
 import WhySectionNew from '../components/WhySectionNew'
 import SolutionsSectionNew from '../components/SolutionsSectionNew'
 import ProductsSectionNew from '../components/ProductsSectionNew'
-// import InfrastructureSection from '../components/InfrastructureSection'
 
-const Home = () => {
+const HomeNew = () => {
   return (
     <div>
       <HeroSectionNew />
@@ -14,9 +13,10 @@ const Home = () => {
       <WhySectionNew />
       <SolutionsSectionNew />
       <ProductsSectionNew />
-      {/* <InfrastructureSection /> */}
     </div>
   )
 }
 
-export default Home
+export default HomeNew
+
+

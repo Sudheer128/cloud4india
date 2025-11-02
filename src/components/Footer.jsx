@@ -1,58 +1,58 @@
 import React from 'react'
 import { ChevronUpIcon } from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
 
 const Footer = () => {
   const footerSections = [
     {
-      title: 'Learn',
+      title: 'Cloud4India',
       links: [
-        'What Is Cloud4India?',
-        'What Is Cloud Computing?',
-        'What Is Agentic AI?',
-        'Cloud Computing Concepts Hub',
-        'Cloud4India Cloud Security',
-        "What's New",
-        'Blogs',
-        'Press Releases'
+        { text: 'What Is Cloud4India?', href: '/' },
+        { text: 'Products', href: '/products' },
+        { text: 'Solutions', href: '/solutions' },
+        { text: 'Pricing', href: '/pricing' },
+        { text: 'Documentation', href: '#' },
+        { text: 'Blogs', href: '#' },
+        { text: 'Press Releases', href: '#' }
       ]
     },
     {
       title: 'Resources',
       links: [
-        'Getting Started',
-        'Training',
-        'Cloud4India Trust Center',
-        'Cloud4India Solutions Library',
-        'Architecture Center',
-        'Product and Technical FAQs',
-        'Analyst Reports',
-        'Cloud4India Partners'
+        { text: 'Getting Started', href: '#' },
+        { text: 'Training & Certification', href: '#' },
+        { text: 'Cloud4India Trust Center', href: '#' },
+        { text: 'Cloud4India Apps Library', href: '/solutions' },
+        { text: 'Architecture Center', href: '#' },
+        { text: 'Product & Technical FAQs', href: '#' },
+        { text: 'Analyst Reports', href: '#' },
+        { text: 'Cloud4India Partners', href: '#' }
       ]
     },
     {
       title: 'Developers',
       links: [
-        'Developer Center',
-        'SDKs & Tools',
-        'Documentation',
-        'Code Samples',
-        'Tutorials',
-        'API References',
-        'Open Source',
-        'Community Forums'
+        { text: 'Developer Center', href: '#' },
+        { text: 'SDKs & Tools', href: '#' },
+        { text: 'Documentation', href: '#' },
+        { text: 'Code Samples', href: '#' },
+        { text: 'Tutorials', href: '#' },
+        { text: 'API References', href: '#' },
+        { text: 'Open Source', href: '#' },
+        { text: 'Community Forums', href: '#' }
       ]
     },
     {
-      title: 'Help',
+      title: 'Support',
       links: [
-        'Contact Us',
-        'Support Center',
-        'Knowledge Base',
-        'Service Health',
-        'Training & Certification',
-        'Customer Stories',
-        'Professional Services',
-        'Account & Billing'
+        { text: 'Contact Us', href: '#' },
+        { text: 'Support Center', href: '#' },
+        { text: 'Knowledge Base', href: '#' },
+        { text: 'Service Health', href: '#' },
+        { text: 'Training & Certification', href: '#' },
+        { text: 'Customer Stories', href: '#' },
+        { text: 'Professional Services', href: '#' },
+        { text: 'Account & Billing', href: 'https://portal.cloud4india.com/login?redirectUrl=/' }
       ]
     }
   ]
@@ -67,9 +67,14 @@ const Footer = () => {
         
         {/* Top Section with Create Account and Language */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-16">
-          <button className="bg-white text-gray-900 px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 transition-colors mb-4 md:mb-0">
+          <a 
+            href="https://portal.cloud4india.com/login?redirectUrl=/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-white text-gray-900 px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 transition-colors mb-4 md:mb-0 inline-block"
+          >
             Create a Cloud4India account
-          </button>
+          </a>
           <div className="flex items-center space-x-2 border border-white rounded-full px-4 py-2">
             <span className="text-white">🌐</span>
             <span className="text-white">English</span>
@@ -87,9 +92,23 @@ const Footer = () => {
               <ul className="space-y-3">
                 {section.links.map((link, linkIndex) => (
                   <li key={linkIndex}>
-                    <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-                      {link}
-                    </a>
+                    {link.href.startsWith('http') ? (
+                      <a 
+                        href={link.href} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-white transition-colors text-sm"
+                      >
+                        {link.text}
+                      </a>
+                    ) : (
+                      <Link 
+                        to={link.href} 
+                        className="text-gray-400 hover:text-white transition-colors text-sm"
+                      >
+                        {link.text}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -485,10 +485,10 @@ const AdminPanel = () => {
                   ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
-              title="Solutions"
+              title="Apps"
             >
               <Squares2X2Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-              {!sidebarCollapsed && 'Solutions'}
+              {!sidebarCollapsed && 'Apps'}
             </button>
             
             <button
@@ -517,7 +517,7 @@ const AdminPanel = () => {
           <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-gray-900">
             {activeSection === 'home' && 'Home Page Management'}
             {activeSection === 'products' && 'Products Management'}
-            {activeSection === 'solutions' && 'Solutions Management'}
+            {activeSection === 'solutions' && 'Apps Management'}
             {activeSection === 'pricing' && 'Pricing Management'}
             {activeSection === 'solution-editor' && `Edit: ${editingSolution?.name}`}
             {activeSection === 'product-editor' && `Edit: ${editingProduct?.name}`}
@@ -620,7 +620,7 @@ const HomePageManagement = ({
             { id: 'hero', label: 'Hero Section' },
             { id: 'why', label: 'Why Items' },
             { id: 'products', label: 'Products' },
-            { id: 'solutions', label: 'Solutions' }
+            { id: 'solutions', label: 'Apps' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -692,10 +692,10 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Solutions</h3>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Apps</h3>
         <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
           <PlusIcon className="w-5 h-5" />
-          <span>Add New Solution</span>
+          <span>Add New App</span>
         </button>
       </div>
 
@@ -1433,7 +1433,7 @@ const SolutionsEditor = ({ solutions, onCreate, onUpdate, onDelete, onDuplicate,
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Solutions</h2>
+        <h2 className="text-xl font-semibold">Apps</h2>
         <button
           onClick={() => onEdit('new')}
           className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"

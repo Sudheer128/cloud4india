@@ -96,7 +96,7 @@ const MainSolutionsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner />
-          <p className="text-white/70 mt-4">Loading our innovative solutions...</p>
+          <p className="text-white/70 mt-4">Loading our innovative apps...</p>
         </div>
       </div>
     );
@@ -106,7 +106,7 @@ const MainSolutionsPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Error Loading Solutions</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Error Loading Apps</h2>
           <p className="text-white/70">{error}</p>
         </div>
       </div>
@@ -135,13 +135,13 @@ const MainSolutionsPage = () => {
             {/* Main Heading */}
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight">
               <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                {mainPageData?.hero?.title || 'Cloud Solutions'}
+                {mainPageData?.hero?.title || 'Cloud Apps'}
               </span>
             </h1>
 
             {/* Description */}
             <p className="text-xl md:text-2xl text-white/80 leading-relaxed mb-12 max-w-4xl mx-auto">
-              {mainPageData?.hero?.description || 'Discover industry-specific cloud solutions tailored for your business needs. From financial services to healthcare, our specialized solutions drive digital transformation across various sectors.'}
+              {mainPageData?.hero?.description || 'Discover industry-specific cloud apps tailored for your business needs. From financial services to healthcare, our specialized apps drive digital transformation across various sectors.'}
             </p>
 
             {/* CTA Buttons */}
@@ -194,7 +194,7 @@ const MainSolutionsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8">
-            Search All Solutions
+            Search All Apps
           </h1>
 
           {/* Filter and Search Bar */}
@@ -239,7 +239,7 @@ const MainSolutionsPage = () => {
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search solutions & services"
+                placeholder="Search apps & services"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -271,7 +271,7 @@ const MainSolutionsPage = () => {
                   price: solution.price || '₹2,999',
                   price_period: solution.price_period || '/month',
                   free_trial_tag: solution.free_trial_tag || 'Free Trial',
-                  button_text: solution.button_text || 'Explore Solution'
+                  button_text: solution.button_text || 'Explore App'
                 };
                 return (
                   <SolutionCard 
@@ -286,7 +286,7 @@ const MainSolutionsPage = () => {
             ) : (
               !loading && (
                 <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No solutions found</p>
+                  <p className="text-gray-500">No apps found</p>
                 </div>
               )
             )}
@@ -479,7 +479,7 @@ const SolutionCard = ({ section, index, isHovered, onHover }) => {
             `}
           >
             <span className="relative z-10 flex items-center">
-              {section.button_text || 'Explore Solution'}
+              {section.button_text || 'Explore App'}
               <ArrowRightIcon className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
             </span>
             {isHovered && (

@@ -27,7 +27,7 @@ const ComprehensiveSection = () => {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Scale with confidence</h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-6 leading-relaxed clamp-3">
               Cloud4India has the most operational experience, at greater scale, of any cloud provider
             </p>
             <div className="inline-flex items-center px-4 py-2 bg-blue-400 text-white rounded-full text-sm font-medium hover:bg-blue-600 transition-all duration-300 transform hover:scale-105">
@@ -43,7 +43,7 @@ const ComprehensiveSection = () => {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Trusted by millions</h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-6 leading-relaxed clamp-3">
               Join millions of customers who trust Cloud4India to power their businesses
             </p>
             <div className="inline-flex items-center px-4 py-2 bg-purple-400 text-white rounded-full text-sm font-medium hover:bg-purple-600 transition-all duration-300 transform hover:scale-105">
@@ -59,7 +59,7 @@ const ComprehensiveSection = () => {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Fast and reliable</h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-6 leading-relaxed clamp-3">
               99.99% availability SLA with global infrastructure and redundancy
             </p>
             <div className="inline-flex items-center px-4 py-2 bg-orange-400 text-white rounded-full text-sm font-medium hover:bg-orange-600 transition-all duration-300 transform hover:scale-105">
@@ -75,7 +75,7 @@ const ComprehensiveSection = () => {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Industry recognition</h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-6 leading-relaxed clamp-3">
               Recognized as a leader in cloud infrastructure and innovation
             </p>
             <div className="inline-flex items-center px-4 py-2 bg-green-400 text-white rounded-full text-sm font-medium hover:bg-green-600 transition-all duration-300 transform hover:scale-105">

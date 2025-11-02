@@ -34,13 +34,16 @@ body {
   background: #a8a8a8;
 }
 
-/* Smooth animations */
-* {
-  transition: all 0.2s ease;
-}
-
 /* Focus styles */
 *:focus {
   outline: 2px solid #FF9900;
   outline-offset: 2px;
+}
+
+/* Clamp utilities */
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

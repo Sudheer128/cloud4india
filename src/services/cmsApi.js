@@ -696,71 +696,6 @@ export const duplicateProduct = async (productId, options = {}) => {
 // Export the axios instance for custom requests
 export { cmsApi };
 
-// Default export
-export default {
-  getHomepageContent,
-  getHeroContent,
-  getWhyItems,
-  getProducts,
-  getSolutions,
-  getAdminSolutions,
-  getSolution,
-  createSolution,
-  updateSolution,
-  deleteSolution,
-  duplicateSolution,
-  toggleSolutionVisibility,
-  getSolutionSections,
-  createSolutionSection,
-  updateSolutionSection,
-  deleteSolutionSection,
-  updateHeroContent,
-  createWhyItem,
-  updateWhyItem,
-  deleteWhyItem,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  // New Product CMS API functions
-  getProductByRoute,
-  getProductSectionsByRoute,
-  getProductItemsByRoute,
-  getProductVariantsByRoute,
-  getProductSections,
-  getAdminProductSections,
-  createProductSection,
-  updateProductSection,
-  deleteProductSection,
-  toggleProductSectionVisibility,
-  getProductItems,
-  getAdminProductItems,
-  createProductItem,
-  updateProductItem,
-  deleteProductItem,
-  toggleProductItemVisibility,
-  getAdminProducts,
-  toggleProductVisibility,
-  duplicateProduct,
-  checkCMSHealth,
-  // Main Pages API functions
-  getMainProductsContent,
-  getMainSolutionsContent,
-  updateMainProductsHero,
-  updateMainSolutionsHero,
-  updateMainProductsSection,
-  updateMainSolutionsSection,
-  duplicateMainProductsSection,
-  deleteMainProductsSection,
-  toggleMainProductsSectionVisibility,
-  createMainProductsSection,
-  getAllProductsForSection,
-  getAllMainSolutionsSections,
-  duplicateMainSolutionsSection,
-  deleteMainSolutionsSection,
-  toggleMainSolutionsSectionVisibility,
-  createMainSolutionsSection,
-};
-
 // ===== MAIN PAGES API FUNCTIONS =====
 
 /**
@@ -1023,4 +958,80 @@ export const getAllProductsForSection = async () => {
     console.error('Error fetching products:', error);
     throw error;
   }
+};
+
+// Default export (placed after all function declarations to avoid TDZ errors)
+export default {
+  // Homepage
+  getHomepageContent,
+  getHeroContent,
+  updateHeroContent,
+
+  // Why items
+  getWhyItems,
+  createWhyItem,
+  updateWhyItem,
+  deleteWhyItem,
+
+  // Products basic
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getAdminProducts,
+  toggleProductVisibility,
+  duplicateProduct,
+
+  // Solutions basic
+  getSolutions,
+  getAdminSolutions,
+  getSolution,
+  createSolution,
+  updateSolution,
+  deleteSolution,
+  duplicateSolution,
+  toggleSolutionVisibility,
+  getSolutionSections,
+  createSolutionSection,
+  updateSolutionSection,
+  deleteSolutionSection,
+
+  // Product by route and sections/items
+  getProductByRoute,
+  getProductSectionsByRoute,
+  getProductItemsByRoute,
+  getProductVariantsByRoute,
+  getProductSections,
+  getAdminProductSections,
+  createProductSection,
+  updateProductSection,
+  deleteProductSection,
+  toggleProductSectionVisibility,
+  getProductItems,
+  getAdminProductItems,
+  createProductItem,
+  updateProductItem,
+  deleteProductItem,
+  toggleProductItemVisibility,
+
+  // Health
+  checkCMSHealth,
+
+  // Main pages API
+  getMainProductsContent,
+  getMainSolutionsContent,
+  updateMainProductsHero,
+  updateMainSolutionsHero,
+  updateMainProductsSection,
+  updateMainSolutionsSection,
+  duplicateMainProductsSection,
+  deleteMainProductsSection,
+  toggleMainProductsSectionVisibility,
+  createMainProductsSection,
+  getAllProductsForSection,
+  getAllMainSolutionsSections,
+  duplicateMainSolutionsSection,
+  deleteMainSolutionsSection,
+  toggleMainSolutionsSectionVisibility,
+  createMainSolutionsSection,
 };

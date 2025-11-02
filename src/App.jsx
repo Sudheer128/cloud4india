@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/Header'
 import ScrollToTop from './components/ScrollToTop'
 import Home from './pages/Home'
+import HomeNew from './pages/HomeNew'
+import AboutUs from './pages/AboutUs'
 import AdminPanel from './pages/AdminPanel'
 import ProductsAdmin from './pages/ProductsAdmin'
 import ProductsMainAdmin from './pages/ProductsMainAdmin'
@@ -23,6 +25,8 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/home-new" element={<HomeNew />} />
+            <Route path="/about" element={<AboutUs />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/products" element={<MainProductsPage />} />
             <Route path="/solutions" element={<MainSolutionsPage />} />

@@ -244,25 +244,25 @@ const UniversalSolutionPage = () => {
   };
 
   // Component for dynamic HSBC success story metrics
-  const DynamicHSBCMetrics = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+  // const DynamicHSBCMetrics = ({ sectionId }) => {
+  //   const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error loading items: {error}</div>;
+  //   if (loading) return <div>Loading...</div>;
+  //   if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No metrics found</div>;
+  //   if (!items || items.length === 0) return <div>No metrics found</div>;
 
-    return (
-      <div className="grid grid-cols-2 gap-6">
-        {items.map((item, index) => (
-          <div key={item.id} className="text-center">
-            <div className="text-3xl font-bold text-white mb-2">{item.value}</div>
-            <div className="text-blue-200 text-sm">{item.title}</div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  //   return (
+  //     <div className="grid grid-cols-2 gap-6">
+  //       {items.map((item, index) => (
+  //         <div key={item.id} className="text-center">
+  //           <div className="text-3xl font-bold text-white mb-2">{item.value}</div>
+  //           <div className="text-blue-200 text-sm">{item.title}</div>
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // };
 
   // Component for dynamic Advanced Technology Solutions
   const DynamicTechSolutions = ({ sectionId }) => {
@@ -293,7 +293,7 @@ const UniversalSolutionPage = () => {
             {aiMlItem?.title || 'AI & Machine Learning for Financial Services'}
           </h3>
           <p className="text-lg text-gray-600 leading-relaxed mb-8">
-            {aiMlItem?.description || 'Transform your financial operations with AI-powered solutions for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.'}
+            {aiMlItem?.description || 'Transform your financial operations with AI-powered apps for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.'}
           </p>
 
           <div className="space-y-4 mb-8">
@@ -306,7 +306,7 @@ const UniversalSolutionPage = () => {
           </div>
 
           <button className="text-blue-600 hover:text-blue-800 font-semibold text-lg flex items-center group">
-            {aiMlItem?.value || 'Explore AI Solutions'}
+            {aiMlItem?.value || 'Explore AI Apps'}
             <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -523,7 +523,7 @@ const UniversalSolutionPage = () => {
     if (!items || items.length === 0) return <div>No resources found</div>;
 
     const featuredResource = items.find(item => item.order_index === 0);
-    const resourceCategories = items.filter(item => item.order_index > 0);
+    const resourceCategories = items.filter(item => item.order_index > 0 && !item.title.toLowerCase().includes('community forum'));
 
     let featuredFeatures = [];
     if (featuredResource && featuredResource.features) {
@@ -622,26 +622,23 @@ const UniversalSolutionPage = () => {
               const IconComponent = iconMap[item.icon] || PlayIcon;
 
               return (
-                <div key={item.id} className={`group bg-gradient-to-br ${gradient} rounded-2xl p-8 hover:shadow-xl transition-all duration-300 border ${borderColor}`}>
-                  <div className="flex items-start mb-6">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${iconGradient} rounded-2xl flex items-center justify-center mr-6 group-hover:scale-110 transition-transform`}>
+                <div key={item.id} className={`group bg-gradient-to-br ${gradient} rounded-2xl p-8 hover:shadow-xl transition-all duration-300 border ${borderColor} flex flex-col`}>
+                  <div className="flex items-start mb-4">
+                    <div className={`w-16 h-16 bg-gradient-to-br ${iconGradient} rounded-2xl flex items-center justify-center mr-6 group-hover:scale-110 transition-transform flex-shrink-0`}>
                       <IconComponent className="h-8 w-8 text-white" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                      <p className="text-gray-600 leading-relaxed mb-6">
+                      <p className="text-gray-600 leading-relaxed mb-4 line-clamp-3">
                         {item.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
-                          <span className="font-semibold">{item.value}</span>
-                        </div>
-                        <button className={`${textColor} hover:opacity-80 font-semibold flex items-center group`}>
-                          <span>{item.label}</span>
-                          <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                      </div>
                     </div>
+                  </div>
+                  <div className="flex items-center justify-end mt-auto">
+                    <button className={`${textColor} hover:opacity-80 font-semibold flex items-center group`}>
+                      <span>{item.label}</span>
+                      <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
               );
@@ -675,26 +672,23 @@ const UniversalSolutionPage = () => {
               const IconComponent = iconMap[item.icon] || CodeBracketIcon;
 
               return (
-                <div key={item.id} className={`group bg-gradient-to-br ${gradient} rounded-2xl p-8 hover:shadow-xl transition-all duration-300 border ${borderColor}`}>
-                  <div className="flex items-start mb-6">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${iconGradient} rounded-2xl flex items-center justify-center mr-6 group-hover:scale-110 transition-transform`}>
+                <div key={item.id} className={`group bg-gradient-to-br ${gradient} rounded-2xl p-8 hover:shadow-xl transition-all duration-300 border ${borderColor} flex flex-col`}>
+                  <div className="flex items-start mb-4">
+                    <div className={`w-16 h-16 bg-gradient-to-br ${iconGradient} rounded-2xl flex items-center justify-center mr-6 group-hover:scale-110 transition-transform flex-shrink-0`}>
                       <IconComponent className="h-8 w-8 text-white" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                      <p className="text-gray-600 leading-relaxed mb-6">
+                      <p className="text-gray-600 leading-relaxed mb-4 line-clamp-3">
                         {item.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
-                          <span className="font-semibold">{item.value}</span>
-                        </div>
-                        <button className={`${textColor} hover:opacity-80 font-semibold flex items-center group`}>
-                          <span>{item.label}</span>
-                          <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                      </div>
                     </div>
+                  </div>
+                  <div className="flex items-center justify-end mt-auto">
+                    <button className={`${textColor} hover:opacity-80 font-semibold flex items-center group`}>
+                      <span>{item.label}</span>
+                      <ArrowRightIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
               );
@@ -800,7 +794,7 @@ const UniversalSolutionPage = () => {
       )}
 
       {/* Success Story Section */}
-      {getSectionByOrder(3) && (
+      {/* {getSectionByOrder(3) && (
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-8 md:p-12 lg:p-16">
@@ -835,7 +829,7 @@ const UniversalSolutionPage = () => {
             </div>
           </div>
         </section>
-      )}
+      )} */}
 
       {/* Technology Solutions Section */}
       {getSectionByOrder(4) && (

@@ -1,7 +1,7 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install curl for health checks
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -16,9 +16,6 @@ COPY . .
 
 # Create data directory for database
 RUN mkdir -p /app/data && chown -R node:node /app/data
-
-# Change to non-root user
-USER node
 
 # Expose port 3000
 EXPOSE 3000
