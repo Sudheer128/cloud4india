@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import AdminLayout from '../components/AdminLayout';
 import { 
   getHomepageContent, 
@@ -32,7 +33,7 @@ import {
 } from '../services/cmsApi';
 import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
 import PricingAdmin from './PricingAdmin';
-import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, HomeIcon, Squares2X2Icon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, DocumentDuplicateIcon, CubeIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, DocumentDuplicateIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -88,6 +89,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 const AdminPanel = () => {
+  const location = useLocation();
   const [homepageData, setHomepageData] = useState(null);
   const [solutions, setSolutions] = useState([]);
   const [products, setProducts] = useState([]);
@@ -98,7 +100,6 @@ const AdminPanel = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingSolution, setEditingSolution] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -115,6 +116,60 @@ const AdminPanel = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Sync activeSection with URL hash - react to location changes and hash changes
+  useEffect(() => {
+    const updateSection = () => {
+      // Use window.location.hash directly as React Router doesn't track hash changes automatically
+      const hash = window.location.hash.slice(1);
+      if (hash === 'solutions') {
+        setActiveSection('solutions');
+      } else if (hash === 'products') {
+        setActiveSection('products');
+      } else if (hash === 'pricing') {
+        setActiveSection('pricing');
+      } else {
+        // If no hash and we're on /admin, show home section
+        if (location.pathname === '/admin') {
+          setActiveSection('home');
+        }
+      }
+    };
+    
+    // Always update when this effect runs
+    updateSection();
+    
+    // Listen for hash changes
+    const handleHashChange = () => {
+      updateSection();
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Also listen for popstate (browser back/forward)
+    const handlePopState = () => {
+      setTimeout(updateSection, 0);
+    };
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [location.pathname, location.hash]);
+
+  // Update URL hash when section changes
+  const updateActiveSection = (section) => {
+    setActiveSection(section);
+    if (section === 'solutions') {
+      window.location.hash = 'solutions';
+    } else if (section === 'products') {
+      window.location.hash = 'products';
+    } else if (section === 'pricing') {
+      window.location.hash = 'pricing';
+    } else {
+      window.location.hash = '';
     }
   };
 
@@ -425,107 +480,8 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex text-gray-900 font-inter">
-      {/* Sidebar Navigation */}
-      <div className={`${sidebarCollapsed ? 'w-20' : 'w-72'} bg-white/70 backdrop-blur-xl border-r border-gray-200 transition-all duration-200`}>
-        <div className={`flex items-center ${sidebarCollapsed ? 'justify-center p-4' : 'justify-between p-6'} border-b border-gray-200`}>
-          {!sidebarCollapsed && (
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-gray-900">Cloud4India CMS</h1>
-              <p className="text-sm text-gray-600 mt-1">Content Management</p>
-            </div>
-          )}
-          <button
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 text-gray-700"
-          >
-            {sidebarCollapsed ? (
-              <ChevronDoubleRightIcon className="w-5 h-5" />
-            ) : (
-              <ChevronDoubleLeftIcon className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        
-        <nav className="mt-6">
-          <div className={`${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
-            <button
-              onClick={() => {
-                setActiveSection('home');
-                setEditingSolution(null);
-              }}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                activeSection === 'home'
-                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-              title="Home Page"
-            >
-              <HomeIcon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-              {!sidebarCollapsed && 'Home Page'}
-            </button>
-            
-            <a
-              href="/admin/products"
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors text-gray-600 hover:bg-gray-50"
-              title="Products Administration"
-            >
-              <CubeIcon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-              {!sidebarCollapsed && 'Products'}
-            </a>
-            
-            <button
-              onClick={() => {
-                setActiveSection('solutions');
-                setEditingSolution(null);
-              }}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                activeSection === 'solutions'
-                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-              title="Apps"
-            >
-              <Squares2X2Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-              {!sidebarCollapsed && 'Apps'}
-            </button>
-            
-            <button
-              onClick={() => {
-                setActiveSection('pricing');
-                setEditingSolution(null);
-              }}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                activeSection === 'pricing'
-                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-              title="Pricing Management"
-            >
-              <CurrencyDollarIcon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
-              {!sidebarCollapsed && 'Pricing'}
-            </button>
-          </div>
-        </nav>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-white/60 backdrop-blur-xl border-b border-gray-200 px-6 py-4">
-          <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-gray-900">
-            {activeSection === 'home' && 'Home Page Management'}
-            {activeSection === 'products' && 'Products Management'}
-            {activeSection === 'solutions' && 'Apps Management'}
-            {activeSection === 'pricing' && 'Pricing Management'}
-            {activeSection === 'solution-editor' && `Edit: ${editingSolution?.name}`}
-            {activeSection === 'product-editor' && `Edit: ${editingProduct?.name}`}
-          </h2>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 p-6 overflow-auto">
+    <div className="w-full">
+      {/* Content */}
           {activeSection === 'home' && (
             <HomePageManagement 
               homepageData={homepageData}
@@ -575,18 +531,16 @@ const AdminPanel = () => {
           {activeSection === 'solution-editor' && editingSolution && (
             <SolutionEditor 
               solution={editingSolution}
-              onBack={() => setActiveSection('solutions')}
+              onBack={() => updateActiveSection('solutions')}
             />
           )}
           
           {activeSection === 'product-editor' && editingProduct && (
             <ProductEditor 
               product={editingProduct}
-              onBack={() => setActiveSection('products')}
+              onBack={() => updateActiveSection('products')}
             />
           )}
-        </div>
-      </div>
     </div>
   );
 };

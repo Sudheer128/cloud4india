@@ -695,23 +695,43 @@ app.post('/api/cleanup-product-duplicates', (req, res) => {
 // Update products
 app.put('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  const { name, description, category, color, border_color } = req.body;
+  const { name, description, category, color, border_color, route, gradient_start, gradient_end } = req.body;
   
+  // First update the products table
   db.run(`UPDATE products SET 
     name = ?, 
     description = ?, 
     category = ?, 
     color = ?, 
     border_color = ?,
+    route = COALESCE(?, route),
+    gradient_start = COALESCE(?, gradient_start),
+    gradient_end = COALESCE(?, gradient_end),
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`, 
-    [name, description, category, color, border_color, id], 
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, id], 
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Product updated successfully', changes: this.changes });
+      
+      // Also update the related main_products_sections entry if it exists
+      // This ensures the homepage shows updated data immediately
+      db.run(`UPDATE main_products_sections SET 
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        category = COALESCE(?, category),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = ?`, 
+        [name, description, category, id],
+        function(updateErr) {
+          if (updateErr) {
+            console.error('Error updating main_products_sections:', updateErr);
+            // Don't fail the request if this update fails, just log it
+          }
+          res.json({ message: 'Product updated successfully', changes: this.changes });
+        });
     });
 });
 
@@ -2355,15 +2375,16 @@ app.put('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
   const { name, description, category, color, border_color, route, gradient_start, gradient_end } = req.body;
   
+  // First update the solutions table
   db.run(`UPDATE solutions SET 
     name = ?, 
     description = ?, 
     category = ?, 
     color = ?, 
     border_color = ?, 
-    route = ?,
-    gradient_start = ?,
-    gradient_end = ?,
+    route = COALESCE(?, route),
+    gradient_start = COALESCE(?, gradient_start),
+    gradient_end = COALESCE(?, gradient_end),
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`, 
     [name, description, category, color, border_color, route, gradient_start, gradient_end, id], 
@@ -2372,7 +2393,23 @@ app.put('/api/solutions/:id', (req, res) => {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ message: 'Solution updated successfully', changes: this.changes });
+      
+      // Also update the related main_solutions_sections entry if it exists
+      // This ensures the homepage shows updated data immediately
+      db.run(`UPDATE main_solutions_sections SET 
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        category = COALESCE(?, category),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE solution_id = ?`, 
+        [name, description, category, id],
+        function(updateErr) {
+          if (updateErr) {
+            console.error('Error updating main_solutions_sections:', updateErr);
+            // Don't fail the request if this update fails, just log it
+          }
+          res.json({ message: 'Solution updated successfully', changes: this.changes });
+        });
     });
 });
 

@@ -103,7 +103,7 @@ const ProductsSectionNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product, index) => {
               const productRoute = product.product_route || product.product_id || product.id;
-              const productName = product.title || product.name || '';
+              const productName = product.product_name || product.title || product.name || '';
               const productCategory = product.category || 'Cloud Services';
               const colors = getProductColor()
                

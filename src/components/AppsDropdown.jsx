@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 
 const AppsDropdown = ({ isOpen, onClose }) => {
   const [activeCategory, setActiveCategory] = useState('Frameworks')
   const dropdownRef = useRef(null)
+  const navigate = useNavigate()
   
   // Static apps data based on provided images
   const appsData = {
@@ -298,11 +299,18 @@ const AppsDropdown = ({ isOpen, onClose }) => {
               {displayApps.length > 0 ? (
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {displayApps.map((app) => (
-                      <div
-                        key={app.id}
-                        className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
-                      >
+                    {displayApps.map((app) => {
+                      // Check if app has a dedicated page
+                      const appRoutes = {
+                        'openlitespeed': '/solutions/9',
+                        'nodejs': '/solutions/1',
+                        'lamp': '/solutions/2',
+                        'lemp': '/solutions/3',
+                        'laravel': '/solutions/4'
+                      };
+                      const hasPage = appRoutes[app.id];
+                      
+                      const cardContent = (
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
@@ -312,8 +320,29 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                           </div>
                           <ArrowRightIcon className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0" />
                         </div>
-                      </div>
-                    ))}
+                      );
+
+                      return hasPage ? (
+                        <div
+                          key={app.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClose();
+                            navigate(hasPage);
+                          }}
+                          className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer block"
+                        >
+                          {cardContent}
+                        </div>
+                      ) : (
+                        <div
+                          key={app.id}
+                          className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                        >
+                          {cardContent}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

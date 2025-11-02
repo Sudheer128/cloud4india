@@ -14,7 +14,7 @@ const SolutionsSectionNew = () => {
   const categories = ['all', 'Industry', 'Technology']
 
   const filteredSolutions = solutions?.filter(solution => {
-    const solutionName = solution.title || solution.name || '';
+    const solutionName = solution.solution_name || solution.title || solution.name || '';
     const solutionDesc = solution.description || '';
     const matchesSearch = solutionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          solutionDesc.toLowerCase().includes(searchTerm.toLowerCase())
@@ -103,7 +103,7 @@ const SolutionsSectionNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSolutions.map((solution, index) => {
               const solutionId = solution.solution_id || solution.id;
-              const solutionName = solution.title || solution.name || '';
+              const solutionName = solution.solution_name || solution.title || solution.name || '';
               const solutionCategory = solution.category || 'Enterprise Solutions';
               const colors = getSolutionColor()
               

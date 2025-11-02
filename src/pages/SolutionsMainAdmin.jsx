@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import AdminLayout from '../components/AdminLayout';
 import { 
   PencilIcon, 
   EyeIcon, 
@@ -315,17 +314,17 @@ const SolutionsMainAdmin = () => {
 
   if (loading) {
     return (
-      <AdminLayout activeSection="solutions-main" title="Apps Main Page">
+      <div className="w-full">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <AdminLayout activeSection="solutions-main" title="Apps Main Page">
+      <div className="w-full">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">Error: {error}</p>
           <button 
@@ -335,12 +334,12 @@ const SolutionsMainAdmin = () => {
             Retry
           </button>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   return (
-    <AdminLayout activeSection="solutions-main" title="Apps Main Page">
+    <div className="w-full">
       <div className="space-y-6">
         
         {/* Hero Section */}
@@ -1050,7 +1049,7 @@ const SolutionsMainAdmin = () => {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </div>
   );
 };
 
