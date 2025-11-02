@@ -387,6 +387,68 @@ export const deleteSolutionSection = async (id, sectionId) => {
  * @param {number} productId - Product ID
  * @returns {Promise<Array>} Array of product sections
  */
+/**
+ * Get product by route slug
+ * @param {string} route - Product route slug (e.g., 'microsoft-365-licenses')
+ * @returns {Promise<Object>} Product data
+ */
+export const getProductByRoute = async (route) => {
+  try {
+    const response = await cmsApi.get(`/products/by-route/${route}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product by route:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get product sections by route slug
+ * @param {string} route - Product route slug
+ * @returns {Promise<Array>} Array of product sections
+ */
+export const getProductSectionsByRoute = async (route) => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/products/by-route/${route}/sections?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product sections by route:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get product items for a section by route slug
+ * @param {string} route - Product route slug
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Array>} Array of product items
+ */
+export const getProductItemsByRoute = async (route, sectionId) => {
+  try {
+    const response = await cmsApi.get(`/products/by-route/${route}/sections/${sectionId}/items`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product items by route:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get product variants (pricing items) by product route - for popup dropdown
+ * @param {string} route - Product route slug
+ * @returns {Promise<Array>} Array of product variants with name, price, and route
+ */
+export const getProductVariantsByRoute = async (route) => {
+  try {
+    const response = await cmsApi.get(`/products/by-route/${route}/variants`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product variants by route:', error);
+    throw error;
+  }
+};
+
 export const getProductSections = async (productId) => {
   try {
     // Add timestamp to prevent caching
@@ -660,6 +722,10 @@ export default {
   updateProduct,
   deleteProduct,
   // New Product CMS API functions
+  getProductByRoute,
+  getProductSectionsByRoute,
+  getProductItemsByRoute,
+  getProductVariantsByRoute,
   getProductSections,
   getAdminProductSections,
   createProductSection,

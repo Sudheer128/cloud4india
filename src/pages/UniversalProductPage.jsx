@@ -7,40 +7,12 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const UniversalProductPage = () => {
   const { productId } = useParams();
   
-  // Handle both numeric IDs and string routes
-  let actualProductId = productId;
+  // Determine if productId is a numeric ID or a route slug
+  // If it's a number, use it as-is. If it's a string (route), pass it directly.
+  const isNumericId = !isNaN(parseInt(productId)) && productId.toString().match(/^\d+$/);
+  const productIdentifier = isNumericId ? parseInt(productId) : productId;
   
-  // Map string routes to numeric IDs
-  const routeToIdMap = {
-    'basic-cloud-servers': 1,
-    'cpu-intensive-servers': 7,
-    'memory-intensive-servers': 3,
-    'acronis-cloud-backup': 4
-  };
-  
-  // If productId is not a number, try to map it from route
-  if (isNaN(parseInt(productId))) {
-    actualProductId = routeToIdMap[productId];
-    if (!actualProductId) {
-      // If route not found, show error
-      return (
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
-            <p className="text-gray-600 mb-4">The requested product route does not exist.</p>
-            <button 
-              onClick={() => window.history.back()} 
-              className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      );
-    }
-  }
-  
-  const { sections, itemsBySection, loading, error } = useProductData(parseInt(actualProductId));
+  const { sections, itemsBySection, loading, error } = useProductData(productIdentifier);
 
   if (loading) {
     return (

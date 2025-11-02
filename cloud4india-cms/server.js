@@ -5,7 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 4002;
 
 // Middleware
 app.use(cors());
@@ -406,6 +406,124 @@ db.serialize(() => {
     }
   });
 
+  // Migration: Update to new products structure
+  // Ensure route and is_visible columns exist
+  db.run(`ALTER TABLE products ADD COLUMN is_visible INTEGER DEFAULT 1`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding is_visible column:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE products ADD COLUMN route TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding route column:', err.message);
+    }
+  });
+
+  // Check if migration to new products has been done
+  // Check specifically for our new product routes
+  db.get("SELECT COUNT(*) as count FROM products WHERE route IN ('microsoft-365-licenses', 'acronis-server-backup', 'acronis-m365-backup', 'acronis-google-workspace-backup', 'anti-virus')", (err, row) => {
+    if (err) {
+      console.error('Error checking new products:', err.message);
+      return;
+    }
+    
+    // If new products don't exist, perform migration
+    if (row.count === 0) {
+      console.log('🔄 Starting migration to new products...');
+      
+      // Step 1: Mark existing products as hidden
+      db.run(`UPDATE products SET is_visible = 0 WHERE is_visible = 1 OR is_visible IS NULL`, function(updateErr) {
+        if (updateErr) {
+          console.error('Error hiding old products:', updateErr.message);
+        } else {
+          console.log(`✅ Hidden ${this.changes} existing product(s)`);
+        }
+
+        // Step 2: Add new products
+        const newProducts = [
+          {
+            name: 'Microsoft 365 Licenses',
+            description: 'Comprehensive Microsoft 365 licensing solutions for businesses of all sizes. Choose from Business Basic, Standard, Premium plans with or without Teams.',
+            category: 'Software Licenses',
+            color: '#0078D4',
+            border_color: '#005A9E',
+            route: 'microsoft-365-licenses',
+            gradient_start: 'blue',
+            gradient_end: 'blue-100'
+          },
+          {
+            name: 'Acronis Server Backup',
+            description: 'Secure and reliable server backup solutions with flexible storage options. Protect your critical data with enterprise-grade backup services.',
+            category: 'Backup Services',
+            color: '#0066CC',
+            border_color: '#004499',
+            route: 'acronis-server-backup',
+            gradient_start: 'indigo',
+            gradient_end: 'indigo-100'
+          },
+          {
+            name: 'Acronis M365 Backup',
+            description: 'Dedicated backup solution for Microsoft 365 data. Ensure your emails, contacts, and files are securely backed up and easily recoverable.',
+            category: 'Backup Services',
+            color: '#0066CC',
+            border_color: '#004499',
+            route: 'acronis-m365-backup',
+            gradient_start: 'cyan',
+            gradient_end: 'cyan-100'
+          },
+          {
+            name: 'Acronis Google Workspace Backup',
+            description: 'Comprehensive backup solution for Google Workspace. Protect Gmail, Drive, Contacts, and Calendar data with automated backups.',
+            category: 'Backup Services',
+            color: '#0066CC',
+            border_color: '#004499',
+            route: 'acronis-google-workspace-backup',
+            gradient_start: 'teal',
+            gradient_end: 'teal-100'
+          },
+          {
+            name: 'Anti Virus',
+            description: 'Enterprise-grade antivirus and endpoint protection. Keep your systems safe from malware, ransomware, and other cyber threats.',
+            category: 'Security',
+            color: '#DC2626',
+            border_color: '#991B1B',
+            route: 'anti-virus',
+            gradient_start: 'red',
+            gradient_end: 'red-100'
+          }
+        ];
+
+        let insertedCount = 0;
+        const totalProducts = newProducts.length;
+
+        newProducts.forEach((product, index) => {
+          // Check if route column exists, if not use NULL
+          db.run(
+            `INSERT INTO products (name, description, category, color, border_color, route, gradient_start, gradient_end, is_visible, order_index) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+            [product.name, product.description, product.category, product.color, product.border_color, 
+             product.route, product.gradient_start, product.gradient_end, index],
+            function(insertErr) {
+              if (insertErr) {
+                console.error(`Error inserting ${product.name}:`, insertErr.message);
+              } else {
+                insertedCount++;
+                console.log(`✅ Added: ${product.name} (ID: ${this.lastID})`);
+              }
+
+              if (insertedCount === totalProducts) {
+                console.log(`✅ Migration completed! Added ${insertedCount} new products.`);
+              }
+            }
+          );
+        });
+      });
+    } else {
+      console.log(`✅ Migration already completed (${row.count} products with routes found).`);
+    }
+  });
+
 });
 
 // API Routes
@@ -639,6 +757,734 @@ app.delete('/api/products/:id', (req, res) => {
   });
 });
 
+// Manual migration endpoint for new products
+app.post('/api/admin/migrate-products', (req, res) => {
+  console.log('🔄 Manual migration triggered...');
+  
+  // Check if new products already exist
+  db.get("SELECT COUNT(*) as count FROM products WHERE route IN ('microsoft-365-licenses', 'acronis-server-backup', 'acronis-m365-backup', 'acronis-google-workspace-backup', 'anti-virus')", (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (row.count > 0) {
+      res.json({ message: 'Migration already completed', existingCount: row.count });
+      return;
+    }
+
+    // Step 1: Mark existing products as hidden
+    db.run(`UPDATE products SET is_visible = 0 WHERE is_visible = 1 OR is_visible IS NULL`, function(updateErr) {
+      if (updateErr) {
+        res.status(500).json({ error: updateErr.message });
+        return;
+      }
+
+      const hiddenCount = this.changes;
+
+      // Step 2: Add new products
+      const newProducts = [
+        {
+          name: 'Microsoft 365 Licenses',
+          description: 'Comprehensive Microsoft 365 licensing solutions for businesses of all sizes. Choose from Business Basic, Standard, Premium plans with or without Teams.',
+          category: 'Software Licenses',
+          color: '#0078D4',
+          border_color: '#005A9E',
+          route: 'microsoft-365-licenses',
+          gradient_start: 'blue',
+          gradient_end: 'blue-100'
+        },
+        {
+          name: 'Acronis Server Backup',
+          description: 'Secure and reliable server backup solutions with flexible storage options. Protect your critical data with enterprise-grade backup services.',
+          category: 'Backup Services',
+          color: '#0066CC',
+          border_color: '#004499',
+          route: 'acronis-server-backup',
+          gradient_start: 'indigo',
+          gradient_end: 'indigo-100'
+        },
+        {
+          name: 'Acronis M365 Backup',
+          description: 'Dedicated backup solution for Microsoft 365 data. Ensure your emails, contacts, and files are securely backed up and easily recoverable.',
+          category: 'Backup Services',
+          color: '#0066CC',
+          border_color: '#004499',
+          route: 'acronis-m365-backup',
+          gradient_start: 'cyan',
+          gradient_end: 'cyan-100'
+        },
+        {
+          name: 'Acronis Google Workspace Backup',
+          description: 'Comprehensive backup solution for Google Workspace. Protect Gmail, Drive, Contacts, and Calendar data with automated backups.',
+          category: 'Backup Services',
+          color: '#0066CC',
+          border_color: '#004499',
+          route: 'acronis-google-workspace-backup',
+          gradient_start: 'teal',
+          gradient_end: 'teal-100'
+        },
+        {
+          name: 'Anti Virus',
+          description: 'Enterprise-grade antivirus and endpoint protection. Keep your systems safe from malware, ransomware, and other cyber threats.',
+          category: 'Security',
+          color: '#DC2626',
+          border_color: '#991B1B',
+          route: 'anti-virus',
+          gradient_start: 'red',
+          gradient_end: 'red-100'
+        }
+      ];
+
+      let insertedCount = 0;
+      let insertedIds = [];
+
+      newProducts.forEach((product, index) => {
+        db.run(
+          `INSERT INTO products (name, description, category, color, border_color, route, gradient_start, gradient_end, is_visible, order_index) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+          [product.name, product.description, product.category, product.color, product.border_color, 
+           product.route, product.gradient_start, product.gradient_end, index],
+          function(insertErr) {
+            if (insertErr) {
+              console.error(`Error inserting ${product.name}:`, insertErr.message);
+            } else {
+              insertedCount++;
+              insertedIds.push({ id: this.lastID, name: product.name, route: product.route });
+            }
+
+            if (insertedCount === newProducts.length) {
+              res.json({ 
+                message: 'Migration completed successfully',
+                hiddenCount: hiddenCount,
+                insertedCount: insertedCount,
+                products: insertedIds
+              });
+            }
+          }
+        );
+      });
+    });
+  });
+});
+
+// Update homepage products - hide old ones and create entries for new products
+app.post('/api/admin/update-homepage-products', (req, res) => {
+  console.log('🔄 Updating homepage products...');
+  
+  // Step 1: Hide all existing homepage product sections
+  db.run('UPDATE main_products_sections SET is_visible = 0', function(updateErr) {
+    if (updateErr) {
+      res.status(500).json({ error: updateErr.message });
+      return;
+    }
+
+    console.log(`Hidden ${this.changes} existing homepage product sections`);
+
+    // Step 2: Get the 5 new products by route
+    db.all('SELECT id, name, description, category, route FROM products WHERE route IN (?, ?, ?, ?, ?) AND is_visible = 1 ORDER BY order_index ASC',
+      ['microsoft-365-licenses', 'acronis-server-backup', 'acronis-m365-backup', 'acronis-google-workspace-backup', 'anti-virus'],
+      (err, products) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        if (products.length === 0) {
+          res.json({ message: 'No new products found. Please run migration first.' });
+          return;
+        }
+
+        let insertedCount = 0;
+        const totalProducts = products.length;
+
+        products.forEach((product, index) => {
+          db.run(
+            `INSERT INTO main_products_sections (product_id, title, description, category, is_visible, order_index, button_text)
+             VALUES (?, ?, ?, ?, 1, ?, 'Explore Product')`,
+            [product.id, product.name, product.description, product.category, index],
+            function(insertErr) {
+              if (insertErr) {
+                console.error(`Error creating homepage section for ${product.name}:`, insertErr.message);
+              } else {
+                insertedCount++;
+                console.log(`✅ Added ${product.name} to homepage`);
+              }
+
+              if (insertedCount === totalProducts) {
+                res.json({
+                  message: 'Homepage products updated successfully',
+                  oldSectionsHidden: this.changes,
+                  newSectionsCreated: insertedCount,
+                  products: products.map(p => ({ id: p.id, name: p.name, route: p.route }))
+                });
+              }
+            }
+          );
+        });
+      }
+    );
+  });
+});
+
+// Seed initial content for new products (sections and items)
+app.post('/api/admin/seed-product-content', (req, res) => {
+  console.log('🌱 Seeding product content...');
+  
+  // Product content definitions
+  const productContent = {
+    'microsoft-365-licenses': {
+      hero: {
+        title: 'Microsoft 365 Licenses',
+        description: 'Comprehensive Microsoft 365 licensing solutions for businesses of all sizes. Choose from Business Basic, Standard, Premium plans with or without Teams.',
+        section_type: 'hero'
+      },
+      features: [
+        { title: 'Email & Calendar', description: 'Professional business email with 50GB mailbox and shared calendars', icon: 'GlobeAltIcon' },
+        { title: 'Office Apps', description: 'Access to Word, Excel, PowerPoint, and other Office applications', icon: 'DocumentTextIcon' },
+        { title: 'Cloud Storage', description: '1TB OneDrive cloud storage per user for secure file access', icon: 'CircleStackIcon' },
+        { title: 'Microsoft Teams', description: 'Video conferencing, chat, and collaboration tools (where applicable)', icon: 'UsersIcon' },
+        { title: 'Security & Compliance', description: 'Advanced threat protection and data loss prevention', icon: 'ShieldCheckIcon' },
+        { title: 'Mobile Apps', description: 'Access your work from anywhere with mobile Office apps', icon: 'DevicePhoneMobileIcon' }
+      ],
+      specifications: [
+        { title: 'Mailbox Size', description: '50GB per user mailbox' },
+        { title: 'OneDrive Storage', description: '1TB cloud storage per user' },
+        { title: 'User Limit', description: 'Up to 300 users per subscription' },
+        { title: 'Support', description: '24/7 Microsoft support included' }
+      ],
+      security: [
+        { title: 'Advanced Threat Protection', description: 'Protection against phishing, malware, and ransomware' },
+        { title: 'Data Loss Prevention', description: 'Prevent sensitive data from being shared inappropriately' },
+        { title: 'Encryption', description: 'Email and files encrypted at rest and in transit' },
+        { title: 'Compliance', description: 'Meet industry compliance standards including GDPR' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock technical support from Microsoft' },
+        { title: 'Online Documentation', description: 'Comprehensive guides and tutorials' },
+        { title: 'Training Resources', description: 'Free training materials and webinars' },
+        { title: 'Community Forums', description: 'Access to user community and expert advice' }
+      ],
+      use_cases: [
+        { title: 'Small Businesses', description: 'Perfect for small teams needing professional email and Office apps' },
+        { title: 'Remote Work', description: 'Enable seamless collaboration for distributed teams' },
+        { title: 'Enterprise', description: 'Scalable solution for large organizations with advanced security' }
+      ],
+      variants: [
+        { title: 'Microsoft 365 Business Standard', price: '₹775', period: '/month' },
+        { title: 'Microsoft 365 Business Standard (no Teams)', price: '₹675', period: '/month' },
+        { title: 'Microsoft 365 Business Premium', price: '₹1,900', period: '/month' },
+        { title: 'Microsoft 365 Business Premium (no Teams)', price: '₹650', period: '/month' },
+        { title: 'Microsoft 365 Business Basic', price: '₹145', period: '/month' },
+        { title: 'Microsoft 365 Business Basic (no Teams)', price: '₹120', period: '/month' }
+      ]
+    },
+    'acronis-server-backup': {
+      hero: {
+        title: 'Acronis Server Backup',
+        description: 'Secure and reliable server backup solutions with flexible storage options. Protect your critical data with enterprise-grade backup services.',
+        section_type: 'hero'
+      },
+      variants: [
+        { title: '500 GB Server Backup', price: '₹3,500', period: '/month' },
+        { title: '250 GB Server Backup', price: '₹1,750', period: '/month' },
+        { title: '100 GB Server Backup', price: '₹700', period: '/month' },
+        { title: '50 GB Server Backup', price: '₹350', period: '/month' }
+      ]
+    },
+    'acronis-m365-backup': {
+      hero: {
+        title: 'Acronis M365 Backup',
+        description: 'Dedicated backup solution for Microsoft 365 data. Ensure your emails, contacts, and files are securely backed up and easily recoverable.',
+        section_type: 'hero'
+      },
+      variants: [
+        { title: 'Acronis M365 Backup Per Seat', price: '₹200', period: '/month' }
+      ]
+    },
+    'acronis-google-workspace-backup': {
+      hero: {
+        title: 'Acronis Google Workspace Backup',
+        description: 'Comprehensive backup solution for Google Workspace. Protect Gmail, Drive, Contacts, and Calendar data with automated backups.',
+        section_type: 'hero'
+      },
+      variants: [
+        { title: 'Acronis Google Workspace Backup per Seat', price: '₹200', period: '/month' }
+      ]
+    },
+    'anti-virus': {
+      hero: {
+        title: 'Anti Virus',
+        description: 'Enterprise-grade antivirus and endpoint protection. Keep your systems safe from malware, ransomware, and other cyber threats.',
+        section_type: 'hero'
+      },
+      variants: [
+        { title: 'Acronis EDR Anti Virus', price: '₹300', period: '/month' }
+      ]
+    }
+  };
+
+  // Get product IDs by route
+  db.all('SELECT id, route FROM products WHERE route IN (?, ?, ?, ?, ?) AND is_visible = 1', 
+    ['microsoft-365-licenses', 'acronis-server-backup', 'acronis-m365-backup', 'acronis-google-workspace-backup', 'anti-virus'],
+    (err, products) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      if (products.length === 0) {
+        res.status(404).json({ error: 'Products not found. Please run migration first.' });
+        return;
+      }
+
+      let processedCount = 0;
+      let totalSections = 0;
+      let totalItems = 0;
+
+      products.forEach((product) => {
+        const content = productContent[product.route];
+        if (!content) {
+          processedCount++;
+          if (processedCount === products.length) {
+            res.json({ 
+              message: 'Content seeding completed',
+              sectionsCreated: totalSections,
+              itemsCreated: totalItems
+            });
+          }
+          return;
+        }
+
+        // Create hero section
+        db.run(
+          `INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible)
+           VALUES (?, ?, ?, ?, 0, 1)`,
+          [product.id, content.hero.title, content.hero.description, content.hero.section_type],
+          function(heroErr) {
+            if (heroErr) {
+              console.error(`Error creating hero section for ${product.route}:`, heroErr.message);
+              processedCount++;
+              if (processedCount === products.length) {
+                res.json({ 
+                  message: 'Content seeding completed with some errors',
+                  sectionsCreated: totalSections,
+                  itemsCreated: totalItems
+                });
+              }
+              return;
+            }
+
+            const heroSectionId = this.lastID;
+            totalSections++;
+
+            // Create hero section items (title and description)
+            db.run(
+              `INSERT INTO product_items (section_id, title, description, item_type, order_index, is_visible)
+               VALUES (?, ?, ?, 'title', 0, 1)`,
+              [heroSectionId, content.hero.title, content.hero.description],
+              (titleErr) => {
+                if (titleErr) console.error('Error creating title item:', titleErr.message);
+                else totalItems++;
+              }
+            );
+
+            db.run(
+              `INSERT INTO product_items (section_id, title, description, item_type, order_index, is_visible)
+               VALUES (?, ?, ?, 'description', 1, 1)`,
+              [heroSectionId, '', content.hero.description, 'description'],
+              (descErr) => {
+                if (descErr) console.error('Error creating description item:', descErr.message);
+                else totalItems++;
+              }
+            );
+
+            // Create pricing section with variants
+            db.run(
+              `INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible)
+               VALUES (?, 'Available Plans', 'Choose the plan that best fits your needs', 'pricing', 1, 1)`,
+              [product.id],
+              function(pricingErr) {
+                if (pricingErr) {
+                  console.error(`Error creating pricing section for ${product.route}:`, pricingErr.message);
+                  processedCount++;
+                  if (processedCount === products.length) {
+                    res.json({ 
+                      message: 'Content seeding completed',
+                      sectionsCreated: totalSections,
+                      itemsCreated: totalItems
+                    });
+                  }
+                  return;
+                }
+
+                const pricingSectionId = this.lastID;
+                totalSections++;
+
+                // Create pricing plan items for each variant
+                let itemsCreated = 0;
+                content.variants.forEach((variant, index) => {
+                  db.run(
+                    `INSERT INTO product_items (section_id, title, description, content, item_type, order_index, is_visible)
+                     VALUES (?, ?, ?, ?, 'pricing_plan', ?, 1)`,
+                    [pricingSectionId, variant.title, `${variant.price}${variant.period}`, JSON.stringify({ price: variant.price, period: variant.period }), index],
+                    (itemErr) => {
+                      if (itemErr) {
+                        console.error(`Error creating item for ${variant.title}:`, itemErr.message);
+                      } else {
+                        totalItems++;
+                        itemsCreated++;
+                      }
+
+                      // When all items are created for this product
+                      if (itemsCreated === content.variants.length) {
+                        processedCount++;
+                        if (processedCount === products.length) {
+                          res.json({ 
+                            message: 'Content seeding completed successfully',
+                            sectionsCreated: totalSections,
+                            itemsCreated: totalItems,
+                            productsProcessed: products.length
+                          });
+                        }
+                      }
+                    }
+                  );
+                });
+
+                // Handle case where variants array is empty
+                if (content.variants.length === 0) {
+                  processedCount++;
+                  if (processedCount === products.length) {
+                    res.json({ 
+                      message: 'Content seeding completed',
+                      sectionsCreated: totalSections,
+                      itemsCreated: totalItems
+                    });
+                  }
+                }
+              }
+            );
+          }
+        );
+      });
+    }
+  );
+});
+
+// Add missing content sections to existing products (features, specifications, security, support, use_cases)
+app.post('/api/admin/add-product-sections', (req, res) => {
+  console.log('➕ Adding missing sections to products...');
+  
+  // Extended product content definitions with all sections
+  const productSections = {
+    'microsoft-365-licenses': {
+      features: [
+        { title: 'Email & Calendar', description: 'Professional business email with 50GB mailbox and shared calendars', item_type: 'feature_card' },
+        { title: 'Office Apps', description: 'Access to Word, Excel, PowerPoint, and other Office applications', item_type: 'feature_card' },
+        { title: 'Cloud Storage', description: '1TB OneDrive cloud storage per user for secure file access', item_type: 'feature_card' },
+        { title: 'Microsoft Teams', description: 'Video conferencing, chat, and collaboration tools (where applicable)', item_type: 'feature_card' },
+        { title: 'Security & Compliance', description: 'Advanced threat protection and data loss prevention', item_type: 'feature_card' },
+        { title: 'Mobile Apps', description: 'Access your work from anywhere with mobile Office apps', item_type: 'feature_card' }
+      ],
+      specifications: [
+        { title: 'Mailbox Size', description: '50GB per user mailbox', item_type: 'spec_card' },
+        { title: 'OneDrive Storage', description: '1TB cloud storage per user', item_type: 'spec_card' },
+        { title: 'User Limit', description: 'Up to 300 users per subscription', item_type: 'spec_card' },
+        { title: 'Support', description: '24/7 Microsoft support included', item_type: 'spec_card' }
+      ],
+      security: [
+        { title: 'Advanced Threat Protection', description: 'Protection against phishing, malware, and ransomware', item_type: 'security_feature' },
+        { title: 'Data Loss Prevention', description: 'Prevent sensitive data from being shared inappropriately', item_type: 'security_feature' },
+        { title: 'Encryption', description: 'Email and files encrypted at rest and in transit', item_type: 'security_feature' },
+        { title: 'Compliance', description: 'Meet industry compliance standards including GDPR', item_type: 'security_feature' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock technical support from Microsoft', item_type: 'support_feature' },
+        { title: 'Online Documentation', description: 'Comprehensive guides and tutorials', item_type: 'support_feature' },
+        { title: 'Training Resources', description: 'Free training materials and webinars', item_type: 'support_feature' },
+        { title: 'Community Forums', description: 'Access to user community and expert advice', item_type: 'support_feature' }
+      ],
+      use_cases: [
+        { title: 'Small Businesses', description: 'Perfect for small teams needing professional email and Office apps', item_type: 'use_case' },
+        { title: 'Remote Work', description: 'Enable seamless collaboration for distributed teams', item_type: 'use_case' },
+        { title: 'Enterprise', description: 'Scalable solution for large organizations with advanced security', item_type: 'use_case' }
+      ]
+    },
+    'acronis-server-backup': {
+      features: [
+        { title: 'Automated Backups', description: 'Schedule automatic backups with flexible retention policies', item_type: 'feature_card' },
+        { title: 'Fast Recovery', description: 'Quick restore of files, folders, or entire systems', item_type: 'feature_card' },
+        { title: 'Incremental Backups', description: 'Efficient storage with incremental backup technology', item_type: 'feature_card' },
+        { title: 'Cloud Storage', description: 'Secure cloud storage with encryption and redundancy', item_type: 'feature_card' },
+        { title: 'Centralized Management', description: 'Manage all backups from a single console', item_type: 'feature_card' },
+        { title: 'Cross-Platform Support', description: 'Backup Windows, Linux, and virtual machines', item_type: 'feature_card' }
+      ],
+      specifications: [
+        { title: 'Storage Options', description: '50GB to 500GB flexible storage plans', item_type: 'spec_card' },
+        { title: 'Retention Policy', description: 'Customizable retention periods', item_type: 'spec_card' },
+        { title: 'Backup Frequency', description: 'Daily, weekly, or custom schedules', item_type: 'spec_card' },
+        { title: 'Recovery Time', description: 'Fast recovery within minutes', item_type: 'spec_card' }
+      ],
+      security: [
+        { title: 'Encryption', description: 'End-to-end encryption with AES-256', item_type: 'security_feature' },
+        { title: 'Secure Transfer', description: 'SSL/TLS encrypted data transfer', item_type: 'security_feature' },
+        { title: 'Access Control', description: 'Role-based access control and authentication', item_type: 'security_feature' },
+        { title: 'Compliance', description: 'Compliant with industry standards', item_type: 'security_feature' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock technical support', item_type: 'support_feature' },
+        { title: 'Expert Team', description: 'Dedicated backup specialists', item_type: 'support_feature' },
+        { title: 'Documentation', description: 'Comprehensive guides and best practices', item_type: 'support_feature' },
+        { title: 'Monitoring', description: 'Proactive monitoring and alerts', item_type: 'support_feature' }
+      ],
+      use_cases: [
+        { title: 'Server Protection', description: 'Protect critical server data and applications', item_type: 'use_case' },
+        { title: 'Disaster Recovery', description: 'Ensure business continuity with reliable backups', item_type: 'use_case' },
+        { title: 'Compliance', description: 'Meet regulatory requirements for data retention', item_type: 'use_case' }
+      ]
+    },
+    'acronis-m365-backup': {
+      features: [
+        { title: 'Email Backup', description: 'Complete backup of Exchange Online mailboxes', item_type: 'feature_card' },
+        { title: 'OneDrive Backup', description: 'Protect OneDrive for Business files', item_type: 'feature_card' },
+        { title: 'SharePoint Backup', description: 'Backup SharePoint sites and documents', item_type: 'feature_card' },
+        { title: 'Teams Backup', description: 'Backup Microsoft Teams conversations and files', item_type: 'feature_card' },
+        { title: 'Granular Recovery', description: 'Restore individual items or entire mailboxes', item_type: 'feature_card' },
+        { title: 'Point-in-Time Recovery', description: 'Restore data to any point in time', item_type: 'feature_card' }
+      ],
+      specifications: [
+        { title: 'Per Seat Pricing', description: 'Simple per-user pricing model', item_type: 'spec_card' },
+        { title: 'Retention', description: 'Flexible retention policies', item_type: 'spec_card' },
+        { title: 'Backup Frequency', description: 'Multiple backups per day', item_type: 'spec_card' },
+        { title: 'Storage', description: 'Unlimited cloud storage included', item_type: 'spec_card' }
+      ],
+      security: [
+        { title: 'End-to-End Encryption', description: 'Data encrypted at rest and in transit', item_type: 'security_feature' },
+        { title: 'Secure Authentication', description: 'OAuth 2.0 and multi-factor authentication', item_type: 'security_feature' },
+        { title: 'Data Residency', description: 'Control where your backup data is stored', item_type: 'security_feature' },
+        { title: 'Compliance', description: 'GDPR, HIPAA, and SOC 2 compliant', item_type: 'security_feature' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock technical support', item_type: 'support_feature' },
+        { title: 'Setup Assistance', description: 'Free setup and configuration help', item_type: 'support_feature' },
+        { title: 'Training', description: 'Training resources and webinars', item_type: 'support_feature' },
+        { title: 'Documentation', description: 'Comprehensive guides and FAQs', item_type: 'support_feature' }
+      ],
+      use_cases: [
+        { title: 'Email Protection', description: 'Protect against accidental deletion and retention policies', item_type: 'use_case' },
+        { title: 'Compliance', description: 'Meet email retention and compliance requirements', item_type: 'use_case' },
+        { title: 'Migration Support', description: 'Safe migration between tenants or accounts', item_type: 'use_case' }
+      ]
+    },
+    'acronis-google-workspace-backup': {
+      features: [
+        { title: 'Gmail Backup', description: 'Complete backup of Gmail messages and attachments', item_type: 'feature_card' },
+        { title: 'Drive Backup', description: 'Protect Google Drive files and folders', item_type: 'feature_card' },
+        { title: 'Contacts Backup', description: 'Backup Google Contacts data', item_type: 'feature_card' },
+        { title: 'Calendar Backup', description: 'Backup Google Calendar events', item_type: 'feature_card' },
+        { title: 'Granular Recovery', description: 'Restore individual items or entire accounts', item_type: 'feature_card' },
+        { title: 'Automated Backups', description: 'Set-and-forget automated backup schedules', item_type: 'feature_card' }
+      ],
+      specifications: [
+        { title: 'Per Seat Pricing', description: 'Simple per-user pricing model', item_type: 'spec_card' },
+        { title: 'Retention', description: 'Flexible retention policies', item_type: 'spec_card' },
+        { title: 'Backup Frequency', description: 'Multiple backups per day', item_type: 'spec_card' },
+        { title: 'Storage', description: 'Unlimited cloud storage included', item_type: 'spec_card' }
+      ],
+      security: [
+        { title: 'End-to-End Encryption', description: 'Data encrypted at rest and in transit', item_type: 'security_feature' },
+        { title: 'Secure Authentication', description: 'OAuth 2.0 and API-based access', item_type: 'security_feature' },
+        { title: 'Data Residency', description: 'Control where your backup data is stored', item_type: 'security_feature' },
+        { title: 'Compliance', description: 'GDPR and SOC 2 compliant', item_type: 'security_feature' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock technical support', item_type: 'support_feature' },
+        { title: 'Setup Assistance', description: 'Free setup and configuration help', item_type: 'support_feature' },
+        { title: 'Training', description: 'Training resources and webinars', item_type: 'support_feature' },
+        { title: 'Documentation', description: 'Comprehensive guides and FAQs', item_type: 'support_feature' }
+      ],
+      use_cases: [
+        { title: 'Data Protection', description: 'Protect against accidental deletion and data loss', item_type: 'use_case' },
+        { title: 'Compliance', description: 'Meet email and data retention requirements', item_type: 'use_case' },
+        { title: 'Migration', description: 'Safe migration between Google Workspace accounts', item_type: 'use_case' }
+      ]
+    },
+    'anti-virus': {
+      features: [
+        { title: 'Real-Time Protection', description: 'Continuous monitoring and threat detection', item_type: 'feature_card' },
+        { title: 'Advanced Threat Detection', description: 'AI-powered detection of unknown threats', item_type: 'feature_card' },
+        { title: 'Endpoint Detection & Response', description: 'EDR capabilities for advanced threat hunting', item_type: 'feature_card' },
+        { title: 'Behavioral Analysis', description: 'Detect suspicious behavior patterns', item_type: 'feature_card' },
+        { title: 'Centralized Management', description: 'Manage all endpoints from one console', item_type: 'feature_card' },
+        { title: 'Zero-Day Protection', description: 'Protect against new and unknown threats', item_type: 'feature_card' }
+      ],
+      specifications: [
+        { title: 'Platform Support', description: 'Windows, Mac, Linux, and mobile support', item_type: 'spec_card' },
+        { title: 'Deployment', description: 'Easy deployment and management', item_type: 'spec_card' },
+        { title: 'Performance', description: 'Low system impact and resource usage', item_type: 'spec_card' },
+        { title: 'Updates', description: 'Automatic threat definition updates', item_type: 'spec_card' }
+      ],
+      security: [
+        { title: 'Multi-Layer Protection', description: 'Combines signature, behavioral, and AI detection', item_type: 'security_feature' },
+        { title: 'Threat Intelligence', description: 'Global threat intelligence network', item_type: 'security_feature' },
+        { title: 'Incident Response', description: 'Automated response and remediation', item_type: 'security_feature' },
+        { title: 'Compliance', description: 'Meet security and compliance standards', item_type: 'security_feature' }
+      ],
+      support: [
+        { title: '24/7 Support', description: 'Round-the-clock security support', item_type: 'support_feature' },
+        { title: 'Security Experts', description: 'Dedicated security specialists', item_type: 'support_feature' },
+        { title: 'Threat Intelligence', description: 'Regular threat reports and updates', item_type: 'support_feature' },
+        { title: 'Training', description: 'Security awareness training resources', item_type: 'support_feature' }
+      ],
+      use_cases: [
+        { title: 'Enterprise Protection', description: 'Protect enterprise endpoints from threats', item_type: 'use_case' },
+        { title: 'Ransomware Protection', description: 'Specialized protection against ransomware attacks', item_type: 'use_case' },
+        { title: 'Compliance', description: 'Meet security compliance requirements', item_type: 'use_case' }
+      ]
+    }
+  };
+
+  // Helper function to create a section and its items
+  function createSectionWithItems(productId, sectionType, sectionTitle, sectionDesc, orderIndex, items, callback) {
+    db.run(
+      `INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [productId, sectionTitle, sectionDesc, sectionType, orderIndex],
+      function(err) {
+        if (err) {
+          console.error(`Error creating ${sectionType} section:`, err.message);
+          callback(err, null);
+          return;
+        }
+
+        const sectionId = this.lastID;
+        let itemsCreated = 0;
+        let itemErrors = 0;
+
+        if (!items || items.length === 0) {
+          callback(null, { sectionId, itemsCount: 0 });
+          return;
+        }
+
+        items.forEach((item, index) => {
+          db.run(
+            `INSERT INTO product_items (section_id, title, description, item_type, order_index, is_visible)
+             VALUES (?, ?, ?, ?, ?, 1)`,
+            [sectionId, item.title, item.description, item.item_type, index],
+            (itemErr) => {
+              if (itemErr) {
+                console.error(`Error creating item ${item.title}:`, itemErr.message);
+                itemErrors++;
+              } else {
+                itemsCreated++;
+              }
+
+              if (itemsCreated + itemErrors === items.length) {
+                callback(null, { sectionId, itemsCount: itemsCreated });
+              }
+            }
+          );
+        });
+      }
+    );
+  }
+
+  // Get all products with routes
+  db.all('SELECT id, route FROM products WHERE route IN (?, ?, ?, ?, ?) AND is_visible = 1',
+    ['microsoft-365-licenses', 'acronis-server-backup', 'acronis-m365-backup', 'acronis-google-workspace-backup', 'anti-virus'],
+    (err, products) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      if (products.length === 0) {
+        res.json({ message: 'No products found' });
+        return;
+      }
+
+      let processedCount = 0;
+      let totalSections = 0;
+      let totalItems = 0;
+      const sectionOrderMap = {
+        'features': 2,
+        'specifications': 3,
+        'security': 4,
+        'support': 5,
+        'use_cases': 6
+      };
+
+      products.forEach((product) => {
+        const sections = productSections[product.route];
+        if (!sections) {
+          processedCount++;
+          if (processedCount === products.length) {
+            res.json({
+              message: 'Sections added successfully',
+              sectionsCreated: totalSections,
+              itemsCreated: totalItems
+            });
+          }
+          return;
+        }
+
+        let sectionsCreated = 0;
+        const sectionTypes = ['features', 'specifications', 'security', 'support', 'use_cases'];
+
+        sectionTypes.forEach((sectionType) => {
+          const items = sections[sectionType];
+          if (!items) return;
+
+          const sectionTitles = {
+            'features': 'Key Features',
+            'specifications': 'Technical Specifications',
+            'security': 'Security & Compliance',
+            'support': 'Support & Documentation',
+            'use_cases': 'Use Cases'
+          };
+
+          const sectionDescs = {
+            'features': 'Discover the powerful features that make this solution perfect for your needs',
+            'specifications': 'Detailed technical specifications and requirements',
+            'security': 'Enterprise-grade security features and compliance',
+            'support': 'Comprehensive support options and resources',
+            'use_cases': 'Perfect for these business scenarios'
+          };
+
+          createSectionWithItems(
+            product.id,
+            sectionType,
+            sectionTitles[sectionType],
+            sectionDescs[sectionType],
+            sectionOrderMap[sectionType],
+            items,
+            (err, result) => {
+              if (!err && result) {
+                totalSections++;
+                totalItems += result.itemsCount;
+              }
+
+              sectionsCreated++;
+              if (sectionsCreated === sectionTypes.length) {
+                processedCount++;
+                if (processedCount === products.length) {
+                  res.json({
+                    message: 'Sections added successfully',
+                    sectionsCreated: totalSections,
+                    itemsCreated: totalItems,
+                    productsProcessed: products.length
+                  });
+                }
+              }
+            }
+          );
+        });
+      });
+    }
+  );
+});
+
 // Get all products (including hidden) - for admin panel
 app.get('/api/admin/products', (req, res) => {
   db.all('SELECT * FROM products ORDER BY order_index ASC', (err, products) => {
@@ -658,6 +1504,156 @@ app.get('/api/products', (req, res) => {
       return;
     }
     res.json(products);
+  });
+});
+
+// Get product by route slug
+app.get('/api/products/by-route/:route', (req, res) => {
+  const { route } = req.params;
+  
+  db.get('SELECT * FROM products WHERE route = ? AND is_visible = 1', [route], (err, product) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    res.json(product);
+  });
+});
+
+// Get product sections by route slug
+app.get('/api/products/by-route/:route/sections', (req, res) => {
+  const { route } = req.params;
+  
+  // First get the product ID from route
+  db.get('SELECT id FROM products WHERE route = ? AND is_visible = 1', [route], (err, product) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    
+    // Then get sections for this product
+    db.all(`
+      SELECT * FROM product_sections 
+      WHERE product_id = ? AND is_visible = 1 
+      ORDER BY order_index ASC
+    `, [product.id], (err, sections) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(sections);
+    });
+  });
+});
+
+// Get product items for a section by route slug
+app.get('/api/products/by-route/:route/sections/:sectionId/items', (req, res) => {
+  const { route, sectionId } = req.params;
+  
+  // First get the product ID from route
+  db.get('SELECT id FROM products WHERE route = ? AND is_visible = 1', [route], (err, product) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    
+    // Then get items for this section
+    db.all(`
+      SELECT pi.* FROM product_items pi
+      JOIN product_sections ps ON pi.section_id = ps.id
+      WHERE ps.id = ? AND ps.product_id = ? AND pi.is_visible = 1
+      ORDER BY pi.order_index ASC
+    `, [sectionId, product.id], (err, items) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(items);
+    });
+  });
+});
+
+// Get product variants (pricing items) by product route - for popup dropdown
+app.get('/api/products/by-route/:route/variants', (req, res) => {
+  const { route } = req.params;
+  
+  // Get product ID from route
+  db.get('SELECT id, route FROM products WHERE route = ? AND is_visible = 1', [route], (err, product) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    
+    // Get pricing section for this product
+    db.get(`
+      SELECT id FROM product_sections 
+      WHERE product_id = ? AND section_type = 'pricing' AND is_visible = 1 
+      ORDER BY order_index ASC 
+      LIMIT 1
+    `, [product.id], (err, pricingSection) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      if (!pricingSection) {
+        // No pricing section found, return empty array
+        res.json([]);
+        return;
+      }
+      
+      // Get all pricing plan items from this section
+      db.all(`
+        SELECT pi.* FROM product_items pi
+        WHERE pi.section_id = ? AND pi.item_type = 'pricing_plan' AND pi.is_visible = 1
+        ORDER BY pi.order_index ASC
+      `, [pricingSection.id], (err, items) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        // Parse content JSON and format items
+        const variants = items.map(item => {
+          let price = item.description || '';
+          let parsedContent = {};
+          
+          if (item.content) {
+            try {
+              parsedContent = JSON.parse(item.content);
+              price = parsedContent.price ? `${parsedContent.price}${parsedContent.period || '/month'}` : price;
+            } catch (e) {
+              // If parsing fails, use description as price
+            }
+          }
+          
+          return {
+            id: item.id,
+            name: item.title,
+            price: price,
+            route: product.route
+          };
+        });
+        
+        res.json(variants);
+      });
+    });
   });
 });
 
@@ -2410,6 +3406,7 @@ app.get('/api/main-products', (req, res) => {
     
     // Get product sections - show all if "all" query param is present (for admin)
     // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
+    // Also include product route for URL generation
     const sectionsQuery = all === 'true' 
       ? `
         SELECT 
@@ -2417,6 +3414,7 @@ app.get('/api/main-products', (req, res) => {
           COALESCE(p.name, mps.title) as product_name, 
           COALESCE(p.description, mps.description) as product_description,
           COALESCE(mps.category, p.category) as category,
+          p.route as product_route,
           COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
           COALESCE(mps.features, '[]') as features,
           COALESCE(mps.price, '₹2,999') as price,
@@ -2433,6 +3431,7 @@ app.get('/api/main-products', (req, res) => {
           COALESCE(p.name, mps.title) as product_name, 
           COALESCE(p.description, mps.description) as product_description,
           COALESCE(mps.category, p.category) as category,
+          p.route as product_route,
           COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
           COALESCE(mps.features, '[]') as features,
           COALESCE(mps.price, '₹2,999') as price,

@@ -93,15 +93,15 @@ const ProductsSection = () => {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => {
-              // Use product ID for dynamic routing - fallback to section id if no product_id
-              const productId = product.product_id || product.id;
+              // Use product route if available, otherwise fallback to product ID
+              const productRoute = product.product_route || product.product_id || product.id;
               const productName = product.title || product.name || '';
               const productCategory = product.category || 'Cloud Services';
               
               return (
                 <Link
                   key={product.id}
-                  to={`/products/${productId}`}
+                  to={`/products/${productRoute}`}
                   className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block"
                 >
                   <div className="mb-4">

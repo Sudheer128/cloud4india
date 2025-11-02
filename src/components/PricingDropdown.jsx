@@ -1,66 +1,53 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { getProductVariantsByRoute } from '../services/cmsApi'
+import LoadingSpinner from './LoadingSpinner'
 
 const PricingDropdown = ({ isOpen, onClose }) => {
-  const [activeCategory, setActiveCategory] = useState('m365')
+  const [activeCategory, setActiveCategory] = useState('microsoft-365-licenses')
   const dropdownRef = useRef(null)
+  const [products, setProducts] = useState({})
+  const [loading, setLoading] = useState(true)
 
-  // Pricing categories
+  // Category mapping - route-based categories (defined outside useEffect to avoid dependency issues)
   const categories = [
-    { id: 'm365', label: 'Microsoft 365 Licenses' },
-    { id: 'acronis-server', label: 'Acronis Server Backup' },
-    { id: 'acronis-m365', label: 'Acronis M365 Backup' },
-    { id: 'acronis-google', label: 'Acronis Google Workspace Backup' },
-    { id: 'antivirus', label: 'Anti Virus' },
-    { id: 'managed', label: 'Managed Services' }
+    { id: 'microsoft-365-licenses', label: 'Microsoft 365 Licenses', route: 'microsoft-365-licenses' },
+    { id: 'acronis-server-backup', label: 'Acronis Server Backup', route: 'acronis-server-backup' },
+    { id: 'acronis-m365-backup', label: 'Acronis M365 Backup', route: 'acronis-m365-backup' },
+    { id: 'acronis-google-workspace-backup', label: 'Acronis Google Workspace Backup', route: 'acronis-google-workspace-backup' },
+    { id: 'anti-virus', label: 'Anti Virus', route: 'anti-virus' }
   ]
 
-  // Product data based on images
-  const products = {
-    all: [
-      { id: 'm365-standard', name: 'Microsoft 365 Business Standard', price: '₹775', category: 'm365' },
-      { id: 'm365-standard-no-teams', name: 'Microsoft 365 Business Standard (no Teams)', price: '₹675', category: 'm365' },
-      { id: 'm365-premium', name: 'Microsoft 365 Business Premium', price: '₹1,900', category: 'm365' },
-      { id: 'm365-premium-no-teams', name: 'Microsoft 365 Business Premium (no Teams)', price: '₹650', category: 'm365' },
-      { id: 'm365-basic', name: 'Microsoft 365 Business Basic', price: '₹145', category: 'm365' },
-      { id: 'm365-basic-no-teams', name: 'Microsoft 365 Business Basic (no Teams)', price: '₹120', category: 'm365' },
-      { id: 'acronis-500gb', name: '500 GB Server Backup', price: '₹3,500', category: 'acronis-server' },
-      { id: 'acronis-250gb', name: '250 GB Server Backup', price: '₹1,750', category: 'acronis-server' },
-      { id: 'acronis-100gb', name: '100 GB Server Backup', price: '₹700', category: 'acronis-server' },
-      { id: 'acronis-50gb', name: '50 GB Server Backup', price: '₹350', category: 'acronis-server' },
-      { id: 'acronis-m365-seat', name: 'Acronis M365 Backup Per Seat', price: '₹200', category: 'acronis-m365' },
-      { id: 'acronis-google-seat', name: 'Acronis Google Workspace Backup per Seat', price: '₹200', category: 'acronis-google' },
-      { id: 'acronis-edr', name: 'Acronis EDR Anti Virus', price: '₹300', category: 'antivirus' }
-    ],
-    m365: [
-      { id: 'm365-standard', name: 'Microsoft 365 Business Standard', price: '₹775' },
-      { id: 'm365-standard-no-teams', name: 'Microsoft 365 Business Standard (no Teams)', price: '₹675' },
-      { id: 'm365-premium', name: 'Microsoft 365 Business Premium', price: '₹1,900' },
-      { id: 'm365-premium-no-teams', name: 'Microsoft 365 Business Premium (no Teams)', price: '₹650' },
-      { id: 'm365-basic', name: 'Microsoft 365 Business Basic', price: '₹145' },
-      { id: 'm365-basic-no-teams', name: 'Microsoft 365 Business Basic (no Teams)', price: '₹120' }
-    ],
-    'acronis-server': [
-      { id: 'acronis-500gb', name: '500 GB Server Backup', price: '₹3,500' },
-      { id: 'acronis-250gb', name: '250 GB Server Backup', price: '₹1,750' },
-      { id: 'acronis-100gb', name: '100 GB Server Backup', price: '₹700' },
-      { id: 'acronis-50gb', name: '50 GB Server Backup', price: '₹350' }
-    ],
-    'acronis-m365': [
-      { id: 'acronis-m365-seat', name: 'Acronis M365 Backup Per Seat', price: '₹200' }
-    ],
-    'acronis-google': [
-      { id: 'acronis-google-seat', name: 'Acronis Google Workspace Backup per Seat', price: '₹200' }
-    ],
-    antivirus: [
-      { id: 'acronis-edr', name: 'Acronis EDR Anti Virus', price: '₹300' }
-    ],
-    managed: [
-      // Managed services products can be added here
-    ]
-  }
+  // Fetch product variants for all categories when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchAllProducts = async () => {
+        setLoading(true);
+        const productsData = {};
 
+        for (const category of categories) {
+          try {
+            const variants = await getProductVariantsByRoute(category.route);
+            productsData[category.id] = variants.map(variant => ({
+              id: variant.id,
+              name: variant.name,
+              price: variant.price,
+              route: variant.route
+            }));
+          } catch (error) {
+            console.error(`Error fetching variants for ${category.route}:`, error);
+            productsData[category.id] = [];
+          }
+        }
+
+        setProducts(productsData);
+        setLoading(false);
+      };
+
+      fetchAllProducts();
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter products based on active category
   const displayProducts = products[activeCategory] || []
@@ -157,13 +144,17 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                 )}
               </div>
               
-              {displayProducts.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <LoadingSpinner />
+                </div>
+              ) : displayProducts.length > 0 ? (
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {displayProducts.map((product) => (
                       <Link
                         key={product.id}
-                        to={`/products/${product.id}`}
+                        to={`/products/${product.route}`}
                         onClick={onClose}
                         className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                       >
@@ -172,7 +163,7 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                             <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
                               {product.name}
                             </h3>
-                            <p className="text-gray-700 text-xl font-medium">{product.price}/month</p>
+                            <p className="text-gray-700 text-xl font-medium">{product.price}</p>
                           </div>
                           <ArrowRightIcon className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0" />
                         </div>
@@ -182,7 +173,7 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-64 text-gray-500">
-                  <p>No products available</p>
+                  <p>No products available in this category.</p>
                 </div>
               )}
             </div>
