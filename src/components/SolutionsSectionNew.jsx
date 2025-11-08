@@ -11,7 +11,7 @@ const SolutionsSectionNew = () => {
   
   const solutions = mainPageData?.sections || []
 
-  const categories = ['all', 'Industry', 'Technology']
+  const categories = ['all', 'Frameworks', 'Content Management Systems', 'Databases']
 
   const filteredSolutions = solutions?.filter(solution => {
     const solutionName = solution.solution_name || solution.title || solution.name || '';
@@ -70,7 +70,7 @@ const SolutionsSectionNew = () => {
 
         <div className="mb-6">
           <p className="text-sm text-gray-700 font-medium">
-            Displaying 1-{filteredSolutions.length} ({solutions.length})
+            Displaying 1-{Math.min(6, filteredSolutions.length)} ({solutions.length})
           </p>
         </div>
 
@@ -101,7 +101,7 @@ const SolutionsSectionNew = () => {
           emptyMessage="No solutions available"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSolutions.map((solution, index) => {
+            {filteredSolutions.slice(0, 6).map((solution, index) => {
               const solutionId = solution.solution_id || solution.id;
               const solutionName = solution.solution_name || solution.title || solution.name || '';
               const solutionCategory = solution.category || 'Enterprise Solutions';
@@ -145,7 +145,7 @@ const SolutionsSectionNew = () => {
           </div>
         </ContentWrapper>
 
-        {filteredSolutions.length === solutions.length && (
+        {solutions.length > 6 && (
           <div className="text-center mt-12">
             <button 
               onClick={() => window.location.href = 'http://38.242.248.213:4001/solutions'}

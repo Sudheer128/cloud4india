@@ -11,13 +11,13 @@ const AboutHeroSection = () => {
             <span className="text-gray-700 text-sm font-medium">About Cloud 4 India</span>
           </div>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-900 leading-tight">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-light text-gray-900 leading-tight">
             The Power of{' '}
             <span className="font-bold text-saree-teal">Next-generation</span>{' '}
             Control
           </h1>
           
-          <p className="text-lg text-gray-700 leading-relaxed">
+          <p className="text-base text-gray-700 leading-relaxed">
             From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT solutions. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.
           </p>
           
@@ -36,9 +36,9 @@ const AboutHeroSection = () => {
             />
           </div>
           {/* Floating stats card */}
-          <div className="absolute -bottom-6 -right-6 bg-white rounded-xl shadow-xl p-6 border border-gray-200">
+          <div className="absolute -bottom-6 -right-6 bg-white rounded-xl shadow-xl p-6 border-2 border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="flex items-center gap-4">
-              <div className="bg-saree-teal rounded-full w-12 h-12 flex items-center justify-center">
+              <div className="bg-saree-teal rounded-full w-12 h-12 flex items-center justify-center group-hover:bg-saree-teal-dark transition-colors duration-300">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                 </svg>

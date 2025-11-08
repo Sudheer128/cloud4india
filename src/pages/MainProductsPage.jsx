@@ -17,7 +17,7 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
-import { useProducts, useMainProductsContent } from '../hooks/useCMS';
+import { useMainProductsContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const MainProductsPage = () => {
@@ -90,10 +90,10 @@ const MainProductsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-saree-teal-light via-white to-saree-lime-light flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner />
-          <p className="text-white/70 mt-4">Loading our innovative solutions...</p>
+          <p className="text-gray-700 mt-4">Loading our innovative solutions...</p>
         </div>
       </div>
     );
@@ -101,95 +101,120 @@ const MainProductsPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-saree-teal-light via-white to-saree-lime-light flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Error Loading Products</h2>
-          <p className="text-white/70">{error}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Error Loading Products</h2>
+          <p className="text-gray-600">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Hero Section - Modern Dark Theme - Compact */}
-      <section className="relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div className="min-h-screen bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
+      {/* Hero Section - Enhanced Attractive Design */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise py-20">
+        {/* Animated Background Patterns */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-full">
+            {/* Geometric Patterns */}
+            <div className="absolute top-10 left-10 w-40 h-40 border-4 border-white/30 rounded-full"></div>
+            <div className="absolute top-20 right-20 w-60 h-60 border-4 border-white/20 rounded-full"></div>
+            <div className="absolute bottom-10 left-1/4 w-32 h-32 bg-white/20 rounded-lg rotate-45"></div>
+            <div className="absolute bottom-20 right-1/3 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+          </div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
+        {/* Floating Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-10 w-3 h-3 bg-white/50 rounded-full animate-pulse"></div>
+          <div className="absolute top-1/3 right-20 w-2 h-2 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-white/30 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 right-1/4 w-2 h-2 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-full text-blue-300 text-xs font-medium mb-4 border border-blue-500/30">
-              <CloudIcon className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300 cursor-pointer">
+              <CloudIcon className="w-5 h-5 mr-2" />
               {mainPageData?.hero?.subtitle || 'Enterprise Cloud Solutions - Made in India'}
             </div>
 
-            {/* Main Heading */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-              <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-                {mainPageData?.hero?.title || 'Cloud Products'}
-              </span>
+            {/* Main Heading with Glow Effect */}
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white drop-shadow-2xl">
+              {mainPageData?.hero?.title || 'Cloud Products'}
             </h1>
 
             {/* Description */}
-            <p className="text-base md:text-lg text-white/80 leading-relaxed mb-6 max-w-3xl mx-auto">
+            <p className="text-base md:text-lg text-white/90 leading-relaxed mb-8 max-w-3xl mx-auto drop-shadow-lg">
               {mainPageData?.hero?.description || 'Accelerate your digital transformation with our cutting-edge cloud infrastructure. Built for scale, optimized for performance, designed for the future.'}
             </p>
 
-            {/* CTA Button */}
-            <div className="flex justify-center items-center mb-8">
+            {/* CTA Buttons */}
+            <div className="flex justify-center items-center gap-4 mb-12">
               <Link 
                 to="/pricing"
-                className="px-6 py-2.5 bg-white/10 backdrop-blur-sm text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200"
+                className="px-8 py-3.5 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-white/90 transition-all duration-300 shadow-2xl hover:shadow-white/20 hover:scale-105 transform"
               >
                 View Pricing
               </Link>
+              <Link 
+                to="#products"
+                className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white text-base font-semibold rounded-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300 shadow-xl"
+              >
+                Explore Products
+              </Link>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+            {/* Stats - Enhanced Design */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {[
                 { 
                   label: mainPageData?.hero?.stat1_label || 'Global Customers', 
                   value: mainPageData?.hero?.stat1_value || '10K+', 
-                  icon: GlobeAltIcon 
+                  icon: GlobeAltIcon
                 },
                 { 
                   label: mainPageData?.hero?.stat2_label || 'Uptime SLA', 
                   value: mainPageData?.hero?.stat2_value || '99.9%', 
-                  icon: ChartBarIcon 
+                  icon: ChartBarIcon
                 },
                 { 
                   label: mainPageData?.hero?.stat3_label || 'Data Centers', 
                   value: mainPageData?.hero?.stat3_value || '15+', 
-                  icon: ServerIcon 
+                  icon: ServerIcon
                 },
                 { 
                   label: mainPageData?.hero?.stat4_label || 'Support Rating', 
                   value: mainPageData?.hero?.stat4_value || '4.9★', 
-                  icon: StarIcon 
+                  icon: StarIcon
                 }
               ].map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-1.5 group-hover:scale-110 transition-transform duration-200" />
-                  <div className="text-lg font-bold text-white mb-0.5">{stat.value}</div>
-                  <div className="text-xs text-white/60">{stat.label}</div>
+                <div key={index} className="group cursor-pointer bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                  <stat.icon className="w-8 h-8 text-white mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg" />
+                  <div className="text-2xl font-bold text-white mb-1 drop-shadow-lg">{stat.value}</div>
+                  <div className="text-xs text-white/80 font-medium">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* Bottom Wave */}
+        <div className="absolute bottom-0 left-0 w-full">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" fillOpacity="0.1"/>
+            <path d="M0 120L60 112.5C120 105 240 90 360 82.5C480 75 600 75 720 78.75C840 82.5 960 90 1080 93.75C1200 97.5 1320 97.5 1380 97.5L1440 97.5V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" fillOpacity="0.2"/>
+          </svg>
+        </div>
       </section>
 
       {/* Products Grid Section */}
-      <section className="relative py-12 bg-white">
+      <section className="relative py-12 bg-gradient-to-br from-saree-amber-light/20 via-white to-saree-rose-light/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-5">
             Search All Products
           </h1>
 
@@ -199,15 +224,15 @@ const MainProductsPage = () => {
             <div className="relative" ref={filterMenuRef}>
               <button
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors bg-white text-sm"
+                className="flex items-center gap-2 px-3 py-2 border-2 border-gray-200 rounded-lg hover:border-saree-teal hover:bg-saree-teal-light/20 transition-all duration-300 bg-white text-sm shadow-md"
               >
-                <FunnelIcon className="w-4 h-4 text-gray-700" />
+                <FunnelIcon className="w-4 h-4 text-saree-teal" />
                 <span className="text-sm font-medium text-gray-700">Filter</span>
               </button>
               
               {/* Filter Dropdown */}
               {showFilterMenu && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-80 overflow-y-auto">
+                <div className="absolute top-full left-0 mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 min-w-[200px] max-h-80 overflow-y-auto">
                   <div className="p-2">
                     {categories.map((category) => (
                       <button
@@ -216,10 +241,10 @@ const MainProductsPage = () => {
                           setSelectedCategory(category);
                           setShowFilterMenu(false);
                         }}
-                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-300 ${
                           selectedCategory === category
-                            ? 'bg-blue-50 text-blue-700 font-medium'
-                            : 'text-gray-700 hover:bg-gray-50'
+                            ? 'bg-saree-teal text-white font-medium shadow-md'
+                            : 'text-gray-700 hover:bg-saree-teal-light hover:text-saree-teal-dark'
                         }`}
                       >
                         {category === 'all' ? 'All Categories' : category}
@@ -232,13 +257,13 @@ const MainProductsPage = () => {
 
             {/* Search Input */}
             <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-saree-teal" />
               <input
                 type="text"
                 placeholder="Search products & services"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full pl-9 pr-4 py-2 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-saree-teal focus:border-saree-teal outline-none transition-all duration-300 shadow-md hover:border-saree-teal-dark"
               />
             </div>
           </div>
@@ -259,6 +284,7 @@ const MainProductsPage = () => {
                 const section = {
                   id: product.id,
                   product_id: product.product_id || product.id,
+                  product_route: product.product_route || product.route,
                   title: product.title || product.name,
                   description: product.description,
                   category: product.category,
@@ -293,7 +319,7 @@ const MainProductsPage = () => {
             <div className="flex justify-center mt-6">
               <button
                 onClick={handleShowMore}
-                className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                className="px-6 py-2.5 bg-saree-teal hover:bg-saree-teal-dark text-white rounded-lg text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 Show 8 more
               </button>
@@ -338,53 +364,94 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
 
   const features = getFeatures();
 
+  // Balanced color palette - Professional and clean
+  const cardColors = [
+    { 
+      iconBg: 'bg-saree-teal',
+      iconColor: 'text-saree-teal',
+      border: 'border-saree-teal/20',
+      hoverBorder: 'hover:border-saree-teal',
+      badge: 'bg-saree-teal/10 text-saree-teal-dark border-saree-teal/30'
+    },
+    { 
+      iconBg: 'bg-saree-amber',
+      iconColor: 'text-saree-amber',
+      border: 'border-saree-amber/20',
+      hoverBorder: 'hover:border-saree-amber',
+      badge: 'bg-saree-amber/10 text-saree-amber-dark border-saree-amber/30'
+    },
+    { 
+      iconBg: 'bg-saree-lime',
+      iconColor: 'text-saree-lime',
+      border: 'border-saree-lime/20',
+      hoverBorder: 'hover:border-saree-lime',
+      badge: 'bg-saree-lime/10 text-saree-lime-dark border-saree-lime/30'
+    },
+    { 
+      iconBg: 'bg-saree-rose',
+      iconColor: 'text-saree-rose',
+      border: 'border-saree-rose/20',
+      hoverBorder: 'hover:border-saree-rose',
+      badge: 'bg-saree-rose/10 text-saree-rose-dark border-saree-rose/30'
+    },
+    { 
+      iconBg: 'bg-phulkari-turquoise',
+      iconColor: 'text-phulkari-turquoise',
+      border: 'border-phulkari-turquoise/20',
+      hoverBorder: 'hover:border-phulkari-turquoise',
+      badge: 'bg-phulkari-turquoise/10 text-phulkari-turquoise-dark border-phulkari-turquoise/30'
+    },
+    { 
+      iconBg: 'bg-saree-coral',
+      iconColor: 'text-saree-coral',
+      border: 'border-saree-coral/20',
+      hoverBorder: 'hover:border-saree-coral',
+      badge: 'bg-saree-coral/10 text-saree-coral-dark border-saree-coral/30'
+    }
+  ];
+
+  const color = cardColors[index % cardColors.length];
+
   return (
     <div 
       className="group relative"
-      style={{ willChange: 'transform' }}
       onMouseEnter={() => onHover(section.id)}
       onMouseLeave={() => onHover(null)}
     >
-      {/* Card */}
+      {/* Balanced Card Design */}
       <div className={`
-        relative bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden
-        transition-all duration-200 transform
-        ${isHovered ? 'scale-[1.02] shadow-xl shadow-blue-500/10' : ''}
+        relative bg-white rounded-xl shadow-md border-2 overflow-hidden
+        transition-all duration-300
+        ${isHovered ? `shadow-xl -translate-y-1 ${color.hoverBorder}` : `${color.border}`}
       `}>
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-purple-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-        
         {/* Content */}
-        <div className="relative p-5">
-          {/* Header */}
+        <div className="p-6">
+          {/* Header with Icon and Badge */}
           <div className="flex items-start justify-between mb-4">
             <div className={`
-              w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200
-              ${isHovered 
-                ? 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-md' 
-                : 'bg-gradient-to-br from-gray-100 to-gray-200'
-              }
+              w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300
+              ${isHovered ? color.iconBg : 'bg-gray-100'}
             `}>
-              <IconComponent className={`w-6 h-6 transition-colors duration-200 ${isHovered ? 'text-white' : 'text-gray-600'}`} />
+              <IconComponent className={`w-6 h-6 transition-colors duration-300 ${isHovered ? 'text-white' : color.iconColor}`} />
             </div>
             
-            {/* Popular Badge - Only show if popular_tag exists */}
+            {/* Popular Badge - Simple version */}
             {section.popular_tag && section.popular_tag.trim() && (
-              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <span className="bg-saree-amber text-white px-2.5 py-1 rounded-md text-xs font-semibold">
                 {section.popular_tag}
               </span>
             )}
           </div>
 
-          {/* Category - Only show if category exists */}
+          {/* Category Badge */}
           {section.category && section.category.trim() && (
-            <div className="inline-flex items-center px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium mb-3">
+            <div className={`inline-flex items-center px-3 py-1 ${color.badge} rounded-md text-xs font-semibold mb-4 border`}>
               {section.category}
             </div>
           )}
 
           {/* Title */}
-          <h3 className="text-lg font-bold text-gray-900 mb-2.5 group-hover:text-blue-900 transition-colors line-clamp-2">
+          <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-gray-700 transition-colors">
             {section.title}
           </h3>
 
@@ -393,32 +460,30 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             {section.description}
           </p>
 
-          {/* Features - Only show if there are valid features */}
+          {/* Features - Clean and simple */}
           {features.length > 0 && (
-            <div className="space-y-2 mb-5">
+            <div className="space-y-2.5 mb-5 pb-5 border-b border-gray-100">
               {features.map((feature, idx) => (
-                <div key={idx} className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <CheckIcon className="w-2.5 h-2.5 text-green-600" />
-                  </div>
-                  <span className="text-xs text-gray-700 line-clamp-1">{feature.text}</span>
+                <div key={idx} className="flex items-center gap-2">
+                  <CheckIcon className={`w-4 h-4 ${color.iconColor} flex-shrink-0`} />
+                  <span className="text-sm text-gray-700 line-clamp-1">{feature.text}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Pricing - Only show if price exists */}
+          {/* Pricing - Clean version */}
           {section.price && section.price.trim() && (
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-3 mb-4">
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xl font-bold text-gray-900">{section.price}</span>
+                  <span className="text-2xl font-bold text-gray-900">{section.price}</span>
                   {section.price_period && section.price_period.trim() && (
                     <span className="text-gray-600 text-sm ml-1">{section.price_period}</span>
                   )}
                 </div>
                 {section.free_trial_tag && section.free_trial_tag.trim() && (
-                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold">
                     {section.free_trial_tag}
                   </span>
                 )}
@@ -426,38 +491,22 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             </div>
           )}
 
-          {/* Action Button */}
+          {/* Action Button - Balanced design */}
           <Link 
-            to={`/products/${section.product_id}`}
+            to={`/products/${section.product_route || section.product_id}`}
             className={`
-              group/btn relative w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+              group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
               ${isHovered 
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
+                ? `${color.iconBg} text-white` 
                 : 'bg-gray-900 text-white hover:bg-gray-800'
               }
             `}
           >
-            <span className="relative z-10 flex items-center">
-              {section.button_text || 'Explore Solution'}
-              <ArrowRightIcon className="w-4 h-4 ml-1.5 group-hover/btn:translate-x-1 transition-transform duration-200" />
-            </span>
-            {isHovered && (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200"></div>
-            )}
+            {section.button_text || 'Explore Product'}
+            <ArrowRightIcon className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
           </Link>
         </div>
-
-        {/* Hover Effect Border */}
-        <div className={`
-          absolute inset-0 rounded-xl border-2 transition-all duration-200
-          ${isHovered ? 'border-blue-500/30' : 'border-transparent'}
-        `}></div>
       </div>
-
-      {/* Background Glow Effect - Simplified for performance */}
-      {isHovered && (
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl blur-lg -z-10"></div>
-      )}
     </div>
   );
 };

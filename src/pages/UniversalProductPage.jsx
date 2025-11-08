@@ -26,11 +26,11 @@ const UniversalProductPage = () => {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Product</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Error Loading Product</h2>
+          <p className="text-sm text-gray-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className="bg-saree-teal text-white px-6 py-3 rounded-lg hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
           >
             Retry
           </button>
@@ -43,11 +43,11 @@ const UniversalProductPage = () => {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
-          <p className="text-gray-600 mb-4">This product doesn't exist or has no content.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+          <p className="text-sm text-gray-600 mb-4">This product doesn't exist or has no content.</p>
           <button 
             onClick={() => window.history.back()} 
-            className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className="bg-saree-teal text-white px-6 py-3 rounded-lg hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
           >
             Go Back
           </button>

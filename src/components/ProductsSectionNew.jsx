@@ -70,7 +70,7 @@ const ProductsSectionNew = () => {
 
         <div className="mb-6">
           <p className="text-sm text-gray-700 font-medium">
-            Displaying 1-{filteredProducts.length} ({products.length})
+            Displaying 1-{Math.min(6, filteredProducts.length)} ({products.length})
           </p>
         </div>
 
@@ -101,7 +101,7 @@ const ProductsSectionNew = () => {
           emptyMessage="No products available"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product, index) => {
+            {filteredProducts.slice(0, 6).map((product, index) => {
               const productRoute = product.product_route || product.product_id || product.id;
               const productName = product.product_name || product.title || product.name || '';
               const productCategory = product.category || 'Cloud Services';
@@ -145,7 +145,7 @@ const ProductsSectionNew = () => {
           </div>
         </ContentWrapper>
 
-        {filteredProducts.length === products.length && (
+        {products.length > 6 && (
           <div className="text-center mt-12">
             <button 
               onClick={() => window.location.href = 'http://38.242.248.213:4001/products'}

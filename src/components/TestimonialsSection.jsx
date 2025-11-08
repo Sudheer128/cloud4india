@@ -44,10 +44,10 @@ const TestimonialsSection = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
             Hear from Our Satisfied Customers
           </h2>
-          <p className="text-lg text-gray-700 max-w-3xl mx-auto">
+          <p className="text-base text-gray-700 max-w-3xl mx-auto">
             See what our clients say about working with Cloud 4 India
           </p>
         </div>
@@ -57,21 +57,21 @@ const TestimonialsSection = () => {
           {testimonials[currentPage].map((testimonial, index) => (
             <div 
               key={index} 
-              className="bg-gray-50 text-gray-900 rounded-2xl p-8 border-l-4 border-saree-teal shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className="bg-gray-50 text-gray-900 rounded-2xl p-8 border-l-4 border-saree-teal shadow-lg hover:shadow-2xl hover:bg-white hover:border-l-8 hover:border-saree-teal-dark hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
             >
               <div className="mb-6">
-                <svg className="w-10 h-10 text-saree-teal/50" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 text-saree-teal/50 group-hover:text-saree-teal group-hover:scale-110 transition-all duration-300" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
               </div>
               
-              <p className="text-gray-700 mb-6 leading-relaxed whitespace-pre-line">
+              <p className="text-sm text-gray-700 mb-6 leading-relaxed whitespace-pre-line group-hover:text-gray-900 transition-colors duration-300">
                 {testimonial.quote}
               </p>
               
-              <div className="border-t border-gray-300 pt-4">
+              <div className="border-t border-gray-300 pt-4 group-hover:border-saree-teal transition-colors duration-300">
                 {testimonial.company && (
-                  <p className="font-bold text-saree-teal">{testimonial.company}</p>
+                  <p className="font-bold text-saree-teal group-hover:text-saree-teal-dark transition-colors duration-300">{testimonial.company}</p>
                 )}
                 {testimonial.author && (
                   <p className="font-bold text-gray-900">{testimonial.author}</p>
@@ -117,23 +117,23 @@ const TestimonialsSection = () => {
         
         {/* Rating Section */}
         <div className="mt-16 text-center">
-          <p className="text-gray-700 text-lg mb-6 font-medium">
+          <p className="text-gray-700 text-base mb-6 font-medium">
             Ranked among the top server providers in the industry on
           </p>
           <div className="flex justify-center items-center gap-8 flex-wrap">
-            <div className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg">
-              <div className="w-12 h-12 bg-saree-amber rounded-full flex items-center justify-center">
+            <div className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-2xl hover:border-saree-amber hover:bg-saree-amber-light hover:scale-110 transition-all duration-300 cursor-pointer group">
+              <div className="w-12 h-12 bg-saree-amber rounded-full flex items-center justify-center group-hover:bg-saree-amber-dark transition-colors duration-300">
                 <span className="text-white font-bold text-xl">G</span>
               </div>
-              <span className="text-3xl font-bold text-gray-900">4.7/5</span>
+              <span className="text-2xl font-bold text-gray-900 group-hover:text-saree-amber-dark transition-colors duration-300">4.7/5</span>
             </div>
-            <div className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg">
-              <svg className="w-10 h-10 text-saree-lime" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-2xl hover:border-saree-lime hover:bg-saree-lime-light hover:scale-110 transition-all duration-300 cursor-pointer group">
+              <svg className="w-10 h-10 text-saree-lime group-hover:text-saree-lime-dark group-hover:scale-110 transition-all duration-300" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
               <div className="flex flex-col">
-                <span className="text-xs text-gray-600 font-medium">Trustpilot</span>
-                <span className="text-3xl font-bold text-gray-900">4.7/5</span>
+                <span className="text-xs text-gray-600 font-medium group-hover:text-gray-900 transition-colors duration-300">Trustpilot</span>
+                <span className="text-2xl font-bold text-gray-900 group-hover:text-saree-lime-dark transition-colors duration-300">4.7/5</span>
               </div>
             </div>
           </div>

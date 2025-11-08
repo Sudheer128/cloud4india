@@ -6,6 +6,7 @@ import {
   deleteSolution,
   updateSolution
 } from '../services/cmsApi';
+import { enhanceDescription } from '../services/aiService';
 import { 
   PencilSquareIcon, 
   TrashIcon, 
@@ -17,7 +18,8 @@ import {
   CheckIcon, 
   ListBulletIcon,
   DocumentTextIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  CubeIcon
 } from '@heroicons/react/24/outline';
 
 // Modal Component
@@ -87,8 +89,20 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
               <div className="md:grid md:grid-cols-[1.5fr_2fr_1.5fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    solution.category === 'Industry'
+                    solution.category === 'Content Management Systems'
                       ? 'bg-sky-100 text-sky-700'
+                      : solution.category === 'Databases'
+                      ? 'bg-purple-100 text-purple-700'
+                      :                     solution.category === 'Developer Tools'
+                      ? 'bg-amber-100 text-amber-700'
+                      :                     solution.category === 'Media'
+                      ? 'bg-pink-100 text-pink-700'
+                      : solution.category === 'E Commerce'
+                      ? 'bg-orange-100 text-orange-700'
+                      : solution.category === 'Business Applications'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : solution.category === 'Monitoring Applications'
+                      ? 'bg-teal-100 text-teal-700'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}>
                     {solution.category}
@@ -171,28 +185,1326 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
   );
 };
 
-// Solution Editor Component - simplified version that redirects to solution editor
+// Solution Editor Component - Full Featured Editor
 const SolutionEditor = ({ solution, onBack }) => {
-  // For now, just show a message that full editor is available in AdminPanel
-  // In future, we can add the full editor here similar to ProductEditor
+  const [activeTab, setActiveTab] = useState('overview');
+  const [cardData, setCardData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    color: '',
+    border_color: '',
+    route: '',
+    gradient_start: '',
+    gradient_end: ''
+  });
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingSection, setEditingSection] = useState(null);
+  const [managingItems, setManagingItems] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (solution) {
+      setCardData({
+        name: solution.name,
+        description: solution.description,
+        category: solution.category,
+        color: solution.color,
+        border_color: solution.border_color,
+        route: solution.route,
+        gradient_start: solution.gradient_start || 'blue',
+        gradient_end: solution.gradient_end || 'blue-700'
+      });
+      loadSections();
+    }
+  }, [solution]);
+
+  const loadSections = async () => {
+    try {
+      setLoading(true);
+      console.log(`Loading sections for solution ID: ${solution.id}`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const sectionsData = await response.json();
+      console.log(`Loaded ${sectionsData.length} sections:`, sectionsData);
+      setSections(sectionsData);
+    } catch (err) {
+      console.error('Error loading sections:', err);
+      setSections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveCard = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cardData),
+      });
+      
+      if (response.ok) {
+        alert('Solution card updated successfully!');
+      } else {
+        throw new Error('Failed to update solution');
+      }
+    } catch (err) {
+      alert('Error updating solution: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateSection = async (sectionData) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sectionData),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        setEditingSection(null);
+        alert('Section created successfully!');
+      } else {
+        throw new Error('Failed to create section');
+      }
+    } catch (err) {
+      alert('Error creating section: ' + err.message);
+    }
+  };
+
+  const handleUpdateSection = async (sectionId, sectionData) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sectionData),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        setEditingSection(null);
+        alert('Section updated successfully!');
+      } else {
+        throw new Error('Failed to update section');
+      }
+    } catch (err) {
+      alert('Error updating section: ' + err.message);
+    }
+  };
+
+  const handleDeleteSection = async (sectionId) => {
+    if (window.confirm('Are you sure you want to delete this section?')) {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          await loadSections();
+          alert('Section deleted successfully!');
+        } else {
+          throw new Error('Failed to delete section');
+        }
+      } catch (err) {
+        alert('Error deleting section: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleVisibility = async (sectionId, currentVisibility) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_visible: !currentVisibility }),
+      });
+      
+      if (response.ok) {
+        await loadSections();
+        alert(`Section ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
+      } else {
+        throw new Error('Failed to toggle section visibility');
+      }
+    } catch (err) {
+      alert('Error toggling section visibility: ' + err.message);
+    }
+  };
+
+  const sectionTypes = [
+    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
+    { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions' },
+    { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets' },
+    { value: 'success_story', label: 'Success Stories', description: 'Customer testimonials and case studies' },
+    { value: 'technology', label: 'Technology Features', description: 'Technical capabilities and innovations' },
+    { value: 'use_cases', label: 'Use Cases & Solutions', description: 'Real-world applications and scenarios' },
+    { value: 'roi', label: 'ROI & Value', description: 'Return on investment and business value' },
+    { value: 'implementation', label: 'Implementation Timeline', description: 'Step-by-step implementation process' },
+    { value: 'resources', label: 'Resources & Support', description: 'Documentation, training, and support materials' },
+    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' },
+    { value: 'stats', label: 'Statistics & Metrics', description: 'Key performance indicators and metrics' },
+    { value: 'comparison', label: 'Comparison Table', description: 'Feature comparisons and competitive analysis' },
+    { value: 'faq', label: 'FAQ Section', description: 'Frequently asked questions' },
+    { value: 'testimonials', label: 'Client Testimonials', description: 'Customer feedback and reviews' },
+    { value: 'pricing', label: 'Pricing Information', description: 'Pricing tiers and cost information' }
+  ];
+
   return (
-    <div className="space-y-4">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <ArrowLeftIcon className="w-5 h-5" />
-        Back to Solutions
-      </button>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h4 className="text-lg font-semibold mb-4">Solution Editor</h4>
-        <p className="text-gray-600">
-          Full solution editing is available in the main Admin Panel. This is a simplified view.
-        </p>
-        <div className="mt-4">
-          <p className="text-sm text-gray-500">Solution: <strong>{solution.name}</strong></p>
-          <p className="text-sm text-gray-500">Route: <strong>{solution.route}</strong></p>
+    <div>
+      <div className="flex items-center mb-6">
+        <button
+          onClick={onBack}
+          className="mr-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h3 className="text-xl font-semibold text-gray-900">Edit Solution: {solution.name}</h3>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6">
+        <nav className="flex space-x-8 border-b border-gray-200">
+          {[
+            { id: 'overview', label: 'Solution Overview', description: 'Basic solution information' },
+            { id: 'sections', label: 'Page Sections', description: 'Manage page content sections' },
+            { id: 'preview', label: 'Preview', description: 'Preview the solution page' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              title={tab.description}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Solution Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h4 className="text-lg font-semibold mb-6 flex items-center">
+            <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
+            Solution Overview & Card Details
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Solution Name</label>
+              <input
+                type="text"
+                value={cardData.name}
+                onChange={(e) => setCardData({...cardData, name: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Financial Services"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select
+                value={cardData.category}
+                onChange={(e) => setCardData({...cardData, category: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+                  >
+                    <option value="">Select category...</option>
+                    <option value="Frameworks">Frameworks</option>
+                    <option value="Content Management Systems">Content Management Systems</option>
+                    <option value="Databases">Databases</option>
+                    <option value="Developer Tools">Developer Tools</option>
+                    <option value="Media">Media</option>
+                    <option value="E Commerce">E Commerce</option>
+                    <option value="Business Applications">Business Applications</option>
+                    <option value="Monitoring Applications">Monitoring Applications</option>
+                  </select>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              value={cardData.description}
+              onChange={(e) => setCardData({...cardData, description: e.target.value})}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Brief description for the solution card..."
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">This appears on the solutions overview page</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Page Route</label>
+              <input
+                type="text"
+                value={cardData.route}
+                onChange={(e) => setCardData({...cardData, route: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="/solutions/financial-services"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Card Background</label>
+              <input
+                type="text"
+                value={cardData.color}
+                onChange={(e) => setCardData({...cardData, color: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="from-blue-50 to-blue-100"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Card Border</label>
+              <input
+                type="text"
+                value={cardData.border_color}
+                onChange={(e) => setCardData({...cardData, border_color: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="border-blue-200"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-gray-200">
+            <button
+              onClick={handleSaveCard}
+              disabled={saving}
+              className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                'Save Overview'
+              )}
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Page Sections Tab */}
+      {activeTab === 'sections' && (
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900">Page Content Sections</h4>
+              <p className="text-sm text-gray-600 mt-1">Manage all sections of the solution page</p>
+            </div>
+            <button
+              onClick={() => setEditingSection('new')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add New Section
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading sections...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sections.length > 0 ? (
+                sections.map((section, index) => (
+                  <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
+                            section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
+                            section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
+                            section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
+                            section.section_type === 'use_cases' ? 'bg-orange-100 text-orange-700' :
+                            section.section_type === 'cta' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
+                          </span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Order: {section.order_index}
+                          </span>
+                        </div>
+                        <h5 className="font-semibold text-gray-900 mb-2 text-lg">
+                          {section.title || 'Untitled Section'}
+                        </h5>
+                        <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                          {section.content ? 
+                            (section.content.length > 200 ? 
+                              section.content.substring(0, 200) + '...' : 
+                              section.content
+                            ) : 
+                            'No content'
+                          }
+                        </p>
+                        <div className="text-xs text-gray-500">
+                          Created: {new Date(section.created_at).toLocaleDateString()} • 
+                          Updated: {new Date(section.updated_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        <button
+                          onClick={() => setEditingSection(section.id)}
+                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setManagingItems(section.id)}
+                          className="text-green-600 hover:text-green-800 text-sm bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Items
+                        </button>
+                        <button
+                          onClick={() => handleToggleVisibility(section.id, section.is_visible !== 0)}
+                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                            section.is_visible !== 0 
+                              ? 'text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100' 
+                              : 'text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100'
+                          }`}
+                        >
+                          {section.is_visible !== 0 ? 'Hide' : 'Unhide'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSection(section.id)}
+                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sections created yet</h3>
+                  <p className="text-gray-500 mb-4">Start building your solution page by adding content sections.</p>
+                  <button
+                    onClick={() => setEditingSection('new')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Add First Section
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section Editor */}
+          {editingSection && (
+            <SectionEditor
+              section={editingSection === 'new' ? null : sections.find(s => s.id === editingSection)}
+              sectionTypes={sectionTypes}
+              onCreate={handleCreateSection}
+              onUpdate={handleUpdateSection}
+              onCancel={() => setEditingSection(null)}
+            />
+          )}
+
+          {/* Section Items Manager */}
+          {managingItems && (
+            <SectionItemsManager
+              section={sections.find(s => s.id === managingItems)}
+              solutionId={solution.id}
+              onCancel={() => setManagingItems(null)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Preview Tab */}
+      {activeTab === 'preview' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900">Solution Page Preview</h4>
+              <p className="text-sm text-gray-600 mt-1">Preview how your solution page will look</p>
+            </div>
+            <div className="flex space-x-3">
+              <a
+                href={cardData.route}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                View Live Page
+              </a>
+              <button
+                onClick={loadSections}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Refresh Preview
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading preview...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Solution Overview Card */}
+              <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-blue-500">
+                <h5 className="text-lg font-semibold text-gray-900 mb-2">Solution Overview</h5>
+                <div className={`bg-gradient-to-br ${cardData.color} border ${cardData.border_color} rounded-xl p-4 max-w-md`}>
+                  <div className="mb-3">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${
+                      cardData.category === 'Content Management Systems'
+                        ? 'bg-sky-100 text-sky-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {cardData.category}
+                    </span>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{cardData.name}</h3>
+                    <p className="text-gray-600 text-sm">{cardData.description}</p>
+                  </div>
+                  <div className="text-blue-600 font-medium text-sm">
+                    View solution →
+                  </div>
+                </div>
+              </div>
+
+              {/* Page Sections Preview */}
+              <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-green-500">
+                <h5 className="text-lg font-semibold text-gray-900 mb-4">Page Content ({sections.length} sections)</h5>
+                {sections.length > 0 ? (
+                  <div className="space-y-4">
+                    {sections.map((section, index) => (
+                      <div key={section.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium text-gray-900 mr-2">
+                              {index + 1}. {section.title || 'Untitled Section'}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
+                              section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
+                              section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm">
+                          {section.content ? 
+                            (section.content.length > 150 ? 
+                              section.content.substring(0, 150) + '...' : 
+                              section.content
+                            ) : 
+                            'No content'
+                          }
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No sections created yet. Add sections to see them here.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Section Editor Component
+const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) => {
+  const [formData, setFormData] = useState({
+    section_type: '',
+    title: '',
+    content: '',
+    order_index: 0
+  });
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  useEffect(() => {
+    if (section) {
+      setFormData({
+        section_type: section.section_type || '',
+        title: section.title || '',
+        content: section.content || '',
+        order_index: section.order_index || 0
+      });
+    } else {
+      setFormData({
+        section_type: '',
+        title: '',
+        content: '',
+        order_index: 0
+      });
+    }
+  }, [section]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (section) {
+      onUpdate(section.id, formData);
+    } else {
+      onCreate(formData);
+    }
+  };
+
+  const handleEnhanceContent = async () => {
+    if (!formData.title.trim()) {
+      alert('Please enter a section title first before enhancing the content.');
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      alert('Please enter some basic content first before enhancing.');
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const enhancedContent = await enhanceDescription(
+        formData.title,
+        formData.content,
+        formData.section_type || 'section'
+      );
+      setFormData({
+        ...formData,
+        content: enhancedContent
+      });
+    } catch (error) {
+      console.error('Enhancement error:', error);
+      if (error.message.includes('rate limit')) {
+        alert('Rate limit reached. Your request has been queued and will be processed automatically. Please wait...');
+      } else {
+        alert(error.message);
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const selectedSectionType = sectionTypes.find(t => t.value === formData.section_type);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+          <div className="flex justify-between items-center">
+            <h5 className="text-xl font-semibold text-gray-900">
+              {section ? 'Edit Section' : 'Add New Section'}
+            </h5>
+            <button
+              onClick={onCancel}
+              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Type</label>
+              <select
+                value={formData.section_type}
+                onChange={(e) => setFormData({...formData, section_type: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select section type...</option>
+                {sectionTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              {selectedSectionType && (
+                <p className="text-xs text-gray-500 mt-1">{selectedSectionType.description}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter section title..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Order Index</label>
+              <input
+                type="number"
+                value={formData.order_index}
+                onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">Content</label>
+              <button
+                type="button"
+                onClick={handleEnhanceContent}
+                disabled={isEnhancing || !formData.title.trim() || !formData.content.trim()}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isEnhancing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Enhancing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Enhance with OpenAI
+                  </>
+                )}
+              </button>
+            </div>
+            <textarea
+              value={formData.content}
+              onChange={(e) => setFormData({...formData, content: e.target.value})}
+              rows={12}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              placeholder="Enter section content... (HTML supported)"
+              required
+            />
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-gray-500">
+                💡 <strong>HTML supported:</strong> Use tags like &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt; for formatting
+              </p>
+              <div className="text-xs text-gray-400">
+                {formData.content.length} characters
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
+            >
+              {section ? 'Update Section' : 'Create Section'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Section Items Manager Component
+const SectionItemsManager = ({ section, solutionId, onCancel }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (section) {
+      loadItems();
+    }
+  }, [section]);
+
+  const loadItems = async () => {
+    try {
+      setLoading(true);
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${section.id}/items`;
+      
+      console.log(`Loading items from: ${apiPath}`);
+      const response = await fetch(apiPath);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const itemsData = await response.json();
+      console.log(`Loaded ${itemsData.length} items:`, itemsData);
+      setItems(itemsData);
+    } catch (err) {
+      console.error('Error loading section items:', err);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateItem = async (itemData) => {
+    try {
+      setSaving(true);
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${section.id}/items`;
+      const response = await fetch(apiPath, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadItems();
+      setEditingItem(null);
+      alert('Item created successfully!');
+    } catch (err) {
+      console.error('Error creating item:', err);
+      alert('Failed to create item. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateItem = async (itemId, itemData) => {
+    try {
+      setSaving(true);
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${section.id}/items/${itemId}`;
+      const response = await fetch(apiPath, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(itemData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadItems();
+      setEditingItem(null);
+      alert('Item updated successfully!');
+    } catch (err) {
+      console.error('Error updating item:', err);
+      alert('Failed to update item. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) {
+      return;
+    }
+
+    try {
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${section.id}/items/${itemId}`;
+      const response = await fetch(apiPath, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadItems();
+      alert('Item deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      alert('Failed to delete item. Please try again.');
+    }
+  };
+
+  const itemTypes = [
+    { value: 'benefit', label: 'Benefit Card' },
+    { value: 'feature', label: 'Feature' },
+    { value: 'stat', label: 'Statistic' },
+    { value: 'use_case', label: 'Use Case' },
+    { value: 'technology', label: 'Technology' },
+    { value: 'segment', label: 'Segment' },
+    { value: 'step', label: 'Step' },
+    { value: 'resource', label: 'Resource' }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-bold">Manage Section Items</h3>
+              <p className="text-green-100 mt-1">
+                Section: {section?.title || 'Untitled'} ({section?.section_type})
+              </p>
+            </div>
+            <button
+              onClick={onCancel}
+              className="text-green-100 hover:text-white text-2xl"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+          {/* Add New Item Button */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900">Section Items</h4>
+              <p className="text-sm text-gray-600 mt-1">Manage detailed content like cards, stats, and features</p>
+            </div>
+            <button
+              onClick={() => setEditingItem('new')}
+              className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors flex items-center"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Item
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading items...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-3">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
+                            item.item_type === 'benefit' ? 'bg-green-100 text-green-700' :
+                            item.item_type === 'feature' ? 'bg-blue-100 text-blue-700' :
+                            item.item_type === 'stat' ? 'bg-purple-100 text-purple-700' :
+                            item.item_type === 'use_case' ? 'bg-orange-100 text-orange-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {itemTypes.find(t => t.value === item.item_type)?.label || item.item_type}
+                          </span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Order: {item.order_index}
+                          </span>
+                        </div>
+                        <h5 className="font-semibold text-gray-900 mb-2 text-lg">
+                          {item.title || 'Untitled Item'}
+                        </h5>
+                        <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                          {item.description ? 
+                            (item.description.length > 200 ? 
+                              item.description.substring(0, 200) + '...' : 
+                              item.description
+                            ) : 
+                            'No description'
+                          }
+                        </p>
+                        {item.icon && (
+                          <div className="text-xs text-gray-500 mb-2">
+                            <strong>Icon:</strong> {item.icon}
+                          </div>
+                        )}
+                        {item.value && (
+                          <div className="text-xs text-gray-500 mb-2">
+                            <strong>Value:</strong> {item.value}
+                          </div>
+                        )}
+                        {item.label && (
+                          <div className="text-xs text-gray-500 mb-2">
+                            <strong>Label:</strong> {item.label}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        <button
+                          onClick={() => setEditingItem(item.id)}
+                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No items created yet</h3>
+                  <p className="text-gray-500 mb-4">Add detailed content like benefit cards, features, or statistics.</p>
+                  <button
+                    onClick={() => setEditingItem('new')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Add First Item
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Item Editor */}
+          {editingItem && (
+            <SectionItemEditor
+              item={editingItem === 'new' ? null : items.find(i => i.id === editingItem)}
+              itemTypes={itemTypes}
+              onCreate={handleCreateItem}
+              onUpdate={handleUpdateItem}
+              onCancel={() => setEditingItem(null)}
+              saving={saving}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Section Item Editor Component
+const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, saving }) => {
+  const [formData, setFormData] = useState({
+    item_type: '',
+    title: '',
+    description: '',
+    icon: '',
+    value: '',
+    label: '',
+    order_index: 0,
+    features: ''
+  });
+  const [featuresList, setFeaturesList] = useState([]);
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        item_type: item.item_type || '',
+        title: item.title || '',
+        description: item.description || '',
+        icon: item.icon || '',
+        value: item.value || '',
+        label: item.label || '',
+        order_index: item.order_index || 0,
+        features: item.features || ''
+      });
+      
+      // Parse features from JSON
+      try {
+        if (item.features) {
+          const parsedFeatures = JSON.parse(item.features);
+          setFeaturesList(Array.isArray(parsedFeatures) ? parsedFeatures : []);
+        } else {
+          setFeaturesList([]);
+        }
+      } catch (e) {
+        console.error('Error parsing features:', e);
+        setFeaturesList([]);
+      }
+    } else {
+      setFormData({
+        item_type: '',
+        title: '',
+        description: '',
+        icon: '',
+        value: '',
+        label: '',
+        order_index: 0,
+        features: ''
+      });
+      setFeaturesList([]);
+    }
+  }, [item]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (item) {
+      onUpdate(item.id, formData);
+    } else {
+      onCreate(formData);
+    }
+  };
+
+  const updateFeature = (index, value) => {
+    const newFeatures = [...featuresList];
+    newFeatures[index] = value;
+    setFeaturesList(newFeatures);
+    
+    // Update the features field in formData
+    setFormData(prev => ({
+      ...prev,
+      features: JSON.stringify(newFeatures)
+    }));
+  };
+
+  const addFeature = () => {
+    const newFeatures = [...featuresList, ''];
+    setFeaturesList(newFeatures);
+    
+    // Update the features field in formData
+    setFormData(prev => ({
+      ...prev,
+      features: JSON.stringify(newFeatures)
+    }));
+  };
+
+  const removeFeature = (index) => {
+    if (featuresList.length > 1) {
+      const newFeatures = featuresList.filter((_, i) => i !== index);
+      setFeaturesList(newFeatures);
+      
+      // Update the features field in formData
+      setFormData(prev => ({
+        ...prev,
+        features: JSON.stringify(newFeatures)
+      }));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+          <div className="flex justify-between items-center">
+            <h5 className="text-xl font-semibold text-gray-900">
+              {item ? 'Edit Item' : 'Add New Item'}
+            </h5>
+            <button
+              onClick={onCancel}
+              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
+              <select
+                value={formData.item_type}
+                onChange={(e) => setFormData({...formData, item_type: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select item type...</option>
+                {itemTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Order Index</label>
+              <input
+                type="number"
+                value={formData.order_index}
+                onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter item title..."
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              rows={4}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter description..."
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Icon (optional)</label>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., ShieldCheckIcon"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Value (optional)</label>
+              <input
+                type="text"
+                value={formData.value}
+                onChange={(e) => setFormData({...formData, value: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 40% or Key Features"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Label (optional)</label>
+              <input
+                type="text"
+                value={formData.label}
+                onChange={(e) => setFormData({...formData, label: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Featured"
+              />
+            </div>
+          </div>
+
+          {/* Features (Bullet Points with Checkmarks) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Features (Bullet Points with ✓)
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              These appear as checkmark bullets in Technology and other sections
+            </p>
+            <div className="space-y-2">
+              {featuresList.map((feature, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <span className="text-green-600 text-sm w-6">✓</span>
+                  <input
+                    type="text"
+                    value={feature}
+                    onChange={(e) => updateFeature(index, e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder={`Feature ${index + 1}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFeature(index)}
+                    className="text-red-500 hover:text-red-700 p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={featuresList.length <= 1}
+                    title="Remove feature"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {featuresList.length === 0 && (
+                <p className="text-gray-400 text-sm italic py-2">No features added yet</p>
+              )}
+              <button
+                type="button"
+                onClick={addFeature}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center mt-2"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Feature
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                item ? 'Update Item' : 'Create Item'
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

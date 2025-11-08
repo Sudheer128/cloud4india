@@ -666,8 +666,20 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
               <div className="md:grid md:grid-cols-[1.5fr_2fr_1.5fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    solution.category === 'Industry'
+                    solution.category === 'Content Management Systems'
                       ? 'bg-sky-100 text-sky-700'
+                      : solution.category === 'Databases'
+                      ? 'bg-purple-100 text-purple-700'
+                      : solution.category === 'Developer Tools'
+                      ? 'bg-amber-100 text-amber-700'
+                      : solution.category === 'Media'
+                      ? 'bg-pink-100 text-pink-700'
+                      : solution.category === 'E Commerce'
+                      ? 'bg-orange-100 text-orange-700'
+                      : solution.category === 'Business Applications'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : solution.category === 'Monitoring Applications'
+                      ? 'bg-teal-100 text-teal-700'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}>
                     {solution.category}
@@ -1404,8 +1416,20 @@ const SolutionsEditor = ({ solutions, onCreate, onUpdate, onDelete, onDuplicate,
               <div className="flex-1">
                 <div className="flex items-center mb-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full mr-2 ${
-                    solution.category === 'Industry'
+                    solution.category === 'Content Management Systems'
                       ? 'bg-sky-100 text-sky-700'
+                      : solution.category === 'Databases'
+                      ? 'bg-purple-100 text-purple-700'
+                      : solution.category === 'Developer Tools'
+                      ? 'bg-amber-100 text-amber-700'
+                      : solution.category === 'Media'
+                      ? 'bg-pink-100 text-pink-700'
+                      : solution.category === 'E Commerce'
+                      ? 'bg-orange-100 text-orange-700'
+                      : solution.category === 'Business Applications'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : solution.category === 'Monitoring Applications'
+                      ? 'bg-teal-100 text-teal-700'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}>
                     {solution.category}
@@ -1483,8 +1507,14 @@ const SolutionsEditor = ({ solutions, onCreate, onUpdate, onDelete, onDuplicate,
                 required
               >
                 <option value="">Select category...</option>
-                <option value="Industry">Industry</option>
-                <option value="Technology">Technology</option>
+                <option value="Frameworks">Frameworks</option>
+                <option value="Content Management Systems">Content Management Systems</option>
+                <option value="Databases">Databases</option>
+                <option value="Developer Tools">Developer Tools</option>
+                <option value="Media">Media</option>
+                <option value="E Commerce">E Commerce</option>
+                <option value="Business Applications">Business Applications</option>
+                <option value="Monitoring Applications">Monitoring Applications</option>
               </select>
             </div>
           </div>
@@ -2593,8 +2623,12 @@ const SolutionEditor = ({ solution, onBack }) => {
                 <h5 className="text-lg font-semibold text-gray-900 mb-2">Solution Overview</h5>
                 <div className={`bg-gradient-to-br ${cardData.color} border ${cardData.border_color} rounded-xl p-4 max-w-md`}>
                   <div className="mb-3">
-                    <span className={`inline-block bg-white px-3 py-1 rounded-full text-xs font-medium text-gray-700 mb-2 ${
-                      cardData.category === 'Industry' ? 'bg-sky-100 text-sky-700' : 'bg-emerald-100 text-emerald-700'
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${
+                      cardData.category === 'Content Management Systems'
+                        ? 'bg-sky-100 text-sky-700'
+                        : cardData.category === 'Databases'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-emerald-100 text-emerald-700'
                     }`}>
                       {cardData.category}
                     </span>

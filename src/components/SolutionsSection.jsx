@@ -12,7 +12,7 @@ const SolutionsSection = () => {
   // Use sections from mainPageData instead of solutions
   const solutions = mainPageData?.sections || []
 
-  const categories = ['all', 'Industry', 'Technology']
+  const categories = ['all', 'Frameworks', 'Content Management Systems', 'Databases', 'Developer Tools', 'Media', 'E Commerce', 'Business Applications', 'Monitoring Applications']
 
   const filteredSolutions = solutions?.filter(solution => {
     const solutionName = solution.title || solution.name || '';

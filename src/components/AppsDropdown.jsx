@@ -81,21 +81,21 @@ const AppsDropdown = ({ isOpen, onClose }) => {
         buttonText: 'Deploy'
       },
       {
-        id: 'influxdata',
+        id: 'influxdb',
         name: 'InfluxDB',
-        description: 'Purpose-built database for all types of time series data at any scale. Deploy easily, anywhere.',
+        description: 'InfluxDB is an open-source time series database designed to handle high write and query loads. It is purpose-built for storing, querying, and visualizing time-stamped data, including metrics, events, and real-time analytics.',
         buttonText: 'Deploy'
       },
       {
         id: 'rethinkdb',
         name: 'RethinkDB',
-        description: 'RethinkDB is an open-source, document database stores the information in JSON (JavaScript Object Notation) format and it makes it easy to build and scale realtime apps.',
+        description: 'RethinkDB is an open-source, document database that stores information in JSON format. It makes it easy to build and scale realtime apps with push architecture that instantly updates queries and pushes updates to applications.',
         buttonText: 'Deploy'
       },
       {
         id: 'mysql',
         name: 'MySQL',
-        description: 'The world\'s most popular open source database',
+        description: 'MySQL is the world\'s most popular open source relational database. Trusted by millions of developers and thousands of companies worldwide, MySQL delivers proven performance, reliability, and ease-of-use for web applications at any scale.',
         buttonText: 'Deploy'
       },
       {
@@ -306,7 +306,29 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                         'nodejs': '/solutions/1',
                         'lamp': '/solutions/2',
                         'lemp': '/solutions/3',
-                        'laravel': '/solutions/4'
+                        'laravel': '/solutions/4',
+                        'wordpress': '/solutions/26',
+                        'nextcloud': '/solutions/27',
+                        'mediawiki': '/solutions/28',
+                        'mariadb': '/solutions/29',
+                        'mongodb': '/solutions/30',
+                        'postgresql': '/solutions/31',
+                        'influxdb': '/solutions/32',
+                        'rethinkdb': '/solutions/33',
+                        'mysql': '/solutions/34',
+                        'kafka': '/solutions/35',
+                        'opensearch': '/solutions/36',
+                        'docker': '/solutions/37',
+                        'gitlab': '/solutions/38',
+                        'rabbitmq': '/solutions/39',
+                        'jenkins': '/solutions/40',
+                        'ant-media': '/solutions/41',
+                        'magento': '/solutions/42',
+                        'guacamole': '/solutions/43',
+                        'owncloud': '/solutions/44',
+                        'prometheus': '/solutions/45',
+                        'activemq': '/solutions/46',
+                        'anaconda': '/solutions/47'
                       };
                       const hasPage = appRoutes[app.id];
                       

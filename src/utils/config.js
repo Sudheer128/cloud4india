@@ -35,8 +35,8 @@ const config = {
   production: {
     NODE_ENV: 'production',
     APP_ENV: 'production',
-    API_URL: import.meta.env.VITE_API_URL || 'http://38.242.248.213:4002',
-    CMS_URL: import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002',
+    API_URL: import.meta.env.VITE_API_URL || '',
+    CMS_URL: import.meta.env.VITE_CMS_URL || '',
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: false,

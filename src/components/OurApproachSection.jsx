@@ -47,37 +47,47 @@ const OurApproachSection = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
             Our Approach
           </h2>
-          <p className="text-lg text-gray-700 max-w-4xl mx-auto">
+          <p className="text-base text-gray-700 max-w-4xl mx-auto">
             At <span className="font-semibold text-gray-900">Cloud 4 India</span>, we are committed to providing secure, reliable, and customised data centre solutions designed to empower your business growth.
           </p>
         </div>
         
         {/* Approach Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {approaches.map((approach, index) => (
+          {approaches.map((approach, index) => {
+            const colors = [
+              { iconBg: 'group-hover:bg-saree-teal-light', cardBg: 'hover:bg-saree-teal-light', border: 'hover:border-saree-teal' },
+              { iconBg: 'group-hover:bg-saree-lime-light', cardBg: 'hover:bg-saree-lime-light', border: 'hover:border-saree-lime' },
+              { iconBg: 'group-hover:bg-saree-amber-light', cardBg: 'hover:bg-saree-amber-light', border: 'hover:border-saree-amber' },
+              { iconBg: 'group-hover:bg-phulkari-turquoise-light', cardBg: 'hover:bg-phulkari-turquoise-light', border: 'hover:border-phulkari-turquoise' }
+            ];
+            const color = colors[index % colors.length];
+            
+            return (
             <div 
               key={index}
-              className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 text-center border border-gray-200"
+                className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center border-2 border-gray-200 ${color.cardBg} ${color.border} cursor-pointer group`}
             >
-              <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <div className={`bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 ${color.iconBg} transition-all duration-300`}>
                 {approach.icon}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">
                 {approach.title}
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-600 leading-relaxed group-hover:text-gray-900 transition-colors duration-300">
                 {approach.description}
               </p>
             </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* CTA Button */}
         <div className="text-center">
-          <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2">
+          <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-full font-semibold text-base transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>

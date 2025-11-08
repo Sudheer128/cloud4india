@@ -245,12 +245,12 @@ const Pricing = () => {
     // No longer needed - we show both hourly and monthly
 
     return (
-      <div className={`relative bg-white ${roundedClass} shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-        isPopular ? 'border-green-500 ring-4 ring-green-100' : 'border-gray-200 hover:border-green-300'
+      <div className={`relative bg-white ${roundedClass} shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group cursor-pointer ${
+        isPopular ? 'border-saree-teal ring-4 ring-saree-teal-light hover:bg-saree-teal-light/20' : 'border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/10'
       }`}>
         {isPopular && (
           <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-            <span className="bg-green-200 text-gray-900 px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
+            <span className="bg-saree-teal text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
               Most Popular
             </span>
           </div>
@@ -291,13 +291,13 @@ const Pricing = () => {
                 <div className="font-semibold text-gray-900 mb-1">{plan.description || 'High Performance'}</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-lg text-green-600 mb-1">
+                <div className="font-bold text-lg text-saree-teal mb-1">
                   {plan.price_per_gb || plan.pricePerGB}
                 </div>
                 <div className="text-xs text-gray-500">/GB per month</div>
               </div>
               <div className="text-center">
-                <button className="bg-green-200 hover:bg-green-300 text-gray-900 px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+                <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                   <ArrowRightIcon className="w-4 h-4" />
                 </button>
               </div>
@@ -318,7 +318,7 @@ const Pricing = () => {
                 <div className="font-semibold text-gray-900 mb-1">{plan.bandwidth || 'N/A'}</div>
               </div>
               <div className="text-center">
-                <div className="font-semibold text-green-500 mb-1">
+                <div className="font-semibold text-saree-teal mb-1">
                   {plan.discount && plan.discount !== 0 ? (plan.discount.toString().includes('%') ? plan.discount : `${plan.discount}%`) : '0%'}
                 </div>
               </div>
@@ -346,33 +346,33 @@ const Pricing = () => {
   }
 
   const StorageCard = ({ storage }) => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-green-300">
+    <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group">
       <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">{storage.name}</h3>
-        <p className="text-gray-600 mb-4">{storage.description}</p>
-        <div className="text-3xl font-bold text-green-500 mb-2">{storage.price_per_gb || storage.pricePerGB}</div>
-        <div className="text-sm text-gray-500">per GB/month</div>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 group-hover:text-saree-teal-dark transition-colors">{storage.name}</h3>
+        <p className="text-sm md:text-base text-gray-600 mb-4">{storage.description}</p>
+        <div className="text-2xl md:text-3xl font-bold text-saree-teal mb-2 group-hover:scale-110 transition-transform">{storage.price_per_gb || storage.pricePerGB}</div>
+        <div className="text-xs md:text-sm text-gray-500">per GB/month</div>
       </div>
       
       <ul className="space-y-3 mb-8">
         {(storage.features || []).map((feature, index) => (
-          <li key={index} className="flex items-center text-gray-700">
-            <CheckIcon className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+          <li key={index} className="flex items-center text-sm md:text-base text-gray-700">
+            <CheckIcon className="w-5 h-5 text-saree-teal mr-3 flex-shrink-0 group-hover:scale-110 transition-transform" />
             {feature}
           </li>
         ))}
       </ul>
       
-      <button className="w-full bg-green-200 hover:bg-green-300 text-gray-900 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+      <button className="w-full bg-saree-teal hover:bg-saree-teal-dark text-white py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
         Get Started
       </button>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
       {/* Hero Section */}
-      <section className="pt-20 pb-16">
+      <section className="pt-20 pb-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
         <div className="max-w-7xl mx-auto px-6 text-center">
           {heroLoading ? (
             <div className="animate-pulse">
@@ -381,10 +381,10 @@ const Pricing = () => {
             </div>
           ) : (
             <>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
                 {hero?.title || 'Cloud Server Pricing for Startups, SMEs and Enterprises'}
               </h1>
-              <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              <p className="text-base md:text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
                 {hero?.description || 'Experience the perfect balance of performance and affordability with Cloud4India\'s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud solutions while optimizing cloud cost savings. Whether you\'re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'}
               </p>
             </>
@@ -396,9 +396,9 @@ const Pricing = () => {
       <ChooseImageSection />
 
       {/* Main Pricing Section */}
-      <section className="pb-20">
+      <section className="pb-20 bg-gradient-to-br from-saree-lime-light/20 via-white to-saree-rose-light/20">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12">
             Affordable Cloud Server Pricing and Plans in India
           </h2>
 
@@ -408,9 +408,9 @@ const Pricing = () => {
               {/* Compute Section */}
               {activeTab === 'compute' && (
                 <div>
-                  <div className="mb-8">
-                    <h3 className="text-3xl font-bold text-gray-900 mb-2">Compute Offering</h3>
-                    <p className="text-gray-600">
+                  <div className="mb-6">
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Compute Offering</h3>
+                    <p className="text-sm md:text-base text-gray-600">
                       Choose a plan based on the amount of CPU, memory, and storage required for your project. The cost will adjust according to the resources you select.
                     </p>
                   </div>
@@ -426,10 +426,10 @@ const Pricing = () => {
                         <button
                           key={tab.id}
                           onClick={() => setActiveComputePlanTab(tab.id)}
-                          className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                          className={`py-3 px-1 border-b-2 font-medium text-sm transition-all duration-300 ${
                             activeComputePlanTab === tab.id
-                              ? 'border-orange-500 text-orange-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              ? 'border-saree-teal text-saree-teal-dark'
+                              : 'border-transparent text-gray-500 hover:text-saree-teal hover:border-saree-teal-light'
                           }`}
                         >
                           {tab.label}
@@ -439,7 +439,7 @@ const Pricing = () => {
                   </div>
 
                   {/* Table Header */}
-                  <div className="bg-green-100 rounded-t-2xl p-6 text-gray-900">
+                  <div className="bg-gradient-to-r from-saree-teal-light to-saree-amber-light rounded-t-2xl p-6 text-gray-900 shadow-md">
                     <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
                       <div className="text-center">Name</div>
                       <div className="text-center">vCPU</div>
@@ -454,7 +454,7 @@ const Pricing = () => {
                     {computePlanTabs[activeComputePlanTab]?.map((plan, index) => (
                       <div
                         key={plan.name}
-                        className={`bg-white border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                        className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group ${
                           index === computePlanTabs[activeComputePlanTab].length - 1 
                             ? 'rounded-b-2xl border-gray-200' 
                             : 'border-gray-200 border-b-0'
@@ -489,15 +489,15 @@ const Pricing = () => {
 
               {/* Disk Offering Section */}
               <div className="mt-16">
-                <div className="mb-8">
-                  <h3 className="text-3xl font-bold text-gray-900 mb-2">Disk Offering</h3>
-                  <p className="text-gray-600">
+                <div className="mb-6">
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Disk Offering</h3>
+                  <p className="text-sm md:text-base text-gray-600">
                     Choose the disk storage size that best fits your requirements. All storage options use high-performance NVMe technology.
                   </p>
                 </div>
 
                 {/* Table Header */}
-                <div className="bg-green-100 rounded-t-2xl p-6 text-gray-900">
+                <div className="bg-gradient-to-r from-saree-lime-light to-saree-rose-light rounded-t-2xl p-6 text-gray-900 shadow-md">
                   <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
                     <div className="text-center">Name</div>
                     <div className="text-center">Storage Type</div>
@@ -512,7 +512,7 @@ const Pricing = () => {
                   {diskOfferings.map((disk, index) => (
                     <div
                       key={disk.name}
-                      className={`bg-white border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                      className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-amber hover:bg-saree-amber-light/20 cursor-pointer group ${
                         index === diskOfferings.length - 1 
                           ? 'rounded-b-2xl border-gray-200' 
                           : 'border-gray-200 border-b-0'
@@ -547,13 +547,13 @@ const Pricing = () => {
           {/* Storage Section */}
           {activeTab === 'storage' && (
                 <div>
-                  <div className="mb-8">
-                    <h3 className="text-3xl font-bold text-gray-900 mb-2">Storage Pricing and Plans</h3>
-                    <p className="text-gray-600">Choose from our flexible storage options designed to meet your specific needs and budget requirements.</p>
+                  <div className="mb-6">
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Storage Pricing and Plans</h3>
+                    <p className="text-sm md:text-base text-gray-600">Choose from our flexible storage options designed to meet your specific needs and budget requirements.</p>
                   </div>
 
                   {/* Storage Table Header */}
-                  <div className="bg-blue-100 rounded-t-2xl p-6 text-gray-900">
+                  <div className="bg-gradient-to-r from-phulkari-turquoise-light to-saree-coral-light rounded-t-2xl p-6 text-gray-900 shadow-md">
                     <div className="grid grid-cols-4 gap-4 text-sm font-semibold">
                       <div className="text-center">Storage Type</div>
                       <div className="text-center">Description</div>
@@ -582,17 +582,22 @@ const Pricing = () => {
                 <div>
                   {subcategories.length > 0 ? (
                     <div>
-                      <div className="mb-8">
-                        <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                      <div className="mb-6">
+                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                           {categoriesData.find(cat => cat.id === activeTab)?.name} Pricing and Plans
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-sm md:text-base text-gray-600">
                           Choose from our comprehensive {activeTab} solutions designed to meet your specific needs.
                         </p>
                       </div>
 
                       {/* Table Header */}
-                      <div className={`bg-${activeTab === 'networking' ? 'purple' : activeTab === 'databases' ? 'indigo' : activeTab === 'security' ? 'red' : 'gray'}-100 rounded-t-2xl p-6 text-gray-900`}>
+                      <div className={`rounded-t-2xl p-6 text-gray-900 shadow-md ${
+                        activeTab === 'networking' ? 'bg-gradient-to-r from-phulkari-fuchsia-light to-phulkari-peach-light' :
+                        activeTab === 'databases' ? 'bg-gradient-to-r from-phulkari-blue-light to-phulkari-gold-light' :
+                        activeTab === 'security' ? 'bg-gradient-to-r from-saree-rose-light to-phulkari-red-light' :
+                        'bg-gradient-to-r from-saree-teal-light to-saree-lime-light'
+                      }`}>
                         <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
                           <div className="text-center">Service</div>
                           <div className="text-center">Type</div>
@@ -626,13 +631,13 @@ const Pricing = () => {
                     </div>
                   ) : (
                     <div className="text-center py-20">
-                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
                         {categoriesData.find(cat => cat.id === activeTab)?.name} Pricing and Plans
                       </h3>
-                      <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                      <p className="text-sm md:text-base text-gray-600 mb-8 max-w-2xl mx-auto">
                         Advanced {activeTab} solutions to enhance your cloud infrastructure.
                       </p>
-                      <button className="bg-green-200 hover:bg-green-300 text-gray-900 px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+                      <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         Contact Sales
                       </button>
                     </div>
@@ -644,18 +649,18 @@ const Pricing = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-white py-20">
+      <section className="bg-gradient-to-br from-phulkari-peach-light via-white to-phulkari-turquoise-light py-20">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">Have Any Questions?</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12">Have Any Questions?</h2>
           <div className="text-center text-gray-600 mb-12">
-            <p className="text-xl">Don't Worry, We've Got Answers!</p>
+            <p className="text-base md:text-lg">Don't Worry, We've Got Answers!</p>
           </div>
           
-          <div className="space-y-8">
+          <div className="space-y-6">
             {faqs.map((faq, index) => (
-              <div key={faq.id || index} className="bg-gray-50 rounded-xl p-8 hover:bg-gray-100 transition-colors">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">{faq.question}</h3>
-                <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+              <div key={faq.id || index} className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 group-hover:text-saree-teal-dark transition-colors">{faq.question}</h3>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed">{faq.answer}</p>
               </div>
             ))}
           </div>

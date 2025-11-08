@@ -48,7 +48,7 @@ const Header = () => {
               {/* Main Navigation */}
               <nav className="hidden lg:flex items-center space-x-8">
                 <Link to="/" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Homepage
+                  Home
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
                 <Link to="/about" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
@@ -83,10 +83,6 @@ const Header = () => {
                   Pricing
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
-                <a href="#" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Resources
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </a>
               </nav>
             </div>
             
@@ -182,13 +178,6 @@ const Header = () => {
               >
                 Pricing
               </Link>
-              <a 
-                href="#" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-              >
-                Resources
-              </a>
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <a 
                   href="https://portal.cloud4india.com/login" 

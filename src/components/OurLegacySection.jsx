@@ -38,10 +38,10 @@ const OurLegacySection = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
             Our Legacy
           </h2>
-          <p className="text-lg text-gray-700 max-w-4xl mx-auto">
+          <p className="text-base text-gray-700 max-w-4xl mx-auto">
             With strategically located global data centres, we empower you to host your VPS exactly where it's needed most. Partner with a hosting provider that not only delivers excellence but also champions sustainability for a better future.
           </p>
         </div>
@@ -59,7 +59,7 @@ const OurLegacySection = () => {
                 <button
                   key={year}
                   onClick={() => setActiveYear(year)}
-                  className="relative flex flex-col items-center group"
+                  className="relative flex flex-col items-center group focus:outline-none"
                 >
                   {/* Year Label */}
                   <div className={`mb-4 px-4 py-2 rounded-full transition-all duration-300 shadow-md ${
@@ -82,11 +82,11 @@ const OurLegacySection = () => {
           </div>
           
           {/* Milestone Description */}
-          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-md">
-            <h3 className="text-2xl font-bold mb-4 text-gray-900">
+          <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 shadow-md hover:shadow-xl hover:border-saree-teal hover:bg-saree-teal-light transition-all duration-300">
+            <h3 className="text-xl font-bold mb-3 text-gray-900">
               {milestones[activeYear].title}
             </h3>
-            <p className="text-gray-700 text-lg">
+            <p className="text-gray-700 text-base">
               {milestones[activeYear].description}
             </p>
           </div>
@@ -94,12 +94,22 @@ const OurLegacySection = () => {
         
         {/* Statistics */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <div key={index} className="bg-white text-center rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <p className="text-gray-600 text-sm mb-2 font-medium">{stat.label}</p>
-              <p className="text-4xl md:text-5xl font-bold text-saree-teal">{stat.value}</p>
+          {stats.map((stat, index) => {
+            const colors = [
+              { bg: 'hover:bg-saree-teal-light', border: 'hover:border-saree-teal', text: 'text-saree-teal' },
+              { bg: 'hover:bg-saree-amber-light', border: 'hover:border-saree-amber', text: 'text-saree-amber' },
+              { bg: 'hover:bg-saree-lime-light', border: 'hover:border-saree-lime', text: 'text-saree-lime' },
+              { bg: 'hover:bg-saree-rose-light', border: 'hover:border-saree-rose', text: 'text-saree-rose' }
+            ];
+            const color = colors[index % colors.length];
+            
+            return (
+              <div key={index} className={`bg-white text-center rounded-2xl p-6 border-2 border-gray-200 shadow-lg hover:shadow-2xl ${color.bg} ${color.border} hover:scale-105 hover:-translate-y-2 transition-all duration-300 cursor-pointer group`}>
+                <p className="text-gray-600 text-xs mb-2 font-medium group-hover:text-gray-900 transition-colors duration-300">{stat.label}</p>
+                <p className={`text-3xl md:text-4xl font-bold ${color.text}`}>{stat.value}</p>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

@@ -96,18 +96,18 @@ const ChooseImageSection = () => {
   const currentItems = getCurrentItems();
 
   return (
-    <section className="py-16 pb-24 bg-gray-900 mb-16">
+    <section className="py-16 pb-24 bg-gradient-to-br from-saree-teal-light/30 via-white to-phulkari-turquoise-light/30 mb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">Choose Image</h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Choose Image</h2>
+          <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
             Pick an operating system or application template to install on your server. You can also upload a custom ISO image for greater flexibility.
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-8 border-b border-gray-700">
+        <div className="mb-8 border-b-2 border-gray-200">
           <nav className="flex space-x-8">
             {[
               { id: 'linux', label: 'Linux' },
@@ -121,10 +121,10 @@ const ChooseImageSection = () => {
                   setActiveTab(tab.id);
                   setMarketplacePage(1);
                 }}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 px-1 border-b-2 font-medium text-sm transition-all duration-300 ${
                   activeTab === tab.id
-                    ? 'border-white text-white'
-                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                    ? 'border-saree-teal text-saree-teal-dark'
+                    : 'border-transparent text-gray-500 hover:text-saree-teal hover:border-saree-teal-light'
                 }`}
               >
                 {tab.label}
@@ -148,25 +148,25 @@ const ChooseImageSection = () => {
             return (
               <div
                 key={item.id}
-                className={`relative bg-gray-800 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`relative bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 group ${
                   isSelected
-                    ? 'border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/50'
-                    : 'border-gray-700 hover:border-gray-600'
+                    ? 'border-saree-teal shadow-lg ring-4 ring-saree-teal-light bg-saree-teal-light/20'
+                    : 'border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/10'
                 }`}
               >
                 {/* Selection Indicator */}
                 {isSelected && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-10">
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-saree-teal rounded-full flex items-center justify-center z-10 shadow-lg">
                     <CheckIcon className="w-4 h-4 text-white" />
                   </div>
                 )}
 
                 {/* Logo and Name */}
-                <div className="flex items-center p-4 border-b border-gray-700">
+                <div className="flex items-center p-4 border-b-2 border-gray-200 group-hover:border-saree-teal transition-colors">
                   <div className={`${item.logoClass || 'w-8 h-8'} mr-3 flex items-center justify-center text-2xl`}>
                     {item.logo}
                   </div>
-                  <div className="font-bold text-white text-sm flex-1">{item.name}</div>
+                  <div className="font-bold text-gray-900 text-sm flex-1 group-hover:text-saree-teal-dark transition-colors">{item.name}</div>
                 </div>
 
                 {/* Version Selector */}
@@ -174,9 +174,9 @@ const ChooseImageSection = () => {
                   <select
                     value={selectedVersion || ''}
                     onChange={(e) => handleItemSelect(item.id, e.target.value)}
-                    className="w-full bg-gray-900 text-white border border-gray-700 rounded px-3 py-2 text-sm font-semibold appearance-none cursor-pointer hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white text-gray-900 border-2 border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold appearance-none cursor-pointer hover:border-saree-teal hover:bg-saree-teal-light/10 focus:outline-none focus:ring-2 focus:ring-saree-teal focus:border-saree-teal transition-all"
                     style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2312A7A7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
                       backgroundRepeat: 'no-repeat',
                       backgroundPosition: 'right 0.5rem center',
                       backgroundSize: '1rem',
@@ -204,10 +204,10 @@ const ChooseImageSection = () => {
             <button
               onClick={() => setMarketplacePage(1)}
               disabled={marketplacePage === 1}
-              className={`px-4 py-2 rounded flex items-center space-x-2 transition-colors ${
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
                 marketplacePage === 1
-                  ? 'text-gray-500 cursor-not-allowed'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : 'text-gray-700 hover:text-saree-teal hover:bg-saree-teal-light/20'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,10 +218,10 @@ const ChooseImageSection = () => {
 
             <button
               onClick={() => setMarketplacePage(1)}
-              className={`px-4 py-2 rounded transition-colors ${
+              className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                 marketplacePage === 1
-                  ? 'bg-white text-gray-900 font-semibold border border-gray-300'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-saree-teal text-white font-semibold border-2 border-saree-teal shadow-lg'
+                  : 'text-gray-700 border-2 border-gray-200 hover:border-saree-teal hover:text-saree-teal hover:bg-saree-teal-light/20'
               }`}
             >
               1
@@ -229,10 +229,10 @@ const ChooseImageSection = () => {
 
             <button
               onClick={() => setMarketplacePage(2)}
-              className={`px-4 py-2 rounded transition-colors ${
+              className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                 marketplacePage === 2
-                  ? 'bg-white text-gray-900 font-semibold border border-gray-300'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-saree-teal text-white font-semibold border-2 border-saree-teal shadow-lg'
+                  : 'text-gray-700 border-2 border-gray-200 hover:border-saree-teal hover:text-saree-teal hover:bg-saree-teal-light/20'
               }`}
             >
               2
@@ -241,10 +241,10 @@ const ChooseImageSection = () => {
             <button
               onClick={() => setMarketplacePage(2)}
               disabled={marketplacePage === 2}
-              className={`px-4 py-2 rounded flex items-center space-x-2 transition-colors ${
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-300 ${
                 marketplacePage === 2
-                  ? 'text-gray-500 cursor-not-allowed'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'text-gray-400 cursor-not-allowed opacity-50'
+                  : 'text-gray-700 hover:text-saree-teal hover:bg-saree-teal-light/20'
               }`}
             >
               <span>Next</span>
