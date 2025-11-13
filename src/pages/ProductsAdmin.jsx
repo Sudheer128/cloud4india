@@ -66,12 +66,8 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDeleteProduct, onToggleVisibility }) => {
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center">
         <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
-        <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
-          <PlusIcon className="w-5 h-5" />
-          <span>Add New Product</span>
-        </button>
       </div>
 
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">

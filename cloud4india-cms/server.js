@@ -3826,13 +3826,26 @@ function addMainSolutionsSectionColumns() {
         price = CASE WHEN price IS NULL THEN '₹2,999' ELSE price END,
         price_period = CASE WHEN price_period IS NULL THEN '/month' ELSE price_period END,
         free_trial_tag = CASE WHEN free_trial_tag IS NULL THEN 'Free Trial' ELSE free_trial_tag END,
-        button_text = CASE WHEN button_text IS NULL THEN 'Explore Solution' ELSE button_text END
+        button_text = CASE WHEN button_text IS NULL THEN 'Explore App' ELSE button_text END
       WHERE popular_tag IS NULL OR features IS NULL OR price IS NULL OR price_period IS NULL OR free_trial_tag IS NULL OR button_text IS NULL
     `, (err) => {
       if (err) {
         console.error('Error setting default values for main_solutions_sections:', err.message);
       } else {
         console.log('✅ Set default values for main_solutions_sections');
+      }
+    });
+    
+    // Update existing records that have 'Explore Solution' to 'Explore App'
+    db.run(`
+      UPDATE main_solutions_sections 
+      SET button_text = 'Explore App'
+      WHERE button_text = 'Explore Solution'
+    `, (err) => {
+      if (err) {
+        console.error('Error updating button_text from "Explore Solution" to "Explore App":', err.message);
+      } else {
+        console.log('✅ Updated button_text from "Explore Solution" to "Explore App"');
       }
     });
   }, 1000);

@@ -274,9 +274,9 @@ const ProductsMainAdmin = () => {
     }
     
     // If no features exist, provide default ones
-    if (parsedFeatures.length === 0) {
-      parsedFeatures = ['High Performance Computing', 'Enterprise Security', '99.9% Uptime SLA'];
-    }
+    // if (parsedFeatures.length === 0) {
+    //   parsedFeatures = ['High Performance Computing', 'Enterprise Security', '99.9% Uptime SLA'];
+    // }
     
     setSectionForm({
       title: section.title || '',

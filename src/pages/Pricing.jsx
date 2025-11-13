@@ -372,23 +372,50 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
       {/* Hero Section */}
-      <section className="pt-20 pb-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
-        <div className="max-w-7xl mx-auto px-6 text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise py-20">
+        {/* Animated Background Patterns */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-full">
+            {/* Geometric Patterns */}
+            <div className="absolute top-10 left-10 w-40 h-40 border-4 border-white/30 rounded-full"></div>
+            <div className="absolute top-20 right-20 w-60 h-60 border-4 border-white/20 rounded-full"></div>
+            <div className="absolute bottom-10 left-1/4 w-32 h-32 bg-white/20 rounded-lg rotate-45"></div>
+            <div className="absolute bottom-20 right-1/3 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+          </div>
+        </div>
+
+        {/* Floating Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-10 w-3 h-3 bg-white/50 rounded-full animate-pulse"></div>
+          <div className="absolute top-1/3 right-20 w-2 h-2 bg-white/40 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-white/30 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 right-1/4 w-2 h-2 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 text-center">
           {heroLoading ? (
             <div className="animate-pulse">
-              <div className="h-16 bg-gray-200 rounded mb-6"></div>
-              <div className="h-6 bg-gray-200 rounded max-w-4xl mx-auto"></div>
+              <div className="h-16 bg-white/20 rounded mb-6"></div>
+              <div className="h-6 bg-white/20 rounded max-w-4xl mx-auto"></div>
             </div>
           ) : (
             <>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 drop-shadow-2xl">
                 {hero?.title || 'Cloud Server Pricing for Startups, SMEs and Enterprises'}
               </h1>
-              <p className="text-base md:text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              <p className="text-base md:text-lg text-white/90 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
                 {hero?.description || 'Experience the perfect balance of performance and affordability with Cloud4India\'s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud solutions while optimizing cloud cost savings. Whether you\'re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'}
               </p>
             </>
           )}
+        </div>
+
+        {/* Bottom Wave */}
+        <div className="absolute bottom-0 left-0 w-full">
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" fillOpacity="0.1"/>
+            <path d="M0 120L60 112.5C120 105 240 90 360 82.5C480 75 600 75 720 78.75C840 82.5 960 90 1080 93.75C1200 97.5 1320 97.5 1380 97.5L1440 97.5V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" fillOpacity="0.2"/>
+          </svg>
         </div>
       </section>
 

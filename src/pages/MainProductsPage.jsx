@@ -370,47 +370,46 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
       iconBg: 'bg-saree-teal',
       iconColor: 'text-saree-teal',
       border: 'border-saree-teal/20',
-      hoverBorder: 'hover:border-saree-teal',
       badge: 'bg-saree-teal/10 text-saree-teal-dark border-saree-teal/30'
     },
     { 
       iconBg: 'bg-saree-amber',
       iconColor: 'text-saree-amber',
       border: 'border-saree-amber/20',
-      hoverBorder: 'hover:border-saree-amber',
       badge: 'bg-saree-amber/10 text-saree-amber-dark border-saree-amber/30'
     },
     { 
       iconBg: 'bg-saree-lime',
       iconColor: 'text-saree-lime',
       border: 'border-saree-lime/20',
-      hoverBorder: 'hover:border-saree-lime',
       badge: 'bg-saree-lime/10 text-saree-lime-dark border-saree-lime/30'
     },
     { 
       iconBg: 'bg-saree-rose',
       iconColor: 'text-saree-rose',
       border: 'border-saree-rose/20',
-      hoverBorder: 'hover:border-saree-rose',
       badge: 'bg-saree-rose/10 text-saree-rose-dark border-saree-rose/30'
     },
     { 
       iconBg: 'bg-phulkari-turquoise',
       iconColor: 'text-phulkari-turquoise',
       border: 'border-phulkari-turquoise/20',
-      hoverBorder: 'hover:border-phulkari-turquoise',
       badge: 'bg-phulkari-turquoise/10 text-phulkari-turquoise-dark border-phulkari-turquoise/30'
     },
     { 
       iconBg: 'bg-saree-coral',
       iconColor: 'text-saree-coral',
       border: 'border-saree-coral/20',
-      hoverBorder: 'hover:border-saree-coral',
       badge: 'bg-saree-coral/10 text-saree-coral-dark border-saree-coral/30'
     }
   ];
 
   const color = cardColors[index % cardColors.length];
+  const unifiedHover = {
+    border: 'border-saree-teal',
+    iconBg: 'bg-saree-teal',
+    buttonBg: 'bg-saree-teal'
+  };
 
   return (
     <div 
@@ -419,18 +418,20 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
       onMouseLeave={() => onHover(null)}
     >
       {/* Balanced Card Design */}
-      <div className={`
+      <div
+        className={`
         relative bg-white rounded-xl shadow-md border-2 overflow-hidden
         transition-all duration-300
-        ${isHovered ? `shadow-xl -translate-y-1 ${color.hoverBorder}` : `${color.border}`}
-      `}>
+          ${isHovered ? `shadow-xl -translate-y-1 ${unifiedHover.border}` : color.border}
+        `}
+      >
         {/* Content */}
         <div className="p-6">
           {/* Header with Icon and Badge */}
           <div className="flex items-start justify-between mb-4">
             <div className={`
               w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300
-              ${isHovered ? color.iconBg : 'bg-gray-100'}
+              ${isHovered ? unifiedHover.iconBg : 'bg-gray-100'}
             `}>
               <IconComponent className={`w-6 h-6 transition-colors duration-300 ${isHovered ? 'text-white' : color.iconColor}`} />
             </div>
@@ -497,7 +498,7 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             className={`
               group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
               ${isHovered 
-                ? `${color.iconBg} text-white` 
+                ? `${unifiedHover.buttonBg} text-white` 
                 : 'bg-gray-900 text-white hover:bg-gray-800'
               }
             `}

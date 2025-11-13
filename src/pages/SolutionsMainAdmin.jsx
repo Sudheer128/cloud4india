@@ -214,11 +214,6 @@ const SolutionsMainAdmin = () => {
       }
     }
     
-    // Provide default features if none exist
-    if (parsedFeatures.length === 0) {
-      parsedFeatures = ['High Performance', 'Scalable Architecture', '24/7 Support'];
-    }
-
     setSectionForm({
       title: section.title || '',
       description: section.description || '',

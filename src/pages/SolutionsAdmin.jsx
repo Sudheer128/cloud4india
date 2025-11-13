@@ -19,7 +19,8 @@ import {
   ListBulletIcon,
   DocumentTextIcon,
   ArrowLeftIcon,
-  CubeIcon
+  CubeIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 
 // Modal Component
@@ -66,14 +67,42 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
 // Solutions Management Component
 const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, onDeleteSolution, onToggleVisibility }) => {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Extract unique categories from solutions
+  const categories = ['all', ...Array.from(new Set(solutions.map(s => s.category).filter(Boolean)))].sort();
+
+  // Filter solutions based on selected category
+  const filteredSolutions = selectedCategory === 'all' 
+    ? solutions 
+    : solutions.filter(solution => solution.category === selectedCategory);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Apps</h3>
-        <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
-          <PlusIcon className="w-5 h-5" />
-          <span>Add New App</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Category Filter Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="appearance-none inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer pr-10"
+            >
+              <option value="all">All Categories</option>
+              {categories.filter(cat => cat !== 'all').map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+            <FunnelIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
+          <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
+            <PlusIcon className="w-5 h-5" />
+            <span>Add New App</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
@@ -84,7 +113,8 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
           <div className="text-right">Actions</div>
         </div>
         <ul className="divide-y divide-gray-200">
-          {solutions.map((solution) => (
+          {filteredSolutions.length > 0 ? (
+            filteredSolutions.map((solution) => (
             <li key={solution.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
               <div className="md:grid md:grid-cols-[1.5fr_2fr_1.5fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
@@ -162,7 +192,16 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
                 </div>
               </div>
             </li>
-          ))}
+          )))
+          : (
+            <li className="px-6 py-12 text-center">
+              <div className="text-gray-400 mb-2">
+                <FunnelIcon className="w-12 h-12 mx-auto" />
+              </div>
+              <p className="text-gray-600 font-medium">No apps found in this category</p>
+              <p className="text-gray-500 text-sm mt-1">Try selecting a different category or "All Categories"</p>
+            </li>
+          )}
         </ul>
       </div>
       
