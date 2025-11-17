@@ -1,33 +1,22 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { useMainProductsContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 
 const ProductsSectionNew = () => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: mainPageData, loading, error, refetch } = useMainProductsContent()
   
   const products = mainPageData?.sections || []
-
-  const categories = ['all', 'Generative AI', 'Artificial Intelligence (AI)', 'Compute', 'Storage', 'Database', 'Networking']
 
   const filteredProducts = products?.filter(product => {
     const productName = product.title || product.name || '';
     const productDesc = product.description || '';
     const matchesSearch = productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          productDesc.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    return matchesSearch && matchesCategory
+    return matchesSearch
   }) || []
-
-  const getCategoryColor = () => {
-    return {
-      active: 'bg-saree-teal text-white',
-      inactive: 'bg-white border-2 border-gray-300 text-gray-900 hover:bg-gray-100'
-    }
-  }
 
   const getProductColor = () => {
     return {
@@ -47,13 +36,6 @@ const ProductsSectionNew = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-2 border-2 border-gray-300 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors bg-white">
-              <FunnelIcon className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900">Filter by category</span>
-            </button>
-          </div>
-          
           <div className="flex-1 max-w-md">
             <div className="relative">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
@@ -72,24 +54,6 @@ const ProductsSectionNew = () => {
           <p className="text-sm text-gray-700 font-medium">
             Displaying 1-{Math.min(6, filteredProducts.length)} ({products.length})
           </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map((category) => {
-            const colors = getCategoryColor()
-            
-            return (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 shadow-md ${
-                  selectedCategory === category ? colors.active : colors.inactive
-                }`}
-              >
-                {category === 'all' ? 'All Categories' : category}
-              </button>
-            )
-          })}
         </div>
 
         <ContentWrapper 

@@ -1,14 +1,122 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { getSolutions } from '../services/cmsApi'
 
 const AppsDropdown = ({ isOpen, onClose }) => {
-  const [activeCategory, setActiveCategory] = useState('Frameworks')
+  const [activeCategory, setActiveCategory] = useState(null)
+  const [solutions, setSolutions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
   
-  // Static apps data based on provided images
-  const appsData = {
+  // Fetch solutions from API
+  useEffect(() => {
+    const fetchSolutions = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const solutionsData = await getSolutions()
+        setSolutions(solutionsData)
+      } catch (err) {
+        console.error('Error fetching solutions:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (isOpen) {
+      fetchSolutions()
+    }
+  }, [isOpen])
+
+  // Group solutions by category
+  const appsData = solutions.reduce((acc, solution) => {
+    const category = solution.category || 'Uncategorized'
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    
+    // Generate app ID from route (e.g., '/solutions/1' -> '1', then map to known IDs)
+    // For now, we'll use a simple approach: extract ID from route
+    let appId = solution.route?.replace('/solutions/', '') || solution.id?.toString()
+    
+    // Map to known app IDs if possible (for backward compatibility with existing routes)
+    const routeToIdMap = {
+      '/solutions/1': 'nodejs',
+      '/solutions/2': 'lamp',
+      '/solutions/3': 'lemp',
+      '/solutions/4': 'laravel',
+      '/solutions/9': 'openlitespeed',
+      '/solutions/26': 'wordpress',
+      '/solutions/27': 'nextcloud',
+      '/solutions/28': 'mediawiki',
+      '/solutions/29': 'mariadb',
+      '/solutions/30': 'mongodb',
+      '/solutions/31': 'postgresql',
+      '/solutions/32': 'influxdb',
+      '/solutions/33': 'rethinkdb',
+      '/solutions/34': 'mysql',
+      '/solutions/35': 'kafka',
+      '/solutions/36': 'opensearch',
+      '/solutions/37': 'docker',
+      '/solutions/38': 'gitlab',
+      '/solutions/39': 'rabbitmq',
+      '/solutions/40': 'jenkins',
+      '/solutions/41': 'ant-media',
+      '/solutions/42': 'magento',
+      '/solutions/43': 'guacamole',
+      '/solutions/44': 'owncloud',
+      '/solutions/45': 'prometheus',
+      '/solutions/46': 'activemq',
+      '/solutions/47': 'anaconda'
+    }
+    
+    appId = routeToIdMap[solution.route] || appId
+    
+    acc[category].push({
+      id: appId,
+      name: solution.name,
+      description: solution.description,
+      buttonText: 'Deploy',
+      route: solution.route
+    })
+    
+    return acc
+  }, {})
+
+  // Get available categories from localStorage (categories that exist but have no apps yet)
+  const getAvailableCategories = () => {
+    try {
+      const stored = localStorage.getItem('availableCategories');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const availableCategories = getAvailableCategories();
+  
+  // Extract unique categories from solutions and merge with available categories
+  const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
+  const allCategories = Array.from(new Set([
+    ...categoriesFromSolutions,
+    ...availableCategories.filter(cat => !categoriesFromSolutions.includes(cat))
+  ])).sort();
+  
+  const categories = allCategories.map(cat => ({ id: cat, label: cat }))
+
+  // Set active category to first category if not set
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id)
+    }
+  }, [categories, activeCategory])
+  
+  // Static apps data based on provided images (fallback - will be removed)
+  const staticAppsData = {
     'Frameworks': [
       {
         id: 'openlitespeed',
@@ -189,20 +297,8 @@ const AppsDropdown = ({ isOpen, onClose }) => {
     ]
   }
 
-  // Category mapping based on the images provided
-  const categories = [
-    { id: 'Frameworks', label: 'Frameworks' },
-    { id: 'Content Management Systems', label: 'Content Management Systems' },
-    { id: 'Databases', label: 'Databases' },
-    { id: 'Developer Tools', label: 'Developer Tools' },
-    { id: 'Media', label: 'Media' },
-    { id: 'E Commerce', label: 'E Commerce' },
-    { id: 'Business Applications', label: 'Business Applications' },
-    { id: 'Monitoring Applications', label: 'Monitoring Applications' }
-  ]
-
   // Get apps for active category
-  const displayApps = appsData[activeCategory] || []
+  const displayApps = activeCategory ? (appsData[activeCategory] || []) : []
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -255,19 +351,27 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                 </div>
                 
                 <nav className="space-y-0.5">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setActiveCategory(category.id)}
-                      className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
-                        activeCategory === category.id
-                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {category.label}
-                    </button>
-                  ))}
+                  {loading ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">Loading categories...</div>
+                  ) : error ? (
+                    <div className="px-4 py-3 text-sm text-red-600">Error loading categories</div>
+                  ) : categories.length > 0 ? (
+                    categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => setActiveCategory(category.id)}
+                        className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
+                          activeCategory === category.id
+                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {category.label}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">No categories available</div>
+                  )}
                 </nav>
                 
                 <div className="mt-8 pt-6 border-t border-gray-200">
@@ -291,46 +395,28 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {categories.find(c => c.id === activeCategory)?.label || 'Apps'}
                 </h2>
-                {displayApps.length === 0 && (
+                {!loading && displayApps.length === 0 && (
                   <p className="text-gray-500 text-sm mt-2">No apps available in this category.</p>
                 )}
               </div>
               
-              {displayApps.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading apps...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center h-64 text-red-600">
+                  <p>Error loading apps: {error}</p>
+                </div>
+              ) : displayApps.length > 0 ? (
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {displayApps.map((app) => {
-                      // Check if app has a dedicated page
-                      const appRoutes = {
-                        'openlitespeed': '/solutions/9',
-                        'nodejs': '/solutions/1',
-                        'lamp': '/solutions/2',
-                        'lemp': '/solutions/3',
-                        'laravel': '/solutions/4',
-                        'wordpress': '/solutions/26',
-                        'nextcloud': '/solutions/27',
-                        'mediawiki': '/solutions/28',
-                        'mariadb': '/solutions/29',
-                        'mongodb': '/solutions/30',
-                        'postgresql': '/solutions/31',
-                        'influxdb': '/solutions/32',
-                        'rethinkdb': '/solutions/33',
-                        'mysql': '/solutions/34',
-                        'kafka': '/solutions/35',
-                        'opensearch': '/solutions/36',
-                        'docker': '/solutions/37',
-                        'gitlab': '/solutions/38',
-                        'rabbitmq': '/solutions/39',
-                        'jenkins': '/solutions/40',
-                        'ant-media': '/solutions/41',
-                        'magento': '/solutions/42',
-                        'guacamole': '/solutions/43',
-                        'owncloud': '/solutions/44',
-                        'prometheus': '/solutions/45',
-                        'activemq': '/solutions/46',
-                        'anaconda': '/solutions/47'
-                      };
-                      const hasPage = appRoutes[app.id];
+                      // Use route from API data directly
+                      const hasPage = app.route;
                       
                       const cardContent = (
                         <div className="flex items-start justify-between">

@@ -2540,10 +2540,37 @@ function duplicateSectionItems(originalSolutionId, sectionIdMap, newSolutionId, 
   });
 }
 
+// Helper function to find a unique route
+function findUniqueRoute(baseRoute, callback) {
+  let attemptRoute = baseRoute;
+  let attemptNumber = 1;
+  
+  function checkRoute() {
+    db.get('SELECT id FROM solutions WHERE route = ?', [attemptRoute], (err, existing) => {
+      if (err) {
+        callback(err, null);
+        return;
+      }
+      
+      if (!existing) {
+        // Route is available
+        callback(null, attemptRoute);
+      } else {
+        // Route exists, try with a number suffix
+        attemptNumber++;
+        attemptRoute = `${baseRoute}-${attemptNumber}`;
+        checkRoute();
+      }
+    });
+  }
+  
+  checkRoute();
+}
+
 // Duplicate solution
 app.post('/api/solutions/:id/duplicate', (req, res) => {
   const { id } = req.params;
-  const { newName, newRoute } = req.body;
+  const { newName, newRoute, name } = req.body; // Accept both 'name' and 'newName' for compatibility
   
   // Get the original solution
   db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, originalSolution) => {
@@ -2565,13 +2592,15 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
       
       const nextOrder = (result.max_order || -1) + 1;
       
-      // Generate a proper route for the duplicate
-      const duplicateName = newName || `${originalSolution.name} (Copy)`;
-      const duplicateRoute = newRoute || duplicateName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      // Generate a proper route for the duplicate (accept both 'name' and 'newName')
+      const duplicateName = newName || name || `${originalSolution.name} (Copy)`;
       
-      // Create the duplicate solution
+      // Create the duplicate solution with a temporary route (will be updated after we get the ID)
+      // Use a placeholder route that won't conflict
+      const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
       db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, duplicateRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end], 
+        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end], 
         function(err) {
           if (err) {
             res.status(500).json({ error: err.message });
@@ -2580,57 +2609,66 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
           
           const newSolutionId = this.lastID;
           
-          // Duplicate all sections
-          db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
-            if (err) {
-              res.status(500).json({ error: err.message });
-              return;
+          // Update the route to the correct format: /solutions/{id}
+          const correctRoute = `/solutions/${newSolutionId}`;
+          db.run(`UPDATE solutions SET route = ? WHERE id = ?`, [correctRoute, newSolutionId], (updateErr) => {
+            if (updateErr) {
+              console.error('Error updating route:', updateErr.message);
+              // Continue anyway - the solution was created successfully
             }
             
-            if (sections.length === 0) {
-              // Create main page section even if no sections exist
-              createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, () => {
-                res.json({ 
-                  message: 'Solution duplicated successfully', 
-                  id: newSolutionId,
-                  changes: this.changes 
+            // Duplicate all sections
+            db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
+              if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+              }
+              
+              if (sections.length === 0) {
+                // Create main page section even if no sections exist
+                createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, () => {
+                  res.json({ 
+                    message: 'Solution duplicated successfully', 
+                    id: newSolutionId,
+                    changes: this.changes 
+                  });
                 });
-              });
-              return;
-            }
-            
-            let completed = 0;
-            const sectionIdMap = new Map(); // Map old section IDs to new section IDs
-            
-            sections.forEach((section, index) => {
-              db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`, 
-                [newSolutionId, section.section_type, section.title, section.content, section.order_index, section.is_visible], 
-                function(err) {
-                  if (err) {
-                    console.error('Error duplicating section:', err.message);
+                return;
+              }
+              
+              let completed = 0;
+              const sectionIdMap = new Map(); // Map old section IDs to new section IDs
+              
+              sections.forEach((section, index) => {
+                db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`, 
+                  [newSolutionId, section.section_type, section.title, section.content, section.order_index, section.is_visible], 
+                  function(err) {
+                    if (err) {
+                      console.error('Error duplicating section:', err.message);
+                      completed++;
+                      if (completed === sections.length) {
+                        res.json({ 
+                          message: 'Solution duplicated successfully', 
+                          id: newSolutionId,
+                          changes: this.changes 
+                        });
+                      }
+                      return;
+                    }
+                    
+                    const newSectionId = this.lastID;
+                    sectionIdMap.set(section.id, newSectionId);
+                    
                     completed++;
                     if (completed === sections.length) {
-                      res.json({ 
-                        message: 'Solution duplicated successfully', 
-                        id: newSolutionId,
-                        changes: this.changes 
-                      });
+                      // Now duplicate all section items
+                      duplicateSectionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution.description, res);
                     }
-                    return;
-                  }
-                  
-                  const newSectionId = this.lastID;
-                  sectionIdMap.set(section.id, newSectionId);
-                  
-                  completed++;
-                  if (completed === sections.length) {
-                    // Now duplicate all section items
-                    duplicateSectionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution.description, res);
-                  }
-                });
+                  });
+              });
             });
           });
-        });
+      });
     });
   });
 });

@@ -31,7 +31,6 @@ import {
   ChartBarIcon,
   CogIcon,
   UsersIcon,
-  CurrencyDollarIcon,
   ChartPieIcon,
   LockClosedIcon,
   CloudIcon,
@@ -41,6 +40,28 @@ import {
 import { useSolutionSections } from '../hooks/useSolutionSections'
 import { useSectionItems } from '../hooks/useSectionItems'
 import { appThemeColors, getGradient, getTextColor, getHoverBorder } from '../utils/appThemeColors'
+
+// Rupee Icon - displays ₹ symbol using Unicode character
+const RupeeIconSimple = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <text
+      x="12"
+      y="17"
+      fontSize="20"
+      fontWeight="bold"
+      textAnchor="middle"
+      fill="currentColor"
+      fontFamily="system-ui, -apple-system, sans-serif"
+    >
+      ₹
+    </text>
+  </svg>
+);
 
 const UniversalSolutionPage = () => {
   const { solutionId } = useParams();
@@ -197,12 +218,12 @@ const UniversalSolutionPage = () => {
 
           // Icon mapping
           const iconMap = {
-            'CurrencyDollarIcon': CurrencyDollarIcon,
+            'CurrencyDollarIcon': RupeeIconSimple,
             'ChartPieIcon': ChartPieIcon,
             'ShieldCheckIcon': ShieldCheckIcon,
             'CogIcon': CogIcon
           };
-          const IconComponent = iconMap[item.icon] || CurrencyDollarIcon;
+          const IconComponent = iconMap[item.icon] || RupeeIconSimple;
 
           return (
             <div key={item.id} className={`bg-gradient-to-br ${gradient} rounded-3xl p-6 h-full min-h-[350px]`}>

@@ -65,17 +65,473 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   );
 };
 
+// Add New Category Modal Component
+const AddCategoryModal = ({ isOpen, onClose, onSave, existingCategories }) => {
+  const [categoryName, setCategoryName] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setCategoryName('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    const trimmedName = categoryName.trim();
+    
+    if (!trimmedName) {
+      setError('Category name cannot be empty');
+      return;
+    }
+
+    // Check for duplicates (case-insensitive)
+    const isDuplicate = existingCategories.some(
+      cat => cat.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setError('This category already exists');
+      return;
+    }
+
+    // Save category
+    onSave(trimmedName);
+    setCategoryName('');
+    setError('');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900">Add New Category</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category Name
+            </label>
+            <input
+              type="text"
+              value={categoryName}
+              onChange={(e) => {
+                setCategoryName(e.target.value);
+                setError('');
+              }}
+              className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                error ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="e.g., New Category"
+              autoFocus
+            />
+            {error && (
+              <p className="mt-1 text-sm text-red-600">{error}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Enter a unique category name. This will be available when creating or editing apps.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            >
+              Save Category
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Rename Category Modal Component
+const RenameCategoryModal = ({ isOpen, onClose, oldCategoryName, appCount, onSave, existingCategories }) => {
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNewCategoryName(oldCategoryName || '');
+      setError('');
+    }
+  }, [isOpen, oldCategoryName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    const trimmedName = newCategoryName.trim();
+    
+    if (!trimmedName) {
+      setError('Category name cannot be empty');
+      return;
+    }
+
+    if (trimmedName === oldCategoryName) {
+      setError('New name must be different from current name');
+      return;
+    }
+
+    // Check for duplicates (case-insensitive)
+    const isDuplicate = existingCategories.some(
+      cat => cat.toLowerCase() === trimmedName.toLowerCase() && cat !== oldCategoryName
+    );
+
+    if (isDuplicate) {
+      setError('This category name already exists');
+      return;
+    }
+
+    // Save category rename
+    setSaving(true);
+    try {
+      await onSave(oldCategoryName, trimmedName);
+      setNewCategoryName('');
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to rename category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900">Rename Category</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={saving}
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="mb-4">
+            <p className="text-sm text-gray-700 mb-4">
+              This will update all <strong>{appCount}</strong> app{appCount !== 1 ? 's' : ''} in the category <strong>"{oldCategoryName}"</strong> to the new category name.
+            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New Category Name
+            </label>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => {
+                setNewCategoryName(e.target.value);
+                setError('');
+              }}
+              className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                error ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Enter new category name"
+              autoFocus
+              disabled={saving}
+            />
+            {error && (
+              <p className="mt-1 text-sm text-red-600">{error}</p>
+            )}
+          </div>
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Renaming...
+                </>
+              ) : (
+                'Rename Category'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Delete Category Modal Component
+const DeleteCategoryModal = ({ isOpen, onClose, categoryName, appCount, appNames, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900">Delete Category</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="p-6">
+          {appCount > 0 ? (
+            <div>
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start">
+                  <svg className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 mb-2">
+                      Cannot delete category "{categoryName}"
+                    </h4>
+                    <p className="text-sm text-red-700 mb-3">
+                      This category has <strong>{appCount}</strong> app{appCount !== 1 ? 's' : ''} assigned to it. Please delete or reassign all apps before deleting this category.
+                    </p>
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-red-800 mb-2">Apps in this category:</p>
+                      <ul className="text-xs text-red-700 space-y-1 max-h-32 overflow-y-auto">
+                        {appNames.map((name, idx) => (
+                          <li key={idx} className="flex items-center">
+                            <span className="w-1.5 h-1.5 bg-red-600 rounded-full mr-2"></span>
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete the category <strong>"{categoryName}"</strong>?
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                This category has no apps assigned to it. The category will be removed from the list.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    onConfirm();
+                    onClose();
+                  }}
+                  className="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                >
+                  Delete Category
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Helper function to get available categories from localStorage
+const getAvailableCategories = () => {
+  try {
+    const stored = localStorage.getItem('availableCategories');
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+// Helper function to save available categories to localStorage
+const saveAvailableCategories = (categories) => {
+  try {
+    localStorage.setItem('availableCategories', JSON.stringify(categories));
+  } catch (e) {
+    console.error('Error saving categories to localStorage:', e);
+  }
+};
+
 // Solutions Management Component
-const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, onDeleteSolution, onToggleVisibility }) => {
+const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, onDeleteSolution, onToggleVisibility, onRefresh }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [showRenameCategoryModal, setShowRenameCategoryModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [categoryToRename, setCategoryToRename] = useState(null);
+  const [availableCategories, setAvailableCategories] = useState(getAvailableCategories());
 
   // Extract unique categories from solutions
-  const categories = ['all', ...Array.from(new Set(solutions.map(s => s.category).filter(Boolean)))].sort();
+  const categoriesFromSolutions = Array.from(new Set(solutions.map(s => s.category).filter(Boolean)));
+  
+  // Merge categories from solutions with available categories (from localStorage)
+  // Remove categories from availableCategories if they now exist in solutions
+  const mergedCategories = Array.from(new Set([
+    ...categoriesFromSolutions,
+    ...availableCategories.filter(cat => !categoriesFromSolutions.includes(cat))
+  ])).sort();
+  
+  const categories = ['all', ...mergedCategories];
 
   // Filter solutions based on selected category
   const filteredSolutions = selectedCategory === 'all' 
     ? solutions 
     : solutions.filter(solution => solution.category === selectedCategory);
+
+  // Get category statistics
+  const getCategoryStats = (categoryName) => {
+    const appsInCategory = solutions.filter(s => s.category === categoryName);
+    return {
+      count: appsInCategory.length,
+      names: appsInCategory.map(s => s.name)
+    };
+  };
+
+  const handleAddCategory = (categoryName) => {
+    // Add category to available categories list
+    if (!availableCategories.includes(categoryName)) {
+      const updated = [...availableCategories, categoryName];
+      setAvailableCategories(updated);
+      saveAvailableCategories(updated);
+    }
+    setShowAddCategoryModal(false);
+    alert(`Category "${categoryName}" has been added! It will now appear in all dropdowns. You can now duplicate an app and assign it to this category using the Edit button.`);
+  };
+
+  const handleDeleteCategoryClick = (categoryName) => {
+    const stats = getCategoryStats(categoryName);
+    setCategoryToDelete({
+      name: categoryName,
+      appCount: stats.count,
+      appNames: stats.names
+    });
+    setShowDeleteCategoryModal(true);
+  };
+
+  const handleDeleteCategoryConfirm = () => {
+    // Remove category from available categories list
+    const categoryName = categoryToDelete?.name;
+    const updated = availableCategories.filter(cat => cat !== categoryName);
+    setAvailableCategories(updated);
+    saveAvailableCategories(updated);
+    setShowDeleteCategoryModal(false);
+    setCategoryToDelete(null);
+    alert(`Category "${categoryName}" has been removed.`);
+  };
+
+  const handleRenameCategoryClick = (categoryName) => {
+    const stats = getCategoryStats(categoryName);
+    setCategoryToRename({
+      oldName: categoryName,
+      appCount: stats.count
+    });
+    setShowRenameCategoryModal(true);
+  };
+
+  const handleRenameCategory = async (oldCategoryName, newCategoryName) => {
+    try {
+      // Update available categories list
+      const updated = availableCategories.map(cat => cat === oldCategoryName ? newCategoryName : cat);
+      if (!updated.includes(newCategoryName) && availableCategories.includes(oldCategoryName)) {
+        updated.push(newCategoryName);
+      }
+      setAvailableCategories(updated.filter(cat => cat !== oldCategoryName || cat === newCategoryName));
+      saveAvailableCategories(updated.filter(cat => cat !== oldCategoryName || cat === newCategoryName));
+
+      // Get all solutions with the old category
+      const solutionsToUpdate = solutions.filter(s => s.category === oldCategoryName);
+      
+      if (solutionsToUpdate.length === 0) {
+        // If no solutions, just update the available categories list
+        alert(`Category "${oldCategoryName}" has been renamed to "${newCategoryName}".`);
+        setShowRenameCategoryModal(false);
+        setCategoryToRename(null);
+        return;
+      }
+
+      // Update each solution
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const solution of solutionsToUpdate) {
+        try {
+          await updateSolution(solution.id, {
+            ...solution,
+            category: newCategoryName
+          });
+          successCount++;
+        } catch (err) {
+          console.error(`Error updating solution ${solution.id}:`, err);
+          errorCount++;
+        }
+      }
+
+      // Refresh solutions list
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      // Show result
+      if (errorCount === 0) {
+        alert(`Successfully renamed category "${oldCategoryName}" to "${newCategoryName}". Updated ${successCount} app${successCount !== 1 ? 's' : ''}.`);
+        setShowRenameCategoryModal(false);
+        setCategoryToRename(null);
+      } else {
+        alert(`Renamed category with some errors. ${successCount} app${successCount !== 1 ? 's' : ''} updated, ${errorCount} error${errorCount !== 1 ? 's' : ''}.`);
+      }
+    } catch (err) {
+      console.error('Error renaming category:', err);
+      alert('Error renaming category: ' + err.message);
+      throw err;
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -98,9 +554,12 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
             </select>
             <FunnelIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
           </div>
-          <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
+          <button 
+            onClick={() => setShowAddCategoryModal(true)}
+            className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors"
+          >
             <PlusIcon className="w-5 h-5" />
-            <span>Add New App</span>
+            <span>Add New Category</span>
           </button>
         </div>
       </div>
@@ -205,6 +664,65 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
         </ul>
       </div>
       
+      {/* Category Management Section */}
+      <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h4 className="text-lg font-semibold text-gray-900">Category Management</h4>
+          <p className="text-sm text-gray-600 mt-1">Manage your app categories. Delete categories that have no apps assigned.</p>
+        </div>
+        <div className="p-6">
+          {categories.filter(cat => cat !== 'all').length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories.filter(cat => cat !== 'all').map((category) => {
+                const stats = getCategoryStats(category);
+                return (
+                  <div key={category} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-900 mb-1">{category}</h5>
+                        <p className="text-sm text-gray-600">
+                          {stats.count} app{stats.count !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleRenameCategoryClick(category)}
+                          className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          title="Rename category"
+                        >
+                          <PencilSquareIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategoryClick(category)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            stats.count > 0
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-red-50 text-red-600 hover:bg-red-100'
+                          }`}
+                          title={stats.count > 0 ? 'Cannot delete: Category has apps' : 'Delete category'}
+                          disabled={stats.count > 0}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    {stats.count > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Delete or reassign all apps to remove this category
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No categories available. Add a new category to get started.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
@@ -220,6 +738,40 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
           </div>
         </div>
       </div>
+
+      {/* Add New Category Modal */}
+      <AddCategoryModal
+        isOpen={showAddCategoryModal}
+        onClose={() => setShowAddCategoryModal(false)}
+        onSave={handleAddCategory}
+        existingCategories={categories.filter(cat => cat !== 'all')}
+      />
+
+      {/* Delete Category Modal */}
+      <DeleteCategoryModal
+        isOpen={showDeleteCategoryModal}
+        onClose={() => {
+          setShowDeleteCategoryModal(false);
+          setCategoryToDelete(null);
+        }}
+        categoryName={categoryToDelete?.name || ''}
+        appCount={categoryToDelete?.appCount || 0}
+        appNames={categoryToDelete?.appNames || []}
+        onConfirm={handleDeleteCategoryConfirm}
+      />
+
+      {/* Rename Category Modal */}
+      <RenameCategoryModal
+        isOpen={showRenameCategoryModal}
+        onClose={() => {
+          setShowRenameCategoryModal(false);
+          setCategoryToRename(null);
+        }}
+        oldCategoryName={categoryToRename?.oldName || ''}
+        appCount={categoryToRename?.appCount || 0}
+        onSave={handleRenameCategory}
+        existingCategories={categories.filter(cat => cat !== 'all')}
+      />
     </div>
   );
 };
@@ -242,6 +794,41 @@ const SolutionEditor = ({ solution, onBack }) => {
   const [editingSection, setEditingSection] = useState(null);
   const [managingItems, setManagingItems] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState([]);
+
+  useEffect(() => {
+    // Load available categories
+    const loadCategories = async () => {
+      try {
+        // Get categories from localStorage
+        const storedCategories = getAvailableCategories();
+        
+        // Get categories from all solutions
+        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/solutions`);
+        if (response.ok) {
+          const allSolutions = await response.json();
+          const categoriesFromSolutions = Array.from(new Set(allSolutions.map(s => s.category).filter(Boolean)));
+          
+          // Merge categories from solutions with localStorage categories
+          const mergedCategories = Array.from(new Set([
+            ...categoriesFromSolutions,
+            ...storedCategories.filter(cat => !categoriesFromSolutions.includes(cat))
+          ])).sort();
+          
+          setAvailableCategories(mergedCategories);
+        } else {
+          // Fallback to localStorage only
+          setAvailableCategories(storedCategories);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+        // Fallback to localStorage only
+        setAvailableCategories(getAvailableCategories());
+      }
+    };
+    
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     if (solution) {
@@ -471,17 +1058,14 @@ const SolutionEditor = ({ solution, onBack }) => {
                 onChange={(e) => setCardData({...cardData, category: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
-                  >
-                    <option value="">Select category...</option>
-                    <option value="Frameworks">Frameworks</option>
-                    <option value="Content Management Systems">Content Management Systems</option>
-                    <option value="Databases">Databases</option>
-                    <option value="Developer Tools">Developer Tools</option>
-                    <option value="Media">Media</option>
-                    <option value="E Commerce">E Commerce</option>
-                    <option value="Business Applications">Business Applications</option>
-                    <option value="Monitoring Applications">Monitoring Applications</option>
-                  </select>
+              >
+                <option value="">Select category...</option>
+                {availableCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -1635,6 +2219,7 @@ const SolutionsAdmin = () => {
           onDuplicateSolution={handleDuplicateSolution}
           onDeleteSolution={handleDeleteSolution}
           onToggleVisibility={handleToggleVisibility}
+          onRefresh={fetchSolutions}
         />
       )}
     </div>
