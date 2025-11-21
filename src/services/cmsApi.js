@@ -960,6 +960,159 @@ export const getAllProductsForSection = async () => {
   }
 };
 
+/**
+ * Get comprehensive section content (header, features, stats)
+ * @returns {Promise<Object>} Comprehensive section data
+ */
+export const getComprehensiveSectionContent = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/comprehensive-section?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching comprehensive section content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update comprehensive section header
+ * @param {Object} headerData - Header data (title, description)
+ * @returns {Promise<Object>} Update response
+ */
+export const updateComprehensiveSectionHeader = async (headerData) => {
+  try {
+    const response = await cmsApi.put('/comprehensive-section/header', headerData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating comprehensive section header:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update comprehensive section feature card
+ * @param {number} id - Feature ID
+ * @param {Object} featureData - Feature data (title, description, button_text, icon_type, order_index, is_visible)
+ * @returns {Promise<Object>} Update response
+ */
+export const updateComprehensiveSectionFeature = async (id, featureData) => {
+  try {
+    const response = await cmsApi.put(`/comprehensive-section/features/${id}`, featureData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating comprehensive section feature:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update comprehensive section statistic
+ * @param {number} id - Statistic ID
+ * @param {Object} statData - Statistic data (value, label, order_index, is_visible)
+ * @returns {Promise<Object>} Update response
+ */
+export const updateComprehensiveSectionStat = async (id, statData) => {
+  try {
+    const response = await cmsApi.put(`/comprehensive-section/stats/${id}`, statData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating comprehensive section stat:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get feature banners (for frontend - only visible)
+ * @returns {Promise<Array>} Array of feature banners
+ */
+export const getFeatureBanners = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/feature-banners?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching feature banners:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all feature banners (for admin - including hidden)
+ * @returns {Promise<Array>} Array of all feature banners
+ */
+export const getAllFeatureBanners = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/feature-banners/all?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all feature banners:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new feature banner
+ * @param {Object} bannerData - Banner data
+ * @returns {Promise<Object>} Create response
+ */
+export const createFeatureBanner = async (bannerData) => {
+  try {
+    const response = await cmsApi.post('/feature-banners', bannerData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating feature banner:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update feature banner
+ * @param {number} id - Banner ID
+ * @param {Object} bannerData - Banner data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateFeatureBanner = async (id, bannerData) => {
+  try {
+    const response = await cmsApi.put(`/feature-banners/${id}`, bannerData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating feature banner:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete feature banner
+ * @param {number} id - Banner ID
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteFeatureBanner = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/feature-banners/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting feature banner:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle feature banner visibility
+ * @param {number} id - Banner ID
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleFeatureBannerVisibility = async (id) => {
+  try {
+    const response = await cmsApi.patch(`/feature-banners/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling feature banner visibility:', error);
+    throw error;
+  }
+};
+
 // Default export (placed after all function declarations to avoid TDZ errors)
 export default {
   // Homepage

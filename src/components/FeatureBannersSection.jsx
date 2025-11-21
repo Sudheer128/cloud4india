@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useFeatureBanners } from '../hooks/useCMS';
+import LoadingSpinner from './LoadingSpinner';
 
 const FeatureBannersSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { data: banners, loading, error } = useFeatureBanners();
 
-  const banners = [
+  // Default fallback banners
+  const defaultBanners = [
     {
       id: 1,
       category: 'Event',
@@ -56,22 +60,53 @@ const FeatureBannersSection = () => {
     }
   ];
 
+  // Use CMS data or fallback to defaults
+  const displayBanners = banners && banners.length > 0 ? banners : defaultBanners;
+
   // Auto-rotate every 3 seconds
   useEffect(() => {
+    if (displayBanners.length === 0) return;
+    
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % banners.length);
+      setCurrentIndex((prev) => (prev + 1) % displayBanners.length);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [displayBanners.length]);
+
+  // Reset index if banners change
+  useEffect(() => {
+    if (displayBanners.length > 0 && currentIndex >= displayBanners.length) {
+      setCurrentIndex(0);
+    }
+  }, [displayBanners.length, currentIndex]);
 
   // Get previous, current, and next banner indices
-  const getPrevIndex = () => (currentIndex - 1 + banners.length) % banners.length;
-  const getNextIndex = () => (currentIndex + 1) % banners.length;
+  const getPrevIndex = () => (currentIndex - 1 + displayBanners.length) % displayBanners.length;
+  const getNextIndex = () => (currentIndex + 1) % displayBanners.length;
 
-  const prevBanner = banners[getPrevIndex()];
-  const currentBanner = banners[currentIndex];
-  const nextBanner = banners[getNextIndex()];
+  const prevBanner = displayBanners[getPrevIndex()];
+  const currentBanner = displayBanners[currentIndex];
+  const nextBanner = displayBanners[getNextIndex()];
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <div className="w-full flex items-center justify-center h-[500px]">
+          <LoadingSpinner />
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error('Error loading feature banners:', error);
+    // Continue with default data on error
+  }
+
+  if (!displayBanners || displayBanners.length === 0) {
+    return null;
+  }
 
   const BannerCard = ({ banner, position, slideIndex, totalSlides }) => {
     const isCenter = position === 'center';
@@ -162,17 +197,17 @@ const FeatureBannersSection = () => {
       <div className="w-full mb-8">
         <div className="relative h-[500px]">
           {/* Left Card (Previous) - 12% visible */}
-          <BannerCard banner={prevBanner} position="left" slideIndex={currentIndex} totalSlides={banners.length} />
+          <BannerCard banner={prevBanner} position="left" slideIndex={currentIndex} totalSlides={displayBanners.length} />
           
           {/* Center Card (Current) - Full view */}
-          <BannerCard banner={currentBanner} position="center" slideIndex={currentIndex} totalSlides={banners.length} />
+          <BannerCard banner={currentBanner} position="center" slideIndex={currentIndex} totalSlides={displayBanners.length} />
           
           {/* Right Card (Next) - 12% visible */}
-          <BannerCard banner={nextBanner} position="right" slideIndex={currentIndex} totalSlides={banners.length} />
+          <BannerCard banner={nextBanner} position="right" slideIndex={currentIndex} totalSlides={displayBanners.length} />
 
           {/* Slide Indicators */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">
-            {banners.map((_, index) => (
+            {displayBanners.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}

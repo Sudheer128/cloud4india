@@ -4384,6 +4384,342 @@ app.post('/api/main-products/sections', (req, res) => {
   });
 });
 
+// ==================== Comprehensive Section API Endpoints ====================
+
+// Get comprehensive section data (header, features, stats)
+app.get('/api/comprehensive-section', (req, res) => {
+  const comprehensiveData = {};
+  
+  // Get header content
+  db.get('SELECT * FROM comprehensive_section_content WHERE id = 1', (err, headerContent) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    comprehensiveData.header = headerContent || {
+      title: 'The most comprehensive cloud platform',
+      description: 'From infrastructure technologies like compute, storage, and databases to emerging technologies like machine learning, artificial intelligence, and data analytics.'
+    };
+    
+    // Get feature cards (only visible ones, ordered by order_index)
+    db.all('SELECT * FROM comprehensive_section_features WHERE is_visible = 1 ORDER BY order_index ASC', (err, features) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      comprehensiveData.features = features || [];
+      
+      // Get statistics (only visible ones, ordered by order_index)
+      db.all('SELECT * FROM comprehensive_section_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        comprehensiveData.stats = stats || [];
+        
+        res.json(comprehensiveData);
+      });
+    });
+  });
+});
+
+// Update comprehensive section header
+app.put('/api/comprehensive-section/header', (req, res) => {
+  const { title, description } = req.body;
+  
+  db.run(`
+    UPDATE comprehensive_section_content 
+    SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = 1
+  `, [title, description], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      // Insert if doesn't exist
+      db.run(`
+        INSERT INTO comprehensive_section_content (id, title, description) 
+        VALUES (1, ?, ?)
+      `, [title, description], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ 
+          message: 'Header updated successfully', 
+          id: this.lastID,
+          changes: this.changes 
+        });
+      });
+    } else {
+      res.json({ 
+        message: 'Header updated successfully', 
+        changes: this.changes 
+      });
+    }
+  });
+});
+
+// Update comprehensive section feature card
+app.put('/api/comprehensive-section/features/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description, button_text, icon_type, order_index, is_visible } = req.body;
+  
+  db.run(`
+    UPDATE comprehensive_section_features 
+    SET title = ?, description = ?, button_text = ?, icon_type = ?, 
+        order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `, [title, description, button_text, icon_type, order_index, is_visible !== undefined ? is_visible : 1, id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Feature updated successfully', 
+      changes: this.changes 
+    });
+  });
+});
+
+// Update comprehensive section statistic
+app.put('/api/comprehensive-section/stats/:id', (req, res) => {
+  const { id } = req.params;
+  const { value, label, order_index, is_visible } = req.body;
+  
+  db.run(`
+    UPDATE comprehensive_section_stats 
+    SET value = ?, label = ?, order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `, [value, label, order_index, is_visible !== undefined ? is_visible : 1, id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Statistic updated successfully', 
+      changes: this.changes 
+    });
+  });
+});
+
+// ==================== Feature Banners API Endpoints ====================
+
+// Get all feature banners (only visible ones, ordered by order_index)
+app.get('/api/feature-banners', (req, res) => {
+  db.all('SELECT * FROM feature_banners WHERE is_visible = 1 ORDER BY order_index ASC', (err, banners) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    // Format banners to match frontend expectations
+    const formattedBanners = banners.map(banner => ({
+      id: banner.id,
+      category: banner.category,
+      title: banner.title,
+      subtitle: banner.subtitle,
+      ctaText: banner.cta_text,
+      ctaLink: banner.cta_link,
+      gradient: `from-${banner.gradient_start} via-${banner.gradient_mid} to-${banner.gradient_end}`,
+      accentGradient: `from-${banner.accent_gradient_start} to-${banner.accent_gradient_end}`
+    }));
+    
+    res.json(formattedBanners);
+  });
+});
+
+// Get all feature banners (including hidden) - for admin
+app.get('/api/feature-banners/all', (req, res) => {
+  db.all('SELECT * FROM feature_banners ORDER BY order_index ASC', (err, banners) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    // Format banners to match frontend expectations
+    const formattedBanners = banners.map(banner => ({
+      id: banner.id,
+      category: banner.category,
+      title: banner.title,
+      subtitle: banner.subtitle,
+      ctaText: banner.cta_text,
+      ctaLink: banner.cta_link,
+      gradient: `from-${banner.gradient_start} via-${banner.gradient_mid} to-${banner.gradient_end}`,
+      accentGradient: `from-${banner.accent_gradient_start} to-${banner.accent_gradient_end}`,
+      gradient_start: banner.gradient_start,
+      gradient_mid: banner.gradient_mid,
+      gradient_end: banner.gradient_end,
+      accent_gradient_start: banner.accent_gradient_start,
+      accent_gradient_end: banner.accent_gradient_end,
+      order_index: banner.order_index,
+      is_visible: banner.is_visible
+    }));
+    
+    res.json(formattedBanners);
+  });
+});
+
+// Create new feature banner
+app.post('/api/feature-banners', (req, res) => {
+  const { 
+    category, 
+    title, 
+    subtitle, 
+    cta_text, 
+    cta_link,
+    gradient_start,
+    gradient_mid,
+    gradient_end,
+    accent_gradient_start,
+    accent_gradient_end,
+    order_index,
+    is_visible
+  } = req.body;
+  
+  if (!category || !title) {
+    res.status(400).json({ error: 'category and title are required' });
+    return;
+  }
+  
+  // Get the next order index if not provided
+  db.get('SELECT MAX(order_index) as max_order FROM feature_banners', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const nextOrder = order_index !== undefined ? order_index : ((result.max_order || 0) + 1);
+    
+    db.run(`
+      INSERT INTO feature_banners (
+        category, title, subtitle, cta_text, cta_link,
+        gradient_start, gradient_mid, gradient_end,
+        accent_gradient_start, accent_gradient_end,
+        order_index, is_visible
+      ) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      category, title, subtitle || '', cta_text || '', cta_link || '#',
+      gradient_start || 'saree-teal', gradient_mid || 'phulkari-turquoise', gradient_end || 'saree-lime',
+      accent_gradient_start || 'saree-teal', accent_gradient_end || 'phulkari-turquoise',
+      nextOrder, is_visible !== undefined ? is_visible : 1
+    ], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        message: 'Feature banner created successfully', 
+        id: this.lastID,
+        changes: this.changes 
+      });
+    });
+  });
+});
+
+// Update feature banner
+app.put('/api/feature-banners/:id', (req, res) => {
+  const { id } = req.params;
+  const { 
+    category, 
+    title, 
+    subtitle, 
+    cta_text, 
+    cta_link,
+    gradient_start,
+    gradient_mid,
+    gradient_end,
+    accent_gradient_start,
+    accent_gradient_end,
+    order_index,
+    is_visible
+  } = req.body;
+  
+  db.run(`
+    UPDATE feature_banners 
+    SET category = ?, title = ?, subtitle = ?, cta_text = ?, cta_link = ?,
+        gradient_start = ?, gradient_mid = ?, gradient_end = ?,
+        accent_gradient_start = ?, accent_gradient_end = ?,
+        order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `, [
+    category, title, subtitle, cta_text, cta_link,
+    gradient_start, gradient_mid, gradient_end,
+    accent_gradient_start, accent_gradient_end,
+    order_index, is_visible !== undefined ? is_visible : 1, id
+  ], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Feature banner updated successfully', 
+      changes: this.changes 
+    });
+  });
+});
+
+// Delete feature banner
+app.delete('/api/feature-banners/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('DELETE FROM feature_banners WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    res.json({ 
+      message: 'Feature banner deleted successfully', 
+      changes: this.changes 
+    });
+  });
+});
+
+// Toggle feature banner visibility
+app.patch('/api/feature-banners/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  
+  // Get current visibility
+  db.get('SELECT is_visible FROM feature_banners WHERE id = ?', [id], (err, banner) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!banner) {
+      res.status(404).json({ error: 'Feature banner not found' });
+      return;
+    }
+    
+    const newVisibility = banner.is_visible === 1 ? 0 : 1;
+    
+    db.run('UPDATE feature_banners SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', 
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        res.json({ 
+          message: 'Visibility toggled successfully',
+          is_visible: newVisibility,
+          changes: this.changes 
+        });
+      });
+  });
+});
+
 // Start server
 app.listen(PORT, async () => {
   console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);

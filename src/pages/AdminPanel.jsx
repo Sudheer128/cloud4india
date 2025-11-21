@@ -23,7 +23,18 @@ import {
   createProductItem,
   updateProductItem,
   deleteProductItem,
-  toggleProductItemVisibility
+  toggleProductItemVisibility,
+  // Comprehensive Section API functions
+  getComprehensiveSectionContent,
+  updateComprehensiveSectionHeader,
+  updateComprehensiveSectionFeature,
+  updateComprehensiveSectionStat,
+  // Feature Banners API functions
+  getAllFeatureBanners,
+  createFeatureBanner,
+  updateFeatureBanner,
+  deleteFeatureBanner,
+  toggleFeatureBannerVisibility
 } from '../services/cmsApi';
 import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
 import PricingAdmin from './PricingAdmin';
@@ -94,18 +105,24 @@ const AdminPanel = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingSolution, setEditingSolution] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [comprehensiveSectionData, setComprehensiveSectionData] = useState(null);
+  const [featureBanners, setFeatureBanners] = useState([]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [homepage, solutionsData, productsData] = await Promise.all([
+      const [homepage, solutionsData, productsData, comprehensiveData, bannersData] = await Promise.all([
         getHomepageContent(),
         getAdminSolutions(),
-        getAdminProducts()
+        getAdminProducts(),
+        getComprehensiveSectionContent(),
+        getAllFeatureBanners()
       ]);
       setHomepageData(homepage);
       setSolutions(solutionsData);
       setProducts(productsData);
+      setComprehensiveSectionData(comprehensiveData);
+      setFeatureBanners(bannersData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -213,6 +230,80 @@ const AdminPanel = () => {
       } catch (err) {
         alert('Error deleting why item: ' + err.message);
       }
+    }
+  };
+
+  // Comprehensive Section Handlers
+  const handleUpdateComprehensiveHeader = async (headerData) => {
+    try {
+      await updateComprehensiveSectionHeader(headerData);
+      await fetchData();
+      alert('Comprehensive section header updated successfully!');
+    } catch (err) {
+      alert('Error updating comprehensive section header: ' + err.message);
+    }
+  };
+
+  const handleUpdateComprehensiveFeature = async (id, featureData) => {
+    try {
+      await updateComprehensiveSectionFeature(id, featureData);
+      await fetchData();
+      alert('Feature card updated successfully!');
+    } catch (err) {
+      alert('Error updating feature card: ' + err.message);
+    }
+  };
+
+  const handleUpdateComprehensiveStat = async (id, statData) => {
+    try {
+      await updateComprehensiveSectionStat(id, statData);
+      await fetchData();
+      alert('Statistic updated successfully!');
+    } catch (err) {
+      alert('Error updating statistic: ' + err.message);
+    }
+  };
+
+  // Feature Banners Handlers
+  const handleCreateFeatureBanner = async (bannerData) => {
+    try {
+      await createFeatureBanner(bannerData);
+      await fetchData();
+      alert('Feature banner created successfully!');
+    } catch (err) {
+      alert('Error creating feature banner: ' + err.message);
+    }
+  };
+
+  const handleUpdateFeatureBanner = async (id, bannerData) => {
+    try {
+      await updateFeatureBanner(id, bannerData);
+      await fetchData();
+      alert('Feature banner updated successfully!');
+    } catch (err) {
+      alert('Error updating feature banner: ' + err.message);
+    }
+  };
+
+  const handleDeleteFeatureBanner = async (id) => {
+    if (window.confirm('Are you sure you want to delete this feature banner?')) {
+      try {
+        await deleteFeatureBanner(id);
+        await fetchData();
+        alert('Feature banner deleted successfully!');
+      } catch (err) {
+        alert('Error deleting feature banner: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleFeatureBannerVisibility = async (id) => {
+    try {
+      await toggleFeatureBannerVisibility(id);
+      await fetchData();
+      alert('Feature banner visibility toggled successfully!');
+    } catch (err) {
+      alert('Error toggling feature banner visibility: ' + err.message);
     }
   };
 
@@ -431,6 +522,15 @@ const AdminPanel = () => {
             onCreateWhyItem={handleCreateWhyItem}
             onUpdateWhyItem={handleUpdateWhyItem}
             onDeleteWhyItem={handleDeleteWhyItem}
+            comprehensiveSectionData={comprehensiveSectionData}
+            onUpdateComprehensiveHeader={handleUpdateComprehensiveHeader}
+            onUpdateComprehensiveFeature={handleUpdateComprehensiveFeature}
+            onUpdateComprehensiveStat={handleUpdateComprehensiveStat}
+            featureBanners={featureBanners}
+            onCreateFeatureBanner={handleCreateFeatureBanner}
+            onUpdateFeatureBanner={handleUpdateFeatureBanner}
+            onDeleteFeatureBanner={handleDeleteFeatureBanner}
+            onToggleFeatureBannerVisibility={handleToggleFeatureBannerVisibility}
           />
           )}
           
@@ -485,7 +585,16 @@ const HomePageManagement = ({
   onUpdateHero,
   onCreateWhyItem,
   onUpdateWhyItem,
-  onDeleteWhyItem
+  onDeleteWhyItem,
+  comprehensiveSectionData,
+  onUpdateComprehensiveHeader,
+  onUpdateComprehensiveFeature,
+  onUpdateComprehensiveStat,
+  featureBanners,
+  onCreateFeatureBanner,
+  onUpdateFeatureBanner,
+  onDeleteFeatureBanner,
+  onToggleFeatureBannerVisibility
 }) => {
   return (
     <div>
@@ -494,7 +603,9 @@ const HomePageManagement = ({
         <nav className="flex gap-2 bg-white/60 border border-gray-200 rounded-xl p-1 w-fit">
           {[
             { id: 'hero', label: 'Hero Section' },
-            { id: 'why', label: 'Why Items' }
+            { id: 'why', label: 'Why Items' },
+            { id: 'comprehensive', label: 'Comprehensive Section' },
+            { id: 'feature-banners', label: 'Feature Banners' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -529,6 +640,25 @@ const HomePageManagement = ({
             editing={editingItem}
             onEdit={setEditingItem}
             onCancel={() => setEditingItem(null)}
+          />
+        )}
+
+        {activeTab === 'comprehensive' && (
+          <ComprehensiveSectionEditor 
+            data={comprehensiveSectionData}
+            onUpdateHeader={onUpdateComprehensiveHeader}
+            onUpdateFeature={onUpdateComprehensiveFeature}
+            onUpdateStat={onUpdateComprehensiveStat}
+          />
+        )}
+
+        {activeTab === 'feature-banners' && (
+          <FeatureBannersEditor 
+            banners={featureBanners}
+            onCreate={onCreateFeatureBanner}
+            onUpdate={onUpdateFeatureBanner}
+            onDelete={onDeleteFeatureBanner}
+            onToggleVisibility={onToggleFeatureBannerVisibility}
           />
         )}
         
@@ -3375,6 +3505,710 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Comprehensive Section Editor Component
+const ComprehensiveSectionEditor = ({ 
+  data, 
+  onUpdateHeader, 
+  onUpdateFeature, 
+  onUpdateStat 
+}) => {
+  const [headerData, setHeaderData] = useState({
+    title: '',
+    description: ''
+  });
+  const [features, setFeatures] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [editingFeature, setEditingFeature] = useState(null);
+  const [editingStat, setEditingStat] = useState(null);
+
+  useEffect(() => {
+    if (data) {
+      setHeaderData({
+        title: data.header?.title || '',
+        description: data.header?.description || ''
+      });
+      setFeatures(data.features || []);
+      setStats(data.stats || []);
+    }
+  }, [data]);
+
+  const handleHeaderSubmit = (e) => {
+    e.preventDefault();
+    onUpdateHeader(headerData);
+  };
+
+  const handleFeatureSubmit = (e, feature) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const featureData = {
+      title: formData.get('title'),
+      description: formData.get('description'),
+      button_text: formData.get('button_text'),
+      icon_type: formData.get('icon_type'),
+      order_index: feature.order_index,
+      is_visible: feature.is_visible !== undefined ? feature.is_visible : 1
+    };
+    onUpdateFeature(feature.id, featureData);
+    setEditingFeature(null);
+  };
+
+  const handleStatSubmit = (e, stat) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const statData = {
+      value: formData.get('value'),
+      label: formData.get('label'),
+      order_index: stat.order_index,
+      is_visible: stat.is_visible !== undefined ? stat.is_visible : 1
+    };
+    onUpdateStat(stat.id, statData);
+    setEditingStat(null);
+  };
+
+  const iconTypes = [
+    { value: 'chart', label: 'Chart (Scale)' },
+    { value: 'users', label: 'Users (Trusted)' },
+    { value: 'lightning', label: 'Lightning (Fast)' },
+    { value: 'checkmark', label: 'Checkmark (Recognition)' }
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-6">Header</h2>
+        <form onSubmit={handleHeaderSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={headerData.title}
+              onChange={(e) => setHeaderData({...headerData, title: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={headerData.description}
+              onChange={(e) => setHeaderData({...headerData, description: e.target.value})}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Update Header
+          </button>
+        </form>
+      </div>
+
+      {/* Feature Cards Section */}
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-6">Feature Cards</h2>
+        <div className="space-y-4">
+          {features.map((feature) => (
+            <div key={feature.id} className="border border-gray-200 rounded-lg p-4">
+              {editingFeature === feature.id ? (
+                <form onSubmit={(e) => handleFeatureSubmit(e, feature)} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input
+                      type="text"
+                      name="title"
+                      defaultValue={feature.title}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      name="description"
+                      defaultValue={feature.description}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+                    <input
+                      type="text"
+                      name="button_text"
+                      defaultValue={feature.button_text}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Icon Type</label>
+                    <select
+                      name="icon_type"
+                      defaultValue={feature.icon_type}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {iconTypes.map(icon => (
+                        <option key={icon.value} value={icon.value}>{icon.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingFeature(null)}
+                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{feature.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{feature.description}</p>
+                      {feature.button_text && (
+                        <p className="text-xs text-blue-600 mt-1">Button: {feature.button_text}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">Icon: {feature.icon_type}</p>
+                    </div>
+                    <button
+                      onClick={() => setEditingFeature(feature.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      <PencilSquareIcon className="w-4 h-4" />
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Statistics Section */}
+      <div className="bg-white rounded-2xl shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-6">Statistics</h2>
+        <div className="space-y-4">
+          {stats.map((stat) => (
+            <div key={stat.id} className="border border-gray-200 rounded-lg p-4">
+              {editingStat === stat.id ? (
+                <form onSubmit={(e) => handleStatSubmit(e, stat)} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                    <input
+                      type="text"
+                      name="value"
+                      defaultValue={stat.value}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 200+, 120, 38"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+                    <input
+                      type="text"
+                      name="label"
+                      defaultValue={stat.label}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingStat(null)}
+                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
+                    <span className="text-sm text-gray-600 ml-2">{stat.label}</span>
+                  </div>
+                  <button
+                    onClick={() => setEditingStat(stat.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Feature Banners Editor Component
+const FeatureBannersEditor = ({ 
+  banners, 
+  onCreate, 
+  onUpdate, 
+  onDelete, 
+  onToggleVisibility 
+}) => {
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const gradientOptions = [
+    { value: 'phulkari-fuchsia', label: 'Fuchsia' },
+    { value: 'phulkari-red', label: 'Red' },
+    { value: 'phulkari-gold', label: 'Gold' },
+    { value: 'phulkari-turquoise', label: 'Turquoise' },
+    { value: 'phulkari-blue-light', label: 'Blue Light' },
+    { value: 'phulkari-peach', label: 'Peach' },
+    { value: 'saree-teal', label: 'Teal' },
+    { value: 'saree-lime', label: 'Lime' },
+    { value: 'saree-rose', label: 'Rose' },
+    { value: 'saree-coral', label: 'Coral' },
+    { value: 'saree-amber', label: 'Amber' }
+  ];
+
+  const handleCreateSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const bannerData = {
+      category: formData.get('category'),
+      title: formData.get('title'),
+      subtitle: formData.get('subtitle'),
+      cta_text: formData.get('cta_text'),
+      cta_link: formData.get('cta_link'),
+      gradient_start: formData.get('gradient_start'),
+      gradient_mid: formData.get('gradient_mid'),
+      gradient_end: formData.get('gradient_end'),
+      accent_gradient_start: formData.get('accent_gradient_start'),
+      accent_gradient_end: formData.get('accent_gradient_end'),
+      order_index: parseInt(formData.get('order_index')) || banners.length + 1,
+      is_visible: formData.get('is_visible') === 'on' ? 1 : 0
+    };
+    onCreate(bannerData);
+    setShowCreateForm(false);
+    e.target.reset();
+  };
+
+  const handleUpdateSubmit = (e, banner) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const bannerData = {
+      category: formData.get('category'),
+      title: formData.get('title'),
+      subtitle: formData.get('subtitle'),
+      cta_text: formData.get('cta_text'),
+      cta_link: formData.get('cta_link'),
+      gradient_start: formData.get('gradient_start'),
+      gradient_mid: formData.get('gradient_mid'),
+      gradient_end: formData.get('gradient_end'),
+      accent_gradient_start: formData.get('accent_gradient_start'),
+      accent_gradient_end: formData.get('accent_gradient_end'),
+      order_index: parseInt(formData.get('order_index')) || banner.order_index,
+      is_visible: formData.get('is_visible') === 'on' ? 1 : 0
+    };
+    onUpdate(banner.id, bannerData);
+    setEditingBanner(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Feature Banners</h2>
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
+        >
+          <PlusIcon className="w-5 h-5" />
+          {showCreateForm ? 'Cancel' : 'Add New Banner'}
+        </button>
+      </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold mb-4">Create New Banner</h3>
+          <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <input
+                  type="text"
+                  name="category"
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Innovation, Event, Security"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Order Index</label>
+                <input
+                  type="number"
+                  name="order_index"
+                  defaultValue={banners.length + 1}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <input
+                type="text"
+                name="title"
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+              <textarea
+                name="subtitle"
+                rows={2}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CTA Text</label>
+                <input
+                  type="text"
+                  name="cta_text"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CTA Link</label>
+                <input
+                  type="text"
+                  name="cta_link"
+                  defaultValue="#"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Start</label>
+                <select
+                  name="gradient_start"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {gradientOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Mid</label>
+                <select
+                  name="gradient_mid"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {gradientOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient End</label>
+                <select
+                  name="gradient_end"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {gradientOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient Start</label>
+                <select
+                  name="accent_gradient_start"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {gradientOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient End</label>
+                <select
+                  name="accent_gradient_end"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {gradientOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="is_visible"
+                defaultChecked
+                className="mr-2"
+              />
+              <label className="text-sm text-gray-700">Visible</label>
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Banner
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Banners List */}
+      <div className="space-y-4">
+        {banners.map((banner) => (
+          <div key={banner.id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+            {editingBanner === banner.id ? (
+              <form onSubmit={(e) => handleUpdateSubmit(e, banner)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input
+                      type="text"
+                      name="category"
+                      defaultValue={banner.category}
+                      required
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Order Index</label>
+                    <input
+                      type="number"
+                      name="order_index"
+                      defaultValue={banner.order_index}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    defaultValue={banner.title}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                  <textarea
+                    name="subtitle"
+                    rows={2}
+                    defaultValue={banner.subtitle}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA Text</label>
+                    <input
+                      type="text"
+                      name="cta_text"
+                      defaultValue={banner.ctaText}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA Link</label>
+                    <input
+                      type="text"
+                      name="cta_link"
+                      defaultValue={banner.ctaLink}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Start</label>
+                    <select
+                      name="gradient_start"
+                      defaultValue={banner.gradient_start}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {gradientOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Mid</label>
+                    <select
+                      name="gradient_mid"
+                      defaultValue={banner.gradient_mid}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {gradientOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient End</label>
+                    <select
+                      name="gradient_end"
+                      defaultValue={banner.gradient_end}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {gradientOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient Start</label>
+                    <select
+                      name="accent_gradient_start"
+                      defaultValue={banner.accent_gradient_start}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {gradientOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient End</label>
+                    <select
+                      name="accent_gradient_end"
+                      defaultValue={banner.accent_gradient_end}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {gradientOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="is_visible"
+                    defaultChecked={banner.is_visible === 1}
+                    className="mr-2"
+                  />
+                  <label className="text-sm text-gray-700">Visible</label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingBanner(null)}
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                        {banner.category}
+                      </span>
+                      {banner.is_visible === 0 && (
+                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          Hidden
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">Order: {banner.order_index}</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{banner.title}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{banner.subtitle}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-blue-600">CTA: {banner.ctaText}</span>
+                      <span className="text-gray-500">Link: {banner.ctaLink}</span>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      Gradient: {banner.gradient_start} → {banner.gradient_mid} → {banner.gradient_end}
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setEditingBanner(banner.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      <PencilSquareIcon className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onToggleVisibility(banner.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      {banner.is_visible === 1 ? (
+                        <>
+                          <EyeSlashIcon className="w-4 h-4" />
+                          Hide
+                        </>
+                      ) : (
+                        <>
+                          <EyeIcon className="w-4 h-4" />
+                          Show
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => onDelete(banner.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

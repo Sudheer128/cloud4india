@@ -7,7 +7,9 @@ import {
   getSolutions,
   checkCMSHealth,
   getMainProductsContent,
-  getMainSolutionsContent
+  getMainSolutionsContent,
+  getComprehensiveSectionContent,
+  getFeatureBanners
 } from '../services/cmsApi';
 
 /**
@@ -319,6 +321,76 @@ export const useMainSolutionsContent = () => {
   };
 };
 
+/**
+ * Custom hook to fetch comprehensive section content
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useComprehensiveSectionContent = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getComprehensiveSectionContent();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching comprehensive section content:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
+/**
+ * Custom hook to fetch feature banners
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useFeatureBanners = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getFeatureBanners();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching feature banners:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
 // Default export with all hooks
 export default {
   useHomepageContent,
@@ -330,5 +402,7 @@ export default {
   useLoading,
   useError,
   useMainProductsContent,
-  useMainSolutionsContent
+  useMainSolutionsContent,
+  useComprehensiveSectionContent,
+  useFeatureBanners
 };

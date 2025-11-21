@@ -40,7 +40,7 @@ const Header = () => {
                   <img 
                     src="/images/cloud4India-logo.png" 
                     alt="Cloud4India Logo" 
-                    className="h-12 w-auto max-w-[200px] object-contain"
+                    className="h-16 w-auto max-w-[300px] object-contain"
                   />
                 </Link>
               </div>
