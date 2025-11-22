@@ -9,18 +9,19 @@ const Footer = () => {
       links: [
         { text: 'Home', href: '/' },
         { text: 'About Us', href: '/about' },
-        { text: 'Pricing', href: '/pricing' }
+        { text: 'Pricing', href: '/pricing' },
+        { text: 'Products', href: '/products' },
+        { text: 'Solutions', href: '/solutions' }
       ]
     },
     {
       title: 'Products',
       links: [
-        { text: 'All Products', href: '/products' },
-        { text: 'Cloud Servers', href: '/products/basic-cloud-servers' },
-        { text: 'Storage', href: '/products/storage' },
-        { text: 'Databases', href: '/products/databases' },
-        { text: 'Networking', href: '/products/networking' },
-        { text: 'AI & ML', href: '/products/ai-ml' }
+        { text: 'Microsoft 365 Licenses', href: '/products/microsoft-365-licenses' },
+        { text: 'Acronis Server Backup', href: '/products/acronis-server-backup' },
+        { text: 'Acronis M365 Backup', href: '/products/acronis-m365-backup' },
+        { text: 'Acronis Google Workspace Backup', href: '/products/acronis-google-workspace-backup' },
+        { text: 'Anti Virus', href: '/products/anti-virus' }
       ]
     },
     {
