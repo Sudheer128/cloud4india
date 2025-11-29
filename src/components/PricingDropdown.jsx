@@ -1,48 +1,113 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
-import { getProductVariantsByRoute } from '../services/cmsApi'
+import { getProductVariantsByRoute, getAllProductsForSection } from '../services/cmsApi'
 import LoadingSpinner from './LoadingSpinner'
 
 const PricingDropdown = ({ isOpen, onClose }) => {
-  const [activeCategory, setActiveCategory] = useState('microsoft-365-licenses')
+  const [activeCategory, setActiveCategory] = useState(null)
   const dropdownRef = useRef(null)
+  const [categories, setCategories] = useState([])
   const [products, setProducts] = useState({})
   const [loading, setLoading] = useState(true)
 
-  // Category mapping - route-based categories (defined outside useEffect to avoid dependency issues)
-  const categories = [
-    { id: 'microsoft-365-licenses', label: 'Microsoft 365 Licenses', route: 'microsoft-365-licenses' },
-    { id: 'acronis-server-backup', label: 'Acronis Server Backup', route: 'acronis-server-backup' },
-    { id: 'acronis-m365-backup', label: 'Acronis M365 Backup', route: 'acronis-m365-backup' },
-    { id: 'acronis-google-workspace-backup', label: 'Acronis Google Workspace Backup', route: 'acronis-google-workspace-backup' },
-    { id: 'anti-virus', label: 'Anti Virus', route: 'anti-virus' }
-  ]
-
-  // Fetch product variants for all categories when dropdown opens
+  // Fetch all products and their variants when dropdown opens
   useEffect(() => {
     if (isOpen) {
       const fetchAllProducts = async () => {
         setLoading(true);
-        const productsData = {};
-
-        for (const category of categories) {
-          try {
-            const variants = await getProductVariantsByRoute(category.route);
-            productsData[category.id] = variants.map(variant => ({
-              id: variant.id,
-              name: variant.name,
-              price: variant.price,
-              route: variant.route
-            }));
-          } catch (error) {
-            console.error(`Error fetching variants for ${category.route}:`, error);
-            productsData[category.id] = [];
+        try {
+          // Step 1: Fetch all visible products from CMS
+          const allProducts = await getAllProductsForSection();
+          
+          if (!allProducts || allProducts.length === 0) {
+            setCategories([]);
+            setProducts({});
+            setLoading(false);
+            return;
           }
-        }
 
-        setProducts(productsData);
-        setLoading(false);
+          // Step 2: Group products by category and sort by order_index
+          const groupedByCategory = {};
+          allProducts.forEach(product => {
+            const category = product.category || 'Other';
+            if (!groupedByCategory[category]) {
+              groupedByCategory[category] = [];
+            }
+            groupedByCategory[category].push(product);
+          });
+
+          // Sort products within each category by order_index
+          Object.keys(groupedByCategory).forEach(category => {
+            groupedByCategory[category].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+          });
+
+          // Step 3: Build categories array with grouped products
+          const categoriesList = [];
+          Object.keys(groupedByCategory).forEach(categoryName => {
+            groupedByCategory[categoryName].forEach(product => {
+              categoriesList.push({
+                id: product.route,
+                label: product.name,
+                route: product.route,
+                category: categoryName
+              });
+            });
+          });
+
+          // Set first product as active category (if not already set or if current active doesn't exist)
+          if (categoriesList.length > 0) {
+            const currentActiveExists = categoriesList.find(c => c.id === activeCategory);
+            if (!activeCategory || !currentActiveExists) {
+              setActiveCategory(categoriesList[0].id);
+            }
+          }
+
+          setCategories(categoriesList);
+
+          // Step 4: Fetch variants for all products
+          const productsData = {};
+          for (const category of categoriesList) {
+            try {
+              const variants = await getProductVariantsByRoute(category.route);
+              if (variants && variants.length > 0) {
+                productsData[category.id] = variants.map(variant => ({
+                  id: variant.id,
+                  name: variant.name,
+                  price: variant.price,
+                  route: variant.route
+                }));
+              } else {
+                // If no variants found, create a card that links to the product page
+                productsData[category.id] = [{
+                  id: category.id,
+                  name: category.label,
+                  price: null, // No price available
+                  route: category.route,
+                  isProductLink: true // Flag to indicate this is a product link, not a variant
+                }];
+              }
+            } catch (error) {
+              console.error(`Error fetching variants for ${category.route}:`, error);
+              // If error fetching variants, create a card that links to the product page
+              productsData[category.id] = [{
+                id: category.id,
+                name: category.label,
+                price: null, // No price available
+                route: category.route,
+                isProductLink: true // Flag to indicate this is a product link, not a variant
+              }];
+            }
+          }
+
+          setProducts(productsData);
+        } catch (error) {
+          console.error('Error fetching products:', error);
+          setCategories([]);
+          setProducts({});
+        } finally {
+          setLoading(false);
+        }
       };
 
       fetchAllProducts();
@@ -50,7 +115,7 @@ const PricingDropdown = ({ isOpen, onClose }) => {
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter products based on active category
-  const displayProducts = products[activeCategory] || []
+  const displayProducts = activeCategory ? (products[activeCategory] || []) : []
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -103,19 +168,23 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                 </div>
                 
                 <nav className="space-y-0.5">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setActiveCategory(category.id)}
-                      className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
-                        activeCategory === category.id
-                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {category.label}
-                    </button>
-                  ))}
+                  {categories.length === 0 && !loading ? (
+                    <p className="text-gray-500 text-sm px-4 py-3">No products available</p>
+                  ) : (
+                    categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => setActiveCategory(category.id)}
+                        className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
+                          activeCategory === category.id
+                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {category.label}
+                      </button>
+                    ))
+                  )}
                 </nav>
                 
                 <div className="mt-8 pt-6 border-t border-gray-200">
@@ -139,8 +208,8 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {categories.find(c => c.id === activeCategory)?.label || 'Products'}
                 </h2>
-                {displayProducts.length === 0 && (
-                  <p className="text-gray-500 text-sm mt-2">No products available in this category.</p>
+                {!loading && displayProducts.length === 0 && (
+                  <p className="text-gray-500 text-sm mt-2">No pricing plans available for this product.</p>
                 )}
               </div>
               
@@ -163,7 +232,12 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                             <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
                               {product.name}
                             </h3>
-                            <p className="text-gray-700 text-xl font-medium">{product.price}</p>
+                            {product.price && (
+                              <p className="text-gray-700 text-xl font-medium">{product.price}</p>
+                            )}
+                            {!product.price && product.isProductLink && (
+                              <p className="text-gray-500 text-sm">View product details</p>
+                            )}
                           </div>
                           <ArrowRightIcon className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0" />
                         </div>
@@ -171,9 +245,13 @@ const PricingDropdown = ({ isOpen, onClose }) => {
                     ))}
                   </div>
                 </div>
+              ) : categories.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-gray-500">
+                  <p>No products available.</p>
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-64 text-gray-500">
-                  <p>No products available in this category.</p>
+                  <p>No pricing plans available for this product.</p>
                 </div>
               )}
             </div>

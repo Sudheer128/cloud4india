@@ -113,6 +113,12 @@ const UniversalSolutionPage = () => {
     return sections.find(section => section.order_index === order);
   };
 
+  // Check if media_banner exists at order_index 1
+  const hasMediaBanner = sections.some(s => s.section_type === 'media_banner' && s.order_index === 1 && s.is_visible !== 0);
+  
+  // Dynamic order offset: if media_banner exists at 1, all subsequent sections are shifted by 1
+  const getOrderOffset = () => hasMediaBanner ? 1 : 0;
+
   // Component for dynamic benefit cards
   const DynamicBenefitCards = ({ sectionId }) => {
     const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
@@ -808,38 +814,162 @@ const UniversalSolutionPage = () => {
         </section>
       )}
 
-      {/* Key Benefits Section */}
-      {getSectionByOrder(1) && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(1).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(1).content}
-              </p>
-            </div>
+      {/* Media Banner Section - Always after hero (order_index = 1) */}
+      {(() => {
+        // Find media_banner section at order_index 1 (backend ensures it's always at position 1)
+        const mediaBannerSection = sections.find(s => 
+          s.section_type === 'media_banner' && 
+          s.order_index === 1 && 
+          s.is_visible !== 0
+        );
+        if (!mediaBannerSection) return null;
+        
+        // Get CMS base URL for uploaded files
+        const cmsBaseUrl = import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002');
+        
+        // Determine media URL
+        let mediaUrl = '';
+        let isYouTube = false;
+        
+        if (mediaBannerSection.media_url) {
+          if (mediaBannerSection.media_source === 'youtube' || 
+              mediaBannerSection.media_url.includes('youtube.com/embed/') ||
+              mediaBannerSection.media_url.includes('youtube.com/watch') ||
+              mediaBannerSection.media_url.includes('youtu.be/')) {
+            // YouTube video - backend should normalize to embed format
+            mediaUrl = mediaBannerSection.media_url;
+            isYouTube = true;
+          } else if (mediaBannerSection.media_source === 'upload') {
+            // Uploaded file - construct full URL
+            mediaUrl = mediaBannerSection.media_url.startsWith('http') 
+              ? mediaBannerSection.media_url 
+              : `${cmsBaseUrl}${mediaBannerSection.media_url}`;
+            isYouTube = false;
+          }
+        }
+        
+        return (
+          <section className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Title and Description */}
+              {(mediaBannerSection.title || mediaBannerSection.content) && (
+                <div className="text-center mb-12">
+                  {mediaBannerSection.title && (
+                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                      {mediaBannerSection.title}
+                    </h2>
+                  )}
+                  {mediaBannerSection.content && (
+                    <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+                      {mediaBannerSection.content}
+                    </p>
+                  )}
+                </div>
+              )}
 
-            <DynamicBenefitCards sectionId={getSectionByOrder(1).id} />
-          </div>
-        </section>
-      )}
+              {/* Media Display */}
+              {mediaUrl && (
+                <div className="rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
+                  {mediaBannerSection.media_type === 'video' && isYouTube ? (
+                    // YouTube Video Embed
+                    <div className="aspect-video w-full">
+                      <iframe
+                        src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=1&mute=1&loop=1&controls=1&rel=0&enablejsapi=1&playlist=${mediaUrl.match(/embed\/([^?&]+)/)?.[1] || ''}`}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        title={mediaBannerSection.title || 'Video'}
+                      ></iframe>
+                    </div>
+                  ) : mediaBannerSection.media_type === 'video' ? (
+                    // Uploaded Video
+                    <div className="aspect-video w-full">
+                      <video
+                        src={mediaUrl}
+                        autoPlay
+                        muted
+                        loop
+                        controls
+                        className="w-full h-full object-cover"
+                        playsInline
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  ) : mediaBannerSection.media_type === 'image' ? (
+                    // Image
+                    <div className="w-full">
+                      <img
+                        src={mediaUrl}
+                        alt={mediaBannerSection.title || 'Banner image'}
+                        className="w-full h-auto object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          console.error('Error loading image:', mediaUrl);
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Fallback message if no media */}
+              {!mediaUrl && (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+                  <p className="text-gray-500">No media configured for this section.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Key Benefits Section */}
+      {(() => {
+        const offset = getOrderOffset();
+        const benefitsOrder = 1 + offset; // If media_banner exists, benefits is at 2, otherwise at 1
+        const section1 = getSectionByOrder(benefitsOrder);
+        if (!section1 || section1.section_type === 'media_banner' || section1.section_type !== 'benefits') return null;
+        return (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {section1.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {section1.content}
+                </p>
+              </div>
+
+              <DynamicBenefitCards sectionId={section1.id} />
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Industry Segments Section - Financial Focus */}
-      {getSectionByOrder(2) && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(2).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(2).content}
-              </p>
-            </div>
+      {(() => {
+        const offset = getOrderOffset();
+        const segmentsOrder = 2 + offset; // If media_banner exists, segments is at 3, otherwise at 2
+        const segmentsSection = getSectionByOrder(segmentsOrder);
+        if (!segmentsSection || segmentsSection.section_type !== 'segments') return null;
+        return (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {segmentsSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {segmentsSection.content}
+                </p>
+              </div>
 
-            <DynamicFinancialSegments sectionId={getSectionByOrder(2).id} />
+              <DynamicFinancialSegments sectionId={segmentsSection.id} />
 
             {/* Bottom Stats */}
             <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -862,7 +992,8 @@ const UniversalSolutionPage = () => {
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* Success Story Section */}
       {/* {getSectionByOrder(3) && (
@@ -903,123 +1034,158 @@ const UniversalSolutionPage = () => {
       )} */}
 
       {/* Technology Solutions Section */}
-      {getSectionByOrder(4) && (
+      {(() => {
+        const offset = getOrderOffset();
+        const techOrder = 4 + offset;
+        const techSection = getSectionByOrder(techOrder);
+        if (!techSection || techSection.section_type !== 'technology') return null;
+        return (
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(4).title}
+                {techSection.title}
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(4).content}
+                {techSection.content}
               </p>
             </div>
 
-            <DynamicTechSolutions sectionId={getSectionByOrder(4).id} />
+            <DynamicTechSolutions sectionId={techSection.id} />
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* Real-World Use Cases & Solutions */}
-      {getSectionByOrder(5) && (
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(5).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(5).content}
-              </p>
+      {(() => {
+        const offset = getOrderOffset();
+        const useCasesOrder = 5 + offset;
+        const useCasesSection = getSectionByOrder(useCasesOrder);
+        if (!useCasesSection || useCasesSection.section_type !== 'use_cases') return null;
+        return (
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {useCasesSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {useCasesSection.content}
+                </p>
+              </div>
+
+              <DynamicUseCases sectionId={useCasesSection.id} />
             </div>
-
-            <DynamicUseCases sectionId={getSectionByOrder(5).id} />
-          </div>
-        </section>
-      )}
-
-      {/* Implementation Journey Roadmap */}
-      {getSectionByOrder(7) && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(7).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(7).content}
-              </p>
-            </div>
-
-            <DynamicImplementationJourney sectionId={getSectionByOrder(7).id} />
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* ROI & Business Impact Section */}
-      {getSectionByOrder(6) && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(6).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(6).content}
-              </p>
-            </div>
+      {(() => {
+        const offset = getOrderOffset();
+        const roiOrder = 6 + offset;
+        const roiSection = getSectionByOrder(roiOrder);
+        if (!roiSection || roiSection.section_type !== 'roi') return null;
+        return (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {roiSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {roiSection.content}
+                </p>
+              </div>
 
-            <DynamicROIStats sectionId={getSectionByOrder(6).id} />
-          </div>
-        </section>
-      )}
+              <DynamicROIStats sectionId={roiSection.id} />
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Implementation Journey Roadmap */}
+      {(() => {
+        const offset = getOrderOffset();
+        const implOrder = 7 + offset;
+        const implSection = getSectionByOrder(implOrder);
+        if (!implSection || implSection.section_type !== 'implementation') return null;
+        return (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {implSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {implSection.content}
+                </p>
+              </div>
+
+              <DynamicImplementationJourney sectionId={implSection.id} />
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Resources & Documentation Section - Mixed Layout */}
-      {getSectionByOrder(8) && (
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {getSectionByOrder(8).title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {getSectionByOrder(8).content}
-              </p>
-            </div>
+      {(() => {
+        const offset = getOrderOffset();
+        const resourcesOrder = 8 + offset;
+        const resourcesSection = getSectionByOrder(resourcesOrder);
+        if (!resourcesSection || resourcesSection.section_type !== 'resources') return null;
+        return (
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {resourcesSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {resourcesSection.content}
+                </p>
+              </div>
 
-            <DynamicResourcesDocs sectionId={getSectionByOrder(8).id} />
-          </div>
-        </section>
-      )}
+              <DynamicResourcesDocs sectionId={resourcesSection.id} />
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Call to Action Section */}
-      {getSectionByOrder(9) && (
-        <section className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
-          {/* Dot Grid Pattern Overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.15]"
-            style={{
-              backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`,
-              backgroundSize: '24px 24px'
-            }}
-          ></div>
-          
-          {/* Hexagon Pattern Overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.12]"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='1'/%3E%3C/svg%3E")`,
-              backgroundSize: '60px 60px'
-            }}
-          ></div>
-          
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              {getSectionByOrder(9).title}
-            </h2>
-            <p className="text-xl text-white/95 max-w-3xl mx-auto leading-relaxed mb-8">
-              {getSectionByOrder(9).content}
-            </p>
+      {(() => {
+        const offset = getOrderOffset();
+        const ctaOrder = 9 + offset;
+        const ctaSection = getSectionByOrder(ctaOrder);
+        if (!ctaSection || ctaSection.section_type !== 'cta') return null;
+        return (
+          <section className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
+            {/* Dot Grid Pattern Overlay */}
+            <div 
+              className="absolute inset-0 opacity-[0.15]"
+              style={{
+                backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`,
+                backgroundSize: '24px 24px'
+              }}
+            ></div>
+            
+            {/* Hexagon Pattern Overlay */}
+            <div 
+              className="absolute inset-0 opacity-[0.12]"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='1'/%3E%3C/svg%3E")`,
+                backgroundSize: '60px 60px'
+              }}
+            ></div>
+            
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                {ctaSection.title}
+              </h2>
+              <p className="text-xl text-white/95 max-w-3xl mx-auto leading-relaxed mb-8">
+                {ctaSection.content}
+              </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg">
                 Start Your Financial Journey
@@ -1030,7 +1196,8 @@ const UniversalSolutionPage = () => {
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
     </div>
   )
 }

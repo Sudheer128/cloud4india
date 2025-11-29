@@ -976,6 +976,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
   const sectionTypes = [
     { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
+    { value: 'media_banner', label: 'Video/Photo Banner', description: 'Video or photo banner section with title and sub-text (appears after hero section)' },
     { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions' },
     { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets' },
     { value: 'success_story', label: 'Success Stories', description: 'Customer testimonials and case studies' },
@@ -1174,6 +1175,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                         <div className="flex items-center mb-3">
                           <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
                             section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
+                            section.section_type === 'media_banner' ? 'bg-pink-100 text-pink-700' :
                             section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
                             section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
                             section.section_type === 'use_cases' ? 'bg-orange-100 text-orange-700' :
@@ -1344,6 +1346,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                             </span>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                               section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
+                              section.section_type === 'media_banner' ? 'bg-pink-100 text-pink-700' :
                               section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
                               section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
                               'bg-gray-100 text-gray-700'
@@ -1382,9 +1385,15 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
     section_type: '',
     title: '',
     content: '',
-    order_index: 0
+    order_index: 0,
+    media_type: '',
+    media_source: '',
+    media_url: ''
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
     if (section) {
@@ -1392,20 +1401,172 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
         section_type: section.section_type || '',
         title: section.title || '',
         content: section.content || '',
-        order_index: section.order_index || 0
+        order_index: section.order_index || 0,
+        media_type: section.media_type || '',
+        media_source: section.media_source || '',
+        media_url: section.media_url || ''
       });
+      
+      // Set preview URL if media exists
+      if (section.media_url) {
+        if (section.media_source === 'youtube') {
+          setPreviewUrl(section.media_url);
+        } else if (section.media_source === 'upload') {
+          const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+          setPreviewUrl(`${baseUrl}${section.media_url}`);
+        }
+      }
     } else {
       setFormData({
         section_type: '',
         title: '',
         content: '',
-        order_index: 0
+        order_index: 0,
+        media_type: '',
+        media_source: '',
+        media_url: ''
       });
+      setPreviewUrl('');
     }
+    setUploadError('');
   }, [section]);
+
+  const handleFileUpload = async (file, type) => {
+    setUploading(true);
+    setUploadError('');
+    
+    try {
+      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const formDataObj = new FormData();
+      formDataObj.append(type === 'image' ? 'image' : 'video', file);
+      
+      const endpoint = type === 'image' ? '/api/upload/image' : '/api/upload/video';
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        body: formDataObj
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+      
+      // Update form data with uploaded file path
+      setFormData(prev => ({
+        ...prev,
+        media_url: data.filePath,
+        media_source: 'upload'
+      }));
+      
+      // Set preview URL
+      setPreviewUrl(`${baseUrl}${data.filePath}`);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (type === 'image') {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setUploadError('Invalid file type. Only JPEG, JPG, and PNG images are allowed.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError('File size too large. Maximum size is 10MB.');
+        return;
+      }
+    } else if (type === 'video') {
+      if (file.type !== 'video/mp4') {
+        setUploadError('Invalid file type. Only MP4 videos are allowed.');
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) {
+        setUploadError('File size too large. Maximum size is 100MB.');
+        return;
+      }
+    }
+    
+    handleFileUpload(file, type);
+  };
+
+  const handleYouTubeUrlChange = (e) => {
+    const url = e.target.value;
+    
+    // Extract video ID for preview - using same logic as backend
+    if (url) {
+      // Handle various YouTube URL formats - same regex as backend extractYouTubeVideoId
+      let videoId = null;
+      
+      // Try multiple patterns (exact same as backend)
+      const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+        /youtube\.com\/watch\?.*&v=([^&\n?#]+)/,
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          videoId = match[1];
+          break;
+        }
+      }
+      
+      if (videoId) {
+        // Extract only the first 11 characters (YouTube video IDs are always 11 chars)
+        const cleanVideoId = videoId.substring(0, 11);
+        const embedUrl = `https://www.youtube.com/embed/${cleanVideoId}`;
+        setPreviewUrl(embedUrl);
+        // Also update formData with the normalized embed URL (same as backend expects)
+        setFormData(prev => ({
+          ...prev,
+          media_url: embedUrl
+        }));
+      } else {
+        setPreviewUrl('');
+        // Keep original URL in formData if extraction fails (backend will validate)
+        setFormData(prev => ({
+          ...prev,
+          media_url: url
+        }));
+      }
+    } else {
+      setPreviewUrl('');
+      setFormData(prev => ({
+        ...prev,
+        media_url: ''
+      }));
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate media_banner fields
+    if (formData.section_type === 'media_banner') {
+      if (!formData.media_type) {
+        setUploadError('Please select media type (Video or Photo)');
+        return;
+      }
+      if (!formData.media_source) {
+        setUploadError('Please select media source');
+        return;
+      }
+      if (!formData.media_url) {
+        setUploadError('Please provide media URL or upload a file');
+        return;
+      }
+    }
+    
     if (section) {
       onUpdate(section.id, formData);
     } else {
@@ -1543,20 +1704,207 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({...formData, content: e.target.value})}
-              rows={12}
+              rows={formData.section_type === 'media_banner' ? 3 : 12}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder="Enter section content... (HTML supported)"
+              placeholder={formData.section_type === 'media_banner' ? 'Enter sub-text or description...' : 'Enter section content... (HTML supported)'}
               required
             />
             <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-gray-500">
-                💡 <strong>HTML supported:</strong> Use tags like &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt; for formatting
-              </p>
+              {formData.section_type !== 'media_banner' && (
+                <p className="text-xs text-gray-500">
+                  💡 <strong>HTML supported:</strong> Use tags like &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt; for formatting
+                </p>
+              )}
               <div className="text-xs text-gray-400">
                 {formData.content.length} characters
               </div>
             </div>
           </div>
+
+          {/* Media Banner Fields */}
+          {formData.section_type === 'media_banner' && (
+            <div className="space-y-6 border-t border-gray-200 pt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Media Type *</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="media_type"
+                      value="video"
+                      checked={formData.media_type === 'video'}
+                      onChange={(e) => {
+                        setFormData({...formData, media_type: e.target.value, media_source: '', media_url: ''});
+                        setPreviewUrl('');
+                      }}
+                      className="mr-2"
+                      required
+                    />
+                    <span className="text-sm text-gray-700">Video</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="media_type"
+                      value="image"
+                      checked={formData.media_type === 'image'}
+                      onChange={(e) => {
+                        setFormData({...formData, media_type: e.target.value, media_source: '', media_url: ''});
+                        setPreviewUrl('');
+                      }}
+                      className="mr-2"
+                      required
+                    />
+                    <span className="text-sm text-gray-700">Photo</span>
+                  </label>
+                </div>
+              </div>
+
+              {formData.media_type === 'video' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Video Source *</label>
+                  <div className="flex gap-4 mb-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="media_source"
+                        value="youtube"
+                        checked={formData.media_source === 'youtube'}
+                        onChange={(e) => {
+                          setFormData({...formData, media_source: e.target.value, media_url: ''});
+                          setPreviewUrl('');
+                        }}
+                        className="mr-2"
+                        required
+                      />
+                      <span className="text-sm text-gray-700">YouTube Link</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="media_source"
+                        value="upload"
+                        checked={formData.media_source === 'upload'}
+                        onChange={(e) => {
+                          setFormData({...formData, media_source: e.target.value, media_url: ''});
+                          setPreviewUrl('');
+                        }}
+                        className="mr-2"
+                        required
+                      />
+                      <span className="text-sm text-gray-700">Upload File</span>
+                    </label>
+                  </div>
+
+                  {formData.media_source === 'youtube' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
+                      <input
+                        type="url"
+                        value={formData.media_url}
+                        onChange={handleYouTubeUrlChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Supports: youtube.com/watch?v=, youtu.be/, youtube.com/embed/
+                      </p>
+                    </div>
+                  )}
+
+                  {formData.media_source === 'upload' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Video File *</label>
+                      <input
+                        type="file"
+                        accept="video/mp4"
+                        onChange={(e) => handleFileChange(e, 'video')}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required={!formData.media_url}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        MP4 format only. Maximum size: 100MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {formData.media_type === 'image' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photo *</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={(e) => handleFileChange(e, 'image')}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required={!formData.media_url}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    JPEG, JPG, or PNG format. Maximum size: 10MB
+                  </p>
+                </div>
+              )}
+
+              {/* Upload Error */}
+              {uploadError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-800">{uploadError}</p>
+                </div>
+              )}
+
+              {/* Upload Progress */}
+              {uploading && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-blue-800">Uploading file...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Preview */}
+              {previewUrl && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
+                  <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                    {(formData.media_source === 'youtube' || (formData.media_type === 'video' && (formData.media_url.includes('youtube.com') || formData.media_url.includes('youtu.be')))) ? (
+                      <div className="aspect-video w-full">
+                        <iframe
+                          src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}autoplay=0&mute=0&controls=1&rel=0&enablejsapi=1`}
+                          className="w-full h-full rounded-lg"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          referrerPolicy="strict-origin-when-cross-origin"
+                        ></iframe>
+                      </div>
+                    ) : formData.media_type === 'video' ? (
+                      <div className="aspect-video w-full">
+                        <video
+                          src={previewUrl}
+                          controls
+                          className="w-full h-full rounded-lg"
+                        ></video>
+                      </div>
+                    ) : (
+                      <div className="w-full">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="w-full h-auto rounded-lg max-h-96 object-contain"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f3f4f6" width="400" height="300"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="16" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage not available%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button

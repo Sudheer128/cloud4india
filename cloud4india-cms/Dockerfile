@@ -14,8 +14,8 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
-# Create data directory for database
-RUN mkdir -p /app/data && chown -R node:node /app/data
+# Create data directory for database and uploads directory
+RUN mkdir -p /app/data /app/uploads/images /app/uploads/videos && chown -R node:node /app/data /app/uploads
 
 # Expose port 3000
 EXPOSE 3000

@@ -693,6 +693,402 @@ export const duplicateProduct = async (productId, options = {}) => {
   }
 };
 
+// ===== ABOUT US PAGE API FUNCTIONS =====
+
+/**
+ * Get all About Us page content
+ * @returns {Promise<Object>} Complete About Us page data
+ */
+export const getAboutUsContent = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/about?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching About Us content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update About Us hero section
+ * @param {Object} data - Hero section data
+ * @returns {Promise<Object>} Updated hero section
+ */
+export const updateAboutHero = async (data) => {
+  try {
+    const response = await cmsApi.put('/about/hero', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating About hero:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update About Us story section
+ * @param {Object} data - Story section data
+ * @returns {Promise<Object>} Updated story section
+ */
+export const updateAboutStory = async (data) => {
+  try {
+    const response = await cmsApi.put('/about/story', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating About story:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update About Us legacy section header
+ * @param {Object} data - Legacy section header data
+ * @returns {Promise<Object>} Updated legacy section
+ */
+export const updateAboutLegacy = async (data) => {
+  try {
+    const response = await cmsApi.put('/about/legacy', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating About legacy:', error);
+    throw error;
+  }
+};
+
+// Milestones CRUD
+export const getAboutMilestones = async (includeHidden = false) => {
+  try {
+    const url = includeHidden ? '/about/milestones?all=true' : '/about/milestones';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching milestones:', error);
+    throw error;
+  }
+};
+
+export const createAboutMilestone = async (data) => {
+  try {
+    const response = await cmsApi.post('/about/milestones', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating milestone:', error);
+    throw error;
+  }
+};
+
+export const updateAboutMilestone = async (id, data) => {
+  try {
+    const response = await cmsApi.put(`/about/milestones/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating milestone:', error);
+    throw error;
+  }
+};
+
+export const deleteAboutMilestone = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/about/milestones/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting milestone:', error);
+    throw error;
+  }
+};
+
+// Stats CRUD
+export const getAboutStats = async (includeHidden = false) => {
+  try {
+    const url = includeHidden ? '/about/stats?all=true' : '/about/stats';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    throw error;
+  }
+};
+
+export const createAboutStat = async (data) => {
+  try {
+    const response = await cmsApi.post('/about/stats', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating stat:', error);
+    throw error;
+  }
+};
+
+export const updateAboutStat = async (id, data) => {
+  try {
+    const response = await cmsApi.put(`/about/stats/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating stat:', error);
+    throw error;
+  }
+};
+
+export const deleteAboutStat = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/about/stats/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting stat:', error);
+    throw error;
+  }
+};
+
+// Testimonials Section Header
+export const updateAboutTestimonialsSection = async (data) => {
+  try {
+    const response = await cmsApi.put('/about/testimonials-section', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating testimonials section:', error);
+    throw error;
+  }
+};
+
+// Testimonials CRUD
+export const getAboutTestimonials = async (includeHidden = false) => {
+  try {
+    const url = includeHidden ? '/about/testimonials?all=true' : '/about/testimonials';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching testimonials:', error);
+    throw error;
+  }
+};
+
+export const createAboutTestimonial = async (data) => {
+  try {
+    const response = await cmsApi.post('/about/testimonials', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating testimonial:', error);
+    throw error;
+  }
+};
+
+export const updateAboutTestimonial = async (id, data) => {
+  try {
+    const response = await cmsApi.put(`/about/testimonials/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating testimonial:', error);
+    throw error;
+  }
+};
+
+export const deleteAboutTestimonial = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/about/testimonials/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting testimonial:', error);
+    throw error;
+  }
+};
+
+// Ratings CRUD
+export const getAboutRatings = async (includeHidden = false) => {
+  try {
+    const url = includeHidden ? '/about/ratings?all=true' : '/about/ratings';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching ratings:', error);
+    throw error;
+  }
+};
+
+export const createAboutRating = async (data) => {
+  try {
+    const response = await cmsApi.post('/about/ratings', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating rating:', error);
+    throw error;
+  }
+};
+
+export const updateAboutRating = async (id, data) => {
+  try {
+    const response = await cmsApi.put(`/about/ratings/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating rating:', error);
+    throw error;
+  }
+};
+
+export const deleteAboutRating = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/about/ratings/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting rating:', error);
+    throw error;
+  }
+};
+
+// Approach Section Header
+export const updateAboutApproachSection = async (data) => {
+  try {
+    const response = await cmsApi.put('/about/approach-section', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating approach section:', error);
+    throw error;
+  }
+};
+
+// Approach Items CRUD
+export const getAboutApproachItems = async (includeHidden = false) => {
+  try {
+    const url = includeHidden ? '/about/approach-items?all=true' : '/about/approach-items';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching approach items:', error);
+    throw error;
+  }
+};
+
+export const createAboutApproachItem = async (data) => {
+  try {
+    const response = await cmsApi.post('/about/approach-items', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating approach item:', error);
+    throw error;
+  }
+};
+
+export const updateAboutApproachItem = async (id, data) => {
+  try {
+    const response = await cmsApi.put(`/about/approach-items/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating approach item:', error);
+    throw error;
+  }
+};
+
+export const deleteAboutApproachItem = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/about/approach-items/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting approach item:', error);
+    throw error;
+  }
+};
+
+// Toggle visibility
+export const toggleAboutMilestoneVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/about/milestones/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling milestone visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutStatVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/about/stats/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling stat visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutTestimonialVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/about/testimonials/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling testimonial visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutRatingVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/about/ratings/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling rating visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutApproachItemVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/about/approach-items/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling approach item visibility:', error);
+    throw error;
+  }
+};
+
+// Toggle visibility for main sections
+export const toggleAboutHeroVisibility = async () => {
+  try {
+    const response = await cmsApi.put('/about/hero/toggle-visibility');
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling hero visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutStoryVisibility = async () => {
+  try {
+    const response = await cmsApi.put('/about/story/toggle-visibility');
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling story visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutLegacyVisibility = async () => {
+  try {
+    const response = await cmsApi.put('/about/legacy/toggle-visibility');
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling legacy visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutTestimonialsSectionVisibility = async () => {
+  try {
+    const response = await cmsApi.put('/about/testimonials-section/toggle-visibility');
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling testimonials section visibility:', error);
+    throw error;
+  }
+};
+
+export const toggleAboutApproachSectionVisibility = async () => {
+  try {
+    const response = await cmsApi.put('/about/approach-section/toggle-visibility');
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling approach section visibility:', error);
+    throw error;
+  }
+};
+
 // Export the axios instance for custom requests
 export { cmsApi };
 

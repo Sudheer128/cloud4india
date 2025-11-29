@@ -3,6 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 4002;
@@ -11,6 +13,78 @@ const PORT = process.env.PORT || 4002;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Create upload directories if they don't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const imagesDir = path.join(uploadsDir, 'images');
+const videosDir = path.join(uploadsDir, 'videos');
+
+[uploadsDir, imagesDir, videosDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`📁 Created directory: ${dir}`);
+  }
+});
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.fieldname === 'image') {
+      cb(null, imagesDir);
+    } else if (file.fieldname === 'video') {
+      cb(null, videosDir);
+    } else {
+      cb(new Error('Invalid field name'));
+    }
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename: timestamp-originalname
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${uniqueSuffix}-${name}${ext}`);
+  }
+});
+
+// File filter for images
+const imageFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, JPG, and PNG images are allowed.'), false);
+  }
+};
+
+// File filter for videos
+const videoFilter = (req, file, cb) => {
+  const allowedTypes = ['video/mp4'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only MP4 videos are allowed.'), false);
+  }
+};
+
+// Configure multer instances
+const uploadImage = multer({
+  storage: storage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for images
+  }
+});
+
+const uploadVideo = multer({
+  storage: storage,
+  fileFilter: videoFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit for videos
+  }
+});
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadsDir));
 
 // Initialize SQLite database
 const dbPath = process.env.DB_PATH || './cms.db';
@@ -26,6 +100,12 @@ const runMigrations = async () => {
     
     // Add new columns to main_products_sections if they don't exist
     await addMainProductsSectionColumns();
+    
+    // Add media banner columns to product_sections if they don't exist
+    await addMediaBannerColumns();
+    
+    // Add media banner columns to solution_sections if they don't exist
+    await addSolutionMediaBannerColumns();
     
     console.log('✅ Database migrations completed');
   } catch (error) {
@@ -99,6 +179,92 @@ const addMainProductsSectionColumns = () => {
               resolve();
             });
           });
+        }
+      });
+    });
+  });
+};
+
+// Add media banner columns to product_sections table
+const addMediaBannerColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { 
+        name: 'media_type', 
+        sql: "ALTER TABLE product_sections ADD COLUMN media_type TEXT;" 
+      },
+      { 
+        name: 'media_source', 
+        sql: "ALTER TABLE product_sections ADD COLUMN media_source TEXT;" 
+      },
+      { 
+        name: 'media_url', 
+        sql: "ALTER TABLE product_sections ADD COLUMN media_url TEXT;" 
+      }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          // Column might already exist, that's okay
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name}: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name}`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add media banner columns to solution_sections table
+const addSolutionMediaBannerColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { 
+        name: 'media_type', 
+        sql: "ALTER TABLE solution_sections ADD COLUMN media_type TEXT;" 
+      },
+      { 
+        name: 'media_source', 
+        sql: "ALTER TABLE solution_sections ADD COLUMN media_source TEXT;" 
+      },
+      { 
+        name: 'media_url', 
+        sql: "ALTER TABLE solution_sections ADD COLUMN media_url TEXT;" 
+      }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          // Column might already exist, that's okay
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in solution_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to solution_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to solution_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
         }
       });
     });
@@ -528,6 +694,266 @@ db.serialize(() => {
 
 // API Routes
 
+// ============================================
+// Helper Functions for Media Banner
+// ============================================
+
+// Extract YouTube video ID from various URL formats
+const extractYouTubeVideoId = (url) => {
+  if (!url) return null;
+  
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/watch\?.*&v=([^&\n?#]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return null;
+};
+
+// Validate and normalize YouTube URL
+const validateYouTubeUrl = (url) => {
+  if (!url) return { valid: false, error: 'YouTube URL is required' };
+  
+  const videoId = extractYouTubeVideoId(url);
+  if (!videoId) {
+    return { valid: false, error: 'Invalid YouTube URL format' };
+  }
+  
+  // Return normalized embed URL
+  return { 
+    valid: true, 
+    videoId: videoId,
+    embedUrl: `https://www.youtube.com/embed/${videoId}`,
+    originalUrl: url
+  };
+};
+
+// Delete uploaded file helper
+const deleteUploadedFile = (filePath) => {
+  return new Promise((resolve) => {
+    if (!filePath || !filePath.startsWith('/uploads/')) {
+      resolve({ success: true, message: 'No file to delete' });
+      return;
+    }
+    
+    // Remove leading slash and get relative path
+    const relativePath = filePath.replace(/^\//, '');
+    const fullPath = path.join(__dirname, relativePath);
+    
+    // Security check: ensure path is within uploads directory
+    const uploadsPath = path.join(__dirname, 'uploads');
+    if (!fullPath.startsWith(uploadsPath)) {
+      resolve({ success: false, error: 'Invalid file path' });
+      return;
+    }
+    
+    fs.unlink(fullPath, (err) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          // File doesn't exist, that's okay
+          resolve({ success: true, message: 'File already deleted' });
+        } else {
+          resolve({ success: false, error: err.message });
+        }
+      } else {
+        resolve({ success: true, message: 'File deleted successfully' });
+      }
+    });
+  });
+};
+
+// Get order index for media_banner section (always 1, right after hero)
+const getMediaBannerOrderIndex = (productId) => {
+  return new Promise((resolve, reject) => {
+    // Check if hero section exists (should be at order_index 0)
+    db.get(`
+      SELECT MAX(order_index) as max_order 
+      FROM product_sections 
+      WHERE product_id = ? AND section_type = 'hero'
+    `, [productId], (err, result) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      // Hero should be at 0, so media_banner should be at 1
+      // But if sections exist after hero, we need to shift them
+      const targetOrder = 1;
+      
+      // Check if order_index 1 is already taken
+      db.get(`
+        SELECT id FROM product_sections 
+        WHERE product_id = ? AND order_index = ?
+      `, [productId, targetOrder], (err, existing) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (existing) {
+          // Shift all sections with order_index >= 1 by +1
+          db.run(`
+            UPDATE product_sections 
+            SET order_index = order_index + 1 
+            WHERE product_id = ? AND order_index >= ?
+          `, [productId, targetOrder], (shiftErr) => {
+            if (shiftErr) {
+              reject(shiftErr);
+            } else {
+              resolve(targetOrder);
+            }
+          });
+        } else {
+          resolve(targetOrder);
+        }
+      });
+    });
+  });
+};
+
+// Get order index for media_banner section in solutions (always 1, right after hero)
+const getSolutionMediaBannerOrderIndex = (solutionId) => {
+  return new Promise((resolve, reject) => {
+    // Check if hero section exists (should be at order_index 0)
+    db.get(`
+      SELECT MAX(order_index) as max_order 
+      FROM solution_sections 
+      WHERE solution_id = ? AND section_type = 'hero'
+    `, [solutionId], (err, result) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      // Hero should be at 0, so media_banner should be at 1
+      // But if sections exist after hero, we need to shift them
+      const targetOrder = 1;
+      
+      // Check if order_index 1 is already taken
+      db.get(`
+        SELECT id FROM solution_sections 
+        WHERE solution_id = ? AND order_index = ?
+      `, [solutionId, targetOrder], (err, existing) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        if (existing) {
+          // Shift all sections with order_index >= 1 by +1
+          db.run(`
+            UPDATE solution_sections 
+            SET order_index = order_index + 1 
+            WHERE solution_id = ? AND order_index >= ?
+          `, [solutionId, targetOrder], (shiftErr) => {
+            if (shiftErr) {
+              reject(shiftErr);
+            } else {
+              resolve(targetOrder);
+            }
+          });
+        } else {
+          resolve(targetOrder);
+        }
+      });
+    });
+  });
+};
+
+// ============================================
+// File Upload Endpoints
+// ============================================
+
+// Upload image endpoint
+app.post('/api/upload/image', uploadImage.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+
+  // Return the file path relative to uploads directory
+  const filePath = `/uploads/images/${req.file.filename}`;
+  res.json({
+    success: true,
+    message: 'Image uploaded successfully',
+    filePath: filePath,
+    filename: req.file.filename,
+    size: req.file.size
+  });
+});
+
+// Upload video endpoint
+app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No video file provided' });
+  }
+
+  // Return the file path relative to uploads directory
+  const filePath = `/uploads/videos/${req.file.filename}`;
+  res.json({
+    success: true,
+    message: 'Video uploaded successfully',
+    filePath: filePath,
+    filename: req.file.filename,
+    size: req.file.size
+  });
+});
+
+// Delete uploaded file endpoint
+app.delete('/api/upload/:type/:filename', (req, res) => {
+  const { type, filename } = req.params;
+  
+  if (type !== 'images' && type !== 'videos') {
+    return res.status(400).json({ error: 'Invalid file type. Must be "images" or "videos"' });
+  }
+
+  const filePath = path.join(uploadsDir, type, filename);
+  
+  // Security: Prevent directory traversal
+  if (!filePath.startsWith(path.join(uploadsDir, type))) {
+    return res.status(400).json({ error: 'Invalid file path' });
+  }
+
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      return res.status(500).json({ error: 'Error deleting file: ' + err.message });
+    }
+    
+    res.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+  });
+});
+
+// Error handling for multer
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Images: max 10MB, Videos: max 100MB' });
+    }
+    return res.status(400).json({ error: 'Upload error: ' + error.message });
+  }
+  if (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  next();
+});
+
+// ============================================
+// Existing API Routes
+// ============================================
+
 // Get all homepage content
 app.get('/api/homepage', (req, res) => {
   const homepageData = {};
@@ -767,13 +1193,29 @@ app.post('/api/products', (req, res) => {
 // Delete product
 app.delete('/api/products/:id', (req, res) => {
   const { id } = req.params;
+  let sectionsDeleted = 0;
   
-  db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  // First, delete related main_products_sections entries
+  db.run(`DELETE FROM main_products_sections WHERE product_id = ?`, [id], function(deleteSectionsErr) {
+    if (deleteSectionsErr) {
+      console.error('Error deleting main_products_sections:', deleteSectionsErr.message);
+      // Continue with product deletion even if sections deletion fails
+    } else {
+      sectionsDeleted = this.changes || 0;
     }
-    res.json({ message: 'Product deleted successfully', changes: this.changes });
+    
+    // Then delete the product
+    db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ 
+        message: 'Product deleted successfully', 
+        changes: this.changes,
+        sectionsDeleted: sectionsDeleted
+      });
+    });
   });
 });
 
@@ -1792,9 +2234,9 @@ app.post('/api/products/:id/duplicate', (req, res) => {
       const duplicateName = newName || `${originalProduct.name} (Copy)`;
       const duplicateRoute = newRoute || duplicateName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       
-      // Create the duplicate product
-      db.run(`INSERT INTO products (name, description, category, color, border_color, order_index, gradient_start, gradient_end, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalProduct.description, originalProduct.category, originalProduct.color, originalProduct.border_color, nextOrder, originalProduct.gradient_start, originalProduct.gradient_end, 1], 
+      // Create the duplicate product (include route field)
+      db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [duplicateName, originalProduct.description, originalProduct.category, originalProduct.color, originalProduct.border_color, duplicateRoute, nextOrder, originalProduct.gradient_start, originalProduct.gradient_end, 1], 
         function(err) {
           if (err) {
             res.status(500).json({ error: err.message });
@@ -1997,59 +2439,200 @@ app.get('/api/products/:productId/sections/:sectionId', (req, res) => {
 // Create new product section
 app.post('/api/products/:productId/sections', (req, res) => {
   const { productId } = req.params;
-  const { title, description, section_type, order_index } = req.body;
+  const { title, description, section_type, order_index, media_type, media_source, media_url } = req.body;
   
-  // Get the next order index if not provided
-  const getNextOrder = () => {
+  // Validate media fields if section_type is media_banner
+  let finalMediaUrl = null;
+  
+  if (section_type === 'media_banner') {
+    if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
+      return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
+    }
+    
+    if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
+      return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+    }
+    
+    if (!media_url) {
+      return res.status(400).json({ error: 'media_url is required for media_banner sections' });
+    }
+    
+    // Validate YouTube URL if source is youtube
+    if (media_source === 'youtube') {
+      const youtubeValidation = validateYouTubeUrl(media_url);
+      if (!youtubeValidation.valid) {
+        return res.status(400).json({ error: youtubeValidation.error });
+      }
+      // Use the normalized embed URL
+      finalMediaUrl = youtubeValidation.embedUrl;
+    } else {
+      finalMediaUrl = media_url;
+    }
+  } else {
+    finalMediaUrl = media_url || null;
+  }
+  
+  // Get the order index
+  const getOrderIndex = () => {
     return new Promise((resolve, reject) => {
-      db.get(`
-        SELECT MAX(order_index) as max_order 
-        FROM product_sections 
-        WHERE product_id = ?
-      `, [productId], (err, result) => {
-        if (err) reject(err);
-        else resolve((result.max_order || -1) + 1);
-      });
+      if (section_type === 'media_banner') {
+        // Media banner always goes after hero (order_index = 1)
+        getMediaBannerOrderIndex(productId)
+          .then(resolve)
+          .catch(reject);
+      } else if (order_index !== undefined) {
+        resolve(order_index);
+      } else {
+        // Get the next order index
+        db.get(`
+          SELECT MAX(order_index) as max_order 
+          FROM product_sections 
+          WHERE product_id = ?
+        `, [productId], (err, result) => {
+          if (err) reject(err);
+          else resolve((result.max_order || -1) + 1);
+        });
+      }
     });
   };
   
-  const finalOrderIndex = order_index !== undefined ? order_index : getNextOrder();
-  
-  db.run(`
-    INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible)
-    VALUES (?, ?, ?, ?, ?, 1)
-  `, [productId, title, description, section_type, finalOrderIndex], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.status(201).json({ 
-      id: this.lastID, 
-      message: 'Product section created successfully' 
+  getOrderIndex().then(finalOrderIndex => {
+    db.run(`
+      INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible, media_type, media_source, media_url)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+    `, [productId, title, description, section_type, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.status(201).json({ 
+        id: this.lastID, 
+        message: 'Product section created successfully' 
+      });
     });
+  }).catch(err => {
+    res.status(500).json({ error: err.message });
   });
 });
 
 // Update product section
 app.put('/api/products/:productId/sections/:sectionId', (req, res) => {
   const { productId, sectionId } = req.params;
-  const { title, description, section_type, order_index, is_visible } = req.body;
+  const { title, description, section_type, order_index, is_visible, media_type, media_source, media_url } = req.body;
   
-  db.run(`
-    UPDATE product_sections SET 
-      title = ?, 
-      description = ?, 
-      section_type = ?, 
-      order_index = ?,
-      is_visible = ?,
-      updated_at = CURRENT_TIMESTAMP
+  // Get existing section to check for file deletion
+  db.get(`
+    SELECT media_type, media_source, media_url 
+    FROM product_sections 
     WHERE id = ? AND product_id = ?
-  `, [title, description, section_type, order_index, is_visible, sectionId, productId], function(err) {
+  `, [sectionId, productId], (err, existingSection) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ message: 'Product section updated successfully', changes: this.changes });
+    
+    if (!existingSection) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Validate and process media fields if section_type is media_banner
+    let finalMediaType = media_type;
+    let finalMediaSource = media_source;
+    let finalMediaUrl = media_url;
+    let oldFileToDelete = null;
+    
+    if (section_type === 'media_banner') {
+      if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
+        return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
+      }
+      
+      if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
+        return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+      }
+      
+      if (!media_url) {
+        return res.status(400).json({ error: 'media_url is required for media_banner sections' });
+      }
+      
+      // If media_source changed from upload to youtube, or media_url changed for upload, delete old file
+      if (existingSection.media_source === 'upload' && existingSection.media_url) {
+        if (media_source !== 'upload' || media_url !== existingSection.media_url) {
+          oldFileToDelete = existingSection.media_url;
+        }
+      }
+      
+      // Validate YouTube URL if source is youtube
+      if (media_source === 'youtube') {
+        const youtubeValidation = validateYouTubeUrl(media_url);
+        if (!youtubeValidation.valid) {
+          return res.status(400).json({ error: youtubeValidation.error });
+        }
+        // Use the normalized embed URL
+        finalMediaUrl = youtubeValidation.embedUrl;
+      }
+    } else {
+      // If section type changed from media_banner to something else, delete old file
+      if (existingSection.media_source === 'upload' && existingSection.media_url) {
+        oldFileToDelete = existingSection.media_url;
+      }
+      finalMediaType = null;
+      finalMediaSource = null;
+      finalMediaUrl = null;
+    }
+    
+    // Delete old file if needed
+    const deleteOldFile = () => {
+      if (oldFileToDelete) {
+        return deleteUploadedFile(oldFileToDelete);
+      }
+      return Promise.resolve({ success: true });
+    };
+    
+    // Update the section
+    deleteOldFile().then(() => {
+      db.run(`
+        UPDATE product_sections SET 
+          title = ?, 
+          description = ?, 
+          section_type = ?, 
+          order_index = ?,
+          is_visible = ?,
+          media_type = ?,
+          media_source = ?,
+          media_url = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND product_id = ?
+      `, [title, description, section_type, order_index, is_visible, finalMediaType, finalMediaSource, finalMediaUrl, sectionId, productId], function(updateErr) {
+        if (updateErr) {
+          res.status(500).json({ error: updateErr.message });
+          return;
+        }
+        res.json({ message: 'Product section updated successfully', changes: this.changes });
+      });
+    }).catch(deleteErr => {
+      console.error('Error deleting old file:', deleteErr);
+      // Continue with update even if file deletion fails
+      db.run(`
+        UPDATE product_sections SET 
+          title = ?, 
+          description = ?, 
+          section_type = ?, 
+          order_index = ?,
+          is_visible = ?,
+          media_type = ?,
+          media_source = ?,
+          media_url = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND product_id = ?
+      `, [title, description, section_type, order_index, is_visible, finalMediaType, finalMediaSource, finalMediaUrl, sectionId, productId], function(updateErr) {
+        if (updateErr) {
+          res.status(500).json({ error: updateErr.message });
+          return;
+        }
+        res.json({ message: 'Product section updated successfully (old file deletion failed)', changes: this.changes });
+      });
+    });
   });
 });
 
@@ -2057,15 +2640,53 @@ app.put('/api/products/:productId/sections/:sectionId', (req, res) => {
 app.delete('/api/products/:productId/sections/:sectionId', (req, res) => {
   const { productId, sectionId } = req.params;
   
-  db.run(`
-    DELETE FROM product_sections 
+  // Get section info to delete associated file if it's an uploaded file
+  db.get(`
+    SELECT media_source, media_url 
+    FROM product_sections 
     WHERE id = ? AND product_id = ?
-  `, [sectionId, productId], function(err) {
+  `, [sectionId, productId], (err, section) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ message: 'Product section deleted successfully', changes: this.changes });
+    
+    if (!section) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Delete associated file if it's an uploaded file
+    const deleteFilePromise = (section.media_source === 'upload' && section.media_url) 
+      ? deleteUploadedFile(section.media_url)
+      : Promise.resolve({ success: true });
+    
+    // Delete the section
+    deleteFilePromise.then(() => {
+      db.run(`
+        DELETE FROM product_sections 
+        WHERE id = ? AND product_id = ?
+      `, [sectionId, productId], function(deleteErr) {
+        if (deleteErr) {
+          res.status(500).json({ error: deleteErr.message });
+          return;
+        }
+        res.json({ message: 'Product section deleted successfully', changes: this.changes });
+      });
+    }).catch(deleteFileErr => {
+      console.error('Error deleting file:', deleteFileErr);
+      // Continue with section deletion even if file deletion fails
+      db.run(`
+        DELETE FROM product_sections 
+        WHERE id = ? AND product_id = ?
+      `, [sectionId, productId], function(deleteErr) {
+        if (deleteErr) {
+          res.status(500).json({ error: deleteErr.message });
+          return;
+        }
+        res.json({ message: 'Product section deleted successfully (file deletion failed)', changes: this.changes });
+      });
+    });
   });
 });
 
@@ -2706,19 +3327,64 @@ app.get('/api/solutions/:id/sections/:sectionId', (req, res) => {
 // Create new section
 app.post('/api/solutions/:id/sections', (req, res) => {
   const { id } = req.params;
-  const { section_type, title, content } = req.body;
+  const { section_type, title, content, media_type, media_source, media_url } = req.body;
   
-  // Get the next order index for this solution
-  db.get('SELECT MAX(order_index) as max_order FROM solution_sections WHERE solution_id = ?', [id], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  // Validate media fields if section_type is media_banner
+  let finalMediaUrl = null;
+  
+  if (section_type === 'media_banner') {
+    if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
+      return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
     }
     
-    const nextOrder = (result.max_order || -1) + 1;
+    if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
+      return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+    }
     
-    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`, 
-      [id, section_type, title, content, nextOrder], 
+    if (!media_url) {
+      return res.status(400).json({ error: 'media_url is required for media_banner sections' });
+    }
+    
+    // Validate YouTube URL if source is youtube
+    if (media_source === 'youtube') {
+      const youtubeValidation = validateYouTubeUrl(media_url);
+      if (!youtubeValidation.valid) {
+        return res.status(400).json({ error: youtubeValidation.error });
+      }
+      // Use the normalized embed URL
+      finalMediaUrl = youtubeValidation.embedUrl;
+    } else {
+      finalMediaUrl = media_url;
+    }
+  } else {
+    finalMediaUrl = media_url || null;
+  }
+  
+  // Get the order index
+  const getOrderIndex = () => {
+    return new Promise((resolve, reject) => {
+      if (section_type === 'media_banner') {
+        // Media banner always goes after hero (order_index = 1)
+        getSolutionMediaBannerOrderIndex(id)
+          .then(resolve)
+          .catch(reject);
+      } else {
+        // Get the next order index
+        db.get(`
+          SELECT MAX(order_index) as max_order 
+          FROM solution_sections 
+          WHERE solution_id = ?
+        `, [id], (err, result) => {
+          if (err) reject(err);
+          else resolve((result.max_order || -1) + 1);
+        });
+      }
+    });
+  };
+  
+  getOrderIndex().then(finalOrderIndex => {
+    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [id, section_type, title, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -2730,46 +3396,140 @@ app.post('/api/solutions/:id/sections', (req, res) => {
           changes: this.changes 
         });
       });
+  }).catch(err => {
+    res.status(500).json({ error: err.message });
   });
 });
 
 // Update section
 app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content, is_visible } = req.body;
+  const { section_type, title, content, is_visible, media_type, media_source, media_url } = req.body;
   
-  // Build dynamic query based on provided fields
-  let updateFields = [];
-  let values = [];
-  
-  if (section_type !== undefined) {
-    updateFields.push('section_type = ?');
-    values.push(section_type);
-  }
-  if (title !== undefined) {
-    updateFields.push('title = ?');
-    values.push(title);
-  }
-  if (content !== undefined) {
-    updateFields.push('content = ?');
-    values.push(content);
-  }
-  if (is_visible !== undefined) {
-    updateFields.push('is_visible = ?');
-    values.push(is_visible);
-  }
-  
-  updateFields.push('updated_at = CURRENT_TIMESTAMP');
-  values.push(sectionId, id);
-  
-  const query = `UPDATE solution_sections SET ${updateFields.join(', ')} WHERE id = ? AND solution_id = ?`;
-  
-  db.run(query, values, function(err) {
+  // First, get the existing section to check for file cleanup
+  db.get('SELECT * FROM solution_sections WHERE id = ? AND solution_id = ?', [sectionId, id], (err, existingSection) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ message: 'Section updated successfully', changes: this.changes });
+    
+    if (!existingSection) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Validate and process media fields if section_type is media_banner
+    let finalMediaType = media_type;
+    let finalMediaSource = media_source;
+    let finalMediaUrl = media_url;
+    let oldFileToDelete = null;
+    
+    if (section_type === 'media_banner') {
+      if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
+        return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
+      }
+      
+      if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
+        return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+      }
+      
+      if (!media_url) {
+        return res.status(400).json({ error: 'media_url is required for media_banner sections' });
+      }
+      
+      // If media_source changed from upload to youtube, or media_url changed for upload, delete old file
+      if (existingSection.media_source === 'upload' && existingSection.media_url) {
+        if (media_source !== 'upload' || media_url !== existingSection.media_url) {
+          oldFileToDelete = existingSection.media_url;
+        }
+      }
+      
+      // Validate YouTube URL if source is youtube
+      if (media_source === 'youtube') {
+        const youtubeValidation = validateYouTubeUrl(media_url);
+        if (!youtubeValidation.valid) {
+          return res.status(400).json({ error: youtubeValidation.error });
+        }
+        // Use the normalized embed URL
+        finalMediaUrl = youtubeValidation.embedUrl;
+      }
+    } else {
+      // If section type changed from media_banner to something else, delete old file
+      if (existingSection.section_type === 'media_banner' && existingSection.media_source === 'upload' && existingSection.media_url) {
+        oldFileToDelete = existingSection.media_url;
+      }
+      finalMediaType = null;
+      finalMediaSource = null;
+      finalMediaUrl = null;
+    }
+    
+    // Delete old file if needed
+    const deleteOldFile = () => {
+      if (oldFileToDelete) {
+        return deleteUploadedFile(oldFileToDelete);
+      }
+      return Promise.resolve({ success: true });
+    };
+    
+    // Build dynamic query based on provided fields
+    let updateFields = [];
+    let values = [];
+    
+    if (section_type !== undefined) {
+      updateFields.push('section_type = ?');
+      values.push(section_type);
+    }
+    if (title !== undefined) {
+      updateFields.push('title = ?');
+      values.push(title);
+    }
+    if (content !== undefined) {
+      updateFields.push('content = ?');
+      values.push(content);
+    }
+    if (is_visible !== undefined) {
+      updateFields.push('is_visible = ?');
+      values.push(is_visible);
+    }
+    // Update media fields if provided or if section_type is media_banner
+    if (media_type !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
+      updateFields.push('media_type = ?');
+      values.push(finalMediaType);
+    }
+    if (media_source !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
+      updateFields.push('media_source = ?');
+      values.push(finalMediaSource);
+    }
+    if (media_url !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
+      updateFields.push('media_url = ?');
+      values.push(finalMediaUrl);
+    }
+    
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(sectionId, id);
+    
+    const query = `UPDATE solution_sections SET ${updateFields.join(', ')} WHERE id = ? AND solution_id = ?`;
+    
+    // Update the section
+    deleteOldFile().then(() => {
+      db.run(query, values, function(updateErr) {
+        if (updateErr) {
+          res.status(500).json({ error: updateErr.message });
+          return;
+        }
+        res.json({ message: 'Section updated successfully', changes: this.changes });
+      });
+    }).catch(deleteErr => {
+      console.error('Error deleting old file:', deleteErr);
+      // Continue with update even if file deletion fails
+      db.run(query, values, function(updateErr) {
+        if (updateErr) {
+          res.status(500).json({ error: updateErr.message });
+          return;
+        }
+        res.json({ message: 'Section updated successfully (old file deletion failed)', changes: this.changes });
+      });
+    });
   });
 });
 
@@ -2777,12 +3537,47 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
 app.delete('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
   
-  db.run(`DELETE FROM solution_sections WHERE id = ? AND solution_id = ?`, [sectionId, id], function(err) {
+  // Get section info to delete associated file if it's an uploaded file
+  db.get(`
+    SELECT media_source, media_url, section_type
+    FROM solution_sections 
+    WHERE id = ? AND solution_id = ?
+  `, [sectionId, id], (err, section) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ message: 'Section deleted successfully', changes: this.changes });
+    
+    if (!section) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+    
+    // Delete associated file if it's an uploaded file for media_banner section
+    const deleteFilePromise = (section.section_type === 'media_banner' && section.media_source === 'upload' && section.media_url) 
+      ? deleteUploadedFile(section.media_url)
+      : Promise.resolve({ success: true });
+    
+    // Delete the section
+    deleteFilePromise.then(() => {
+      db.run(`DELETE FROM solution_sections WHERE id = ? AND solution_id = ?`, [sectionId, id], function(deleteErr) {
+        if (deleteErr) {
+          res.status(500).json({ error: deleteErr.message });
+          return;
+        }
+        res.json({ message: 'Section deleted successfully', changes: this.changes });
+      });
+    }).catch(deleteFileErr => {
+      console.error('Error deleting file:', deleteFileErr);
+      // Continue with section deletion even if file deletion fails
+      db.run(`DELETE FROM solution_sections WHERE id = ? AND solution_id = ?`, [sectionId, id], function(deleteErr) {
+        if (deleteErr) {
+          res.status(500).json({ error: deleteErr.message });
+          return;
+        }
+        res.json({ message: 'Section deleted successfully (file deletion failed)', changes: this.changes });
+      });
+    });
   });
 });
 
@@ -3479,67 +4274,91 @@ app.get('/api/main-products', (req, res) => {
       description: 'Discover our comprehensive suite of cloud computing services designed to power your business transformation.'
     };
     
-    // Get product sections - show all if "all" query param is present (for admin)
-    // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
-    // Also include product route for URL generation
-    const sectionsQuery = all === 'true' 
-      ? `
-        SELECT 
-          mps.*, 
-          COALESCE(p.name, mps.title) as product_name, 
-          COALESCE(p.description, mps.description) as product_description,
-          COALESCE(mps.category, p.category) as category,
-          p.route as product_route,
-          COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
-          COALESCE(mps.features, '[]') as features,
-          COALESCE(mps.price, '₹2,999') as price,
-          COALESCE(mps.price_period, '/month') as price_period,
-          COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
-          COALESCE(mps.button_text, 'Explore Solution') as button_text
-        FROM main_products_sections mps
-        LEFT JOIN products p ON mps.product_id = p.id
-        ORDER BY mps.order_index ASC
-      `
-      : `
-        SELECT 
-          mps.*, 
-          COALESCE(p.name, mps.title) as product_name, 
-          COALESCE(p.description, mps.description) as product_description,
-          COALESCE(mps.category, p.category) as category,
-          p.route as product_route,
-          COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
-          COALESCE(mps.features, '[]') as features,
-          COALESCE(mps.price, '₹2,999') as price,
-          COALESCE(mps.price_period, '/month') as price_period,
-          COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
-          COALESCE(mps.button_text, 'Explore Solution') as button_text
-        FROM main_products_sections mps
-        LEFT JOIN products p ON mps.product_id = p.id
-        WHERE mps.is_visible = 1 AND (p.is_visible = 1 OR p.id IS NULL)
-        ORDER BY mps.order_index ASC
-      `;
-    
-    db.all(sectionsQuery, (err, sections) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
+    // Cleanup orphaned entries before querying (only for admin view)
+    const executeQuery = () => {
+      // Get product sections - show all if "all" query param is present (for admin)
+      // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
+      // Also include product route for URL generation
+      const sectionsQuery = all === 'true' 
+        ? `
+          SELECT 
+            mps.*, 
+            COALESCE(p.name, mps.title) as product_name, 
+            COALESCE(p.description, mps.description) as product_description,
+            COALESCE(mps.category, p.category) as category,
+            p.route as product_route,
+            COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
+            COALESCE(mps.features, '[]') as features,
+            COALESCE(mps.price, '₹2,999') as price,
+            COALESCE(mps.price_period, '/month') as price_period,
+            COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
+            COALESCE(mps.button_text, 'Explore Solution') as button_text
+          FROM main_products_sections mps
+          INNER JOIN products p ON mps.product_id = p.id AND p.is_visible = 1
+          WHERE p.id IS NOT NULL
+          ORDER BY mps.order_index ASC
+        `
+        : `
+          SELECT 
+            mps.*, 
+            COALESCE(p.name, mps.title) as product_name, 
+            COALESCE(p.description, mps.description) as product_description,
+            COALESCE(mps.category, p.category) as category,
+            p.route as product_route,
+            COALESCE(mps.popular_tag, 'Most Popular') as popular_tag,
+            COALESCE(mps.features, '[]') as features,
+            COALESCE(mps.price, '₹2,999') as price,
+            COALESCE(mps.price_period, '/month') as price_period,
+            COALESCE(mps.free_trial_tag, 'Free Trial') as free_trial_tag,
+            COALESCE(mps.button_text, 'Explore Solution') as button_text
+          FROM main_products_sections mps
+          INNER JOIN products p ON mps.product_id = p.id
+          WHERE mps.is_visible = 1 AND p.is_visible = 1
+          ORDER BY mps.order_index ASC
+        `;
       
-      // Parse features JSON for each section
-      const parsedSections = (sections || []).map(section => {
-        try {
-          section.features = typeof section.features === 'string' 
-            ? JSON.parse(section.features) 
-            : (Array.isArray(section.features) ? section.features : []);
-        } catch (e) {
-          section.features = [];
+      db.all(sectionsQuery, (err, sections) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
         }
-        return section;
+        
+        // Parse features JSON for each section
+        const parsedSections = (sections || []).map(section => {
+          try {
+            section.features = typeof section.features === 'string' 
+              ? JSON.parse(section.features) 
+              : (Array.isArray(section.features) ? section.features : []);
+          } catch (e) {
+            section.features = [];
+          }
+          return section;
+        });
+        
+        mainPageData.sections = parsedSections;
+        res.json(mainPageData);
       });
-      
-      mainPageData.sections = parsedSections;
-      res.json(mainPageData);
-    });
+    };
+    
+    // Run cleanup for admin view, then execute query
+    if (all === 'true') {
+      // Cleanup: Delete entries where product doesn't exist OR product is not visible
+      db.run(`
+        DELETE FROM main_products_sections 
+        WHERE product_id IS NULL 
+           OR product_id NOT IN (SELECT id FROM products WHERE is_visible = 1)
+           OR NOT EXISTS (SELECT 1 FROM products WHERE id = main_products_sections.product_id AND is_visible = 1)
+      `, function(cleanupErr) {
+        if (cleanupErr) {
+          console.error('Error cleaning up orphaned sections:', cleanupErr.message);
+        } else if (this.changes > 0) {
+          console.log(`🧹 Cleaned up ${this.changes} orphaned main_products_sections entries`);
+        }
+        executeQuery();
+      });
+    } else {
+      executeQuery();
+    }
   });
 });
 
@@ -3889,6 +4708,55 @@ function addMainSolutionsSectionColumns() {
   }, 1000);
 }
 
+// Add columns to About Us sections
+function addAboutUsSectionColumns() {
+  const tables = [
+    { name: 'about_hero_section', columns: ['title_after TEXT DEFAULT "Control"', 'is_visible INTEGER DEFAULT 1'] },
+    { name: 'about_story_section', columns: ['is_visible INTEGER DEFAULT 1'] },
+    { name: 'about_legacy_section', columns: ['is_visible INTEGER DEFAULT 1'] },
+    { name: 'about_testimonials_section', columns: ['is_visible INTEGER DEFAULT 1'] },
+    { name: 'about_approach_section', columns: ['is_visible INTEGER DEFAULT 1'] }
+  ];
+
+  tables.forEach(({ name, columns }) => {
+    columns.forEach(column => {
+      const columnName = column.split(' ')[0];
+      db.run(`ALTER TABLE ${name} ADD COLUMN ${column}`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.error(`Error adding column ${columnName} to ${name}:`, err.message);
+        } else if (!err) {
+          console.log(`✅ Added column ${columnName} to ${name}`);
+        }
+      });
+    });
+  });
+
+  // Set default values for existing records
+  setTimeout(() => {
+    db.run(`UPDATE about_hero_section SET title_after = 'Control' WHERE title_after IS NULL`, (err) => {
+      if (err) {
+        console.error('Error setting default title_after:', err.message);
+      } else {
+        console.log('✅ Set default title_after for about_hero_section');
+      }
+    });
+    
+    db.run(`UPDATE about_hero_section SET is_visible = 1 WHERE is_visible IS NULL`, (err) => {
+      if (err) {
+        console.error('Error setting default is_visible for about_hero_section:', err.message);
+      }
+    });
+    
+    ['about_story_section', 'about_legacy_section', 'about_testimonials_section', 'about_approach_section'].forEach(table => {
+      db.run(`UPDATE ${table} SET is_visible = 1 WHERE is_visible IS NULL`, (err) => {
+        if (err) {
+          console.error(`Error setting default is_visible for ${table}:`, err.message);
+        }
+      });
+    });
+  }, 1000);
+}
+
 // Update main solutions section
 app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
@@ -3949,17 +4817,33 @@ app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
 
 // Get all main products sections (including hidden ones for admin)
 app.get('/api/main-products/sections/all', (req, res) => {
-  db.all(`
-    SELECT mps.*, p.name as product_name, p.description as product_description, p.category
-    FROM main_products_sections mps
-    JOIN products p ON mps.product_id = p.id
-    ORDER BY mps.order_index ASC
-  `, (err, sections) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  // First, cleanup orphaned entries - delete where product doesn't exist OR is not visible
+  db.run(`
+    DELETE FROM main_products_sections 
+    WHERE product_id IS NULL 
+       OR product_id NOT IN (SELECT id FROM products WHERE is_visible = 1)
+       OR NOT EXISTS (SELECT 1 FROM products WHERE id = main_products_sections.product_id AND is_visible = 1)
+  `, function(cleanupErr) {
+    if (cleanupErr) {
+      console.error('Error cleaning up orphaned sections:', cleanupErr.message);
+    } else if (this.changes > 0) {
+      console.log(`🧹 Cleaned up ${this.changes} orphaned main_products_sections entries`);
     }
-    res.json(sections || []);
+    
+    // Then query sections - only return sections with existing, visible products
+    db.all(`
+      SELECT mps.*, p.name as product_name, p.description as product_description, p.category, p.id as product_id, p.is_visible as product_is_visible
+      FROM main_products_sections mps
+      INNER JOIN products p ON mps.product_id = p.id AND p.is_visible = 1
+      WHERE p.id IS NOT NULL
+      ORDER BY mps.order_index ASC
+    `, (err, sections) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(sections || []);
+    });
   });
 });
 
@@ -4720,20 +5604,884 @@ app.patch('/api/feature-banners/:id/toggle-visibility', (req, res) => {
   });
 });
 
+// ==================== About Us Page API Endpoints ====================
+
+// Get all About Us page content
+app.get('/api/about', (req, res) => {
+  const { all } = req.query;
+  const showAll = all === 'true';
+  const aboutData = {};
+  
+  // Get hero section (only if visible, unless all=true)
+  const heroQuery = showAll 
+    ? 'SELECT * FROM about_hero_section WHERE id = 1'
+    : 'SELECT * FROM about_hero_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+  db.get(heroQuery, (err, hero) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    aboutData.hero = hero || {};
+    
+    // Get story section (only if visible, unless all=true)
+    const storyQuery = showAll 
+      ? 'SELECT * FROM about_story_section WHERE id = 1'
+      : 'SELECT * FROM about_story_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+    db.get(storyQuery, (err, story) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      aboutData.story = story || {};
+      
+      // Parse story_items JSON string
+      if (aboutData.story.story_items) {
+        try {
+          aboutData.story.story_items = JSON.parse(aboutData.story.story_items);
+        } catch (e) {
+          aboutData.story.story_items = [];
+        }
+      }
+      
+      // Get legacy section (only if visible, unless all=true)
+      const legacyQuery = showAll 
+        ? 'SELECT * FROM about_legacy_section WHERE id = 1'
+        : 'SELECT * FROM about_legacy_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+      db.get(legacyQuery, (err, legacy) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        aboutData.legacy = legacy || {};
+        
+        // Get milestones
+        db.all('SELECT * FROM about_legacy_milestones WHERE is_visible = 1 ORDER BY order_index ASC', (err, milestones) => {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          aboutData.legacy.milestones = milestones || [];
+          
+          // Get stats
+          db.all('SELECT * FROM about_legacy_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            aboutData.legacy.stats = stats || [];
+            
+            // Get testimonials section (only if visible, unless all=true)
+            const testimonialsSectionQuery = showAll 
+              ? 'SELECT * FROM about_testimonials_section WHERE id = 1'
+              : 'SELECT * FROM about_testimonials_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+            db.get(testimonialsSectionQuery, (err, testimonialsSection) => {
+              if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+              }
+              aboutData.testimonialsSection = testimonialsSection || {};
+              
+              // Get testimonials
+              db.all('SELECT * FROM about_testimonials WHERE is_visible = 1 ORDER BY page_index ASC, order_index ASC', (err, testimonials) => {
+                if (err) {
+                  res.status(500).json({ error: err.message });
+                  return;
+                }
+                aboutData.testimonials = testimonials || [];
+                
+                // Group testimonials by page_index
+                const groupedTestimonials = {};
+                testimonials.forEach(testimonial => {
+                  if (!groupedTestimonials[testimonial.page_index]) {
+                    groupedTestimonials[testimonial.page_index] = [];
+                  }
+                  groupedTestimonials[testimonial.page_index].push(testimonial);
+                });
+                aboutData.testimonials = Object.values(groupedTestimonials);
+                
+                // Get ratings
+                db.all('SELECT * FROM about_testimonial_ratings WHERE is_visible = 1 ORDER BY order_index ASC', (err, ratings) => {
+                  if (err) {
+                    res.status(500).json({ error: err.message });
+                    return;
+                  }
+                  aboutData.ratings = ratings || [];
+                  
+                  // Get approach section (only if visible, unless all=true)
+                  const approachSectionQuery = showAll 
+                    ? 'SELECT * FROM about_approach_section WHERE id = 1'
+                    : 'SELECT * FROM about_approach_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+                  db.get(approachSectionQuery, (err, approachSection) => {
+                    if (err) {
+                      res.status(500).json({ error: err.message });
+                      return;
+                    }
+                    aboutData.approachSection = approachSection || {};
+                    
+                    // Get approach items
+                    db.all('SELECT * FROM about_approach_items WHERE is_visible = 1 ORDER BY order_index ASC', (err, approachItems) => {
+                      if (err) {
+                        res.status(500).json({ error: err.message });
+                        return;
+                      }
+                      aboutData.approachItems = approachItems || [];
+                      
+                      res.json(aboutData);
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+// Update About Hero Section
+app.put('/api/about/hero', (req, res) => {
+  const { badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label } = req.body;
+  
+  db.run(`UPDATE about_hero_section SET 
+    badge_text = COALESCE(?, badge_text),
+    title = COALESCE(?, title),
+    highlighted_text = COALESCE(?, highlighted_text),
+    title_after = COALESCE(?, title_after),
+    description = COALESCE(?, description),
+    button_text = COALESCE(?, button_text),
+    button_link = COALESCE(?, button_link),
+    image_url = COALESCE(?, image_url),
+    stat_value = COALESCE(?, stat_value),
+    stat_label = COALESCE(?, stat_label),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`, 
+    [badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label], 
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        db.run(`INSERT INTO about_hero_section (id, badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label) 
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+          [badge_text || 'About Cloud 4 India', title, highlighted_text, title_after || 'Control', description, button_text, button_link, image_url, stat_value, stat_label], 
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'About hero section created successfully' });
+          });
+      } else {
+        res.json({ message: 'About hero section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Update About Story Section
+app.put('/api/about/story', (req, res) => {
+  const { header_title, header_description, founding_year, story_items, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label } = req.body;
+  
+  const storyItemsJson = Array.isArray(story_items) ? JSON.stringify(story_items) : story_items;
+  
+  db.run(`UPDATE about_story_section SET 
+    header_title = COALESCE(?, header_title),
+    header_description = COALESCE(?, header_description),
+    founding_year = COALESCE(?, founding_year),
+    story_items = COALESCE(?, story_items),
+    image_url = COALESCE(?, image_url),
+    badge_icon = COALESCE(?, badge_icon),
+    badge_value = COALESCE(?, badge_value),
+    badge_label = COALESCE(?, badge_label),
+    top_badge_icon = COALESCE(?, top_badge_icon),
+    top_badge_value = COALESCE(?, top_badge_value),
+    top_badge_label = COALESCE(?, top_badge_label),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`, 
+    [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label], 
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        db.run(`INSERT INTO about_story_section (id, header_title, header_description, founding_year, story_items, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label) 
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+          [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label], 
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'About story section created successfully' });
+          });
+      } else {
+        res.json({ message: 'About story section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Update About Legacy Section Header
+app.put('/api/about/legacy', (req, res) => {
+  const { header_title, header_description } = req.body;
+  
+  db.run(`UPDATE about_legacy_section SET 
+    header_title = COALESCE(?, header_title),
+    header_description = COALESCE(?, header_description),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`, 
+    [header_title, header_description], 
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        db.run(`INSERT INTO about_legacy_section (id, header_title, header_description) VALUES (1, ?, ?)`, 
+          [header_title || 'Our Legacy', header_description], 
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'About legacy section created successfully' });
+          });
+      } else {
+        res.json({ message: 'About legacy section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Milestones CRUD
+app.get('/api/about/milestones', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true' 
+    ? 'SELECT * FROM about_legacy_milestones ORDER BY order_index ASC'
+    : 'SELECT * FROM about_legacy_milestones WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, milestones) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(milestones || []);
+  });
+});
+
+app.post('/api/about/milestones', (req, res) => {
+  const { year, title, description, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO about_legacy_milestones (year, title, description, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
+    [year, title, description, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Milestone created successfully' });
+    });
+});
+
+app.put('/api/about/milestones/:id', (req, res) => {
+  const { id } = req.params;
+  const { year, title, description, order_index, is_visible } = req.body;
+  db.run(`UPDATE about_legacy_milestones SET 
+    year = COALESCE(?, year),
+    title = COALESCE(?, title),
+    description = COALESCE(?, description),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [year, title, description, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Milestone updated successfully', changes: this.changes });
+    });
+});
+
+app.delete('/api/about/milestones/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM about_legacy_milestones WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Milestone deleted successfully', changes: this.changes });
+  });
+});
+
+// Stats CRUD
+app.get('/api/about/stats', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM about_legacy_stats ORDER BY order_index ASC'
+    : 'SELECT * FROM about_legacy_stats WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, stats) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(stats || []);
+  });
+});
+
+app.post('/api/about/stats', (req, res) => {
+  const { label, value, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO about_legacy_stats (label, value, order_index, is_visible) VALUES (?, ?, ?, ?)`,
+    [label, value, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Stat created successfully' });
+    });
+});
+
+app.put('/api/about/stats/:id', (req, res) => {
+  const { id } = req.params;
+  const { label, value, order_index, is_visible } = req.body;
+  db.run(`UPDATE about_legacy_stats SET 
+    label = COALESCE(?, label),
+    value = COALESCE(?, value),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [label, value, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Stat updated successfully', changes: this.changes });
+    });
+});
+
+app.delete('/api/about/stats/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM about_legacy_stats WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Stat deleted successfully', changes: this.changes });
+  });
+});
+
+// Testimonials Section Header
+app.put('/api/about/testimonials-section', (req, res) => {
+  const { header_title, header_description } = req.body;
+  db.run(`UPDATE about_testimonials_section SET 
+    header_title = COALESCE(?, header_title),
+    header_description = COALESCE(?, header_description),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`,
+    [header_title, header_description],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        db.run(`INSERT INTO about_testimonials_section (id, header_title, header_description) VALUES (1, ?, ?)`,
+          [header_title, header_description],
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'Testimonials section created successfully' });
+          });
+      } else {
+        res.json({ message: 'Testimonials section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Testimonials CRUD
+app.get('/api/about/testimonials', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM about_testimonials ORDER BY page_index ASC, order_index ASC'
+    : 'SELECT * FROM about_testimonials WHERE is_visible = 1 ORDER BY page_index ASC, order_index ASC';
+  db.all(query, (err, testimonials) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(testimonials || []);
+  });
+});
+
+app.post('/api/about/testimonials', (req, res) => {
+  const { quote, company, author, page_index, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO about_testimonials (quote, company, author, page_index, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
+    [quote, company || null, author || null, page_index || 0, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Testimonial created successfully' });
+    });
+});
+
+app.put('/api/about/testimonials/:id', (req, res) => {
+  const { id } = req.params;
+  const { quote, company, author, page_index, order_index, is_visible } = req.body;
+  db.run(`UPDATE about_testimonials SET 
+    quote = COALESCE(?, quote),
+    company = COALESCE(?, company),
+    author = COALESCE(?, author),
+    page_index = COALESCE(?, page_index),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [quote, company, author, page_index, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Testimonial updated successfully', changes: this.changes });
+    });
+});
+
+app.delete('/api/about/testimonials/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM about_testimonials WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Testimonial deleted successfully', changes: this.changes });
+  });
+});
+
+// Ratings CRUD
+app.get('/api/about/ratings', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM about_testimonial_ratings ORDER BY order_index ASC'
+    : 'SELECT * FROM about_testimonial_ratings WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, ratings) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(ratings || []);
+  });
+});
+
+app.post('/api/about/ratings', (req, res) => {
+  const { platform, rating_value, platform_icon, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO about_testimonial_ratings (platform, rating_value, platform_icon, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
+    [platform, rating_value, platform_icon || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Rating created successfully' });
+    });
+});
+
+app.put('/api/about/ratings/:id', (req, res) => {
+  const { id } = req.params;
+  const { platform, rating_value, platform_icon, order_index, is_visible } = req.body;
+  db.run(`UPDATE about_testimonial_ratings SET 
+    platform = COALESCE(?, platform),
+    rating_value = COALESCE(?, rating_value),
+    platform_icon = COALESCE(?, platform_icon),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [platform, rating_value, platform_icon, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Rating updated successfully', changes: this.changes });
+    });
+});
+
+app.delete('/api/about/ratings/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM about_testimonial_ratings WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Rating deleted successfully', changes: this.changes });
+  });
+});
+
+// Approach Section Header
+app.put('/api/about/approach-section', (req, res) => {
+  const { header_title, header_description, cta_button_text } = req.body;
+  db.run(`UPDATE about_approach_section SET 
+    header_title = COALESCE(?, header_title),
+    header_description = COALESCE(?, header_description),
+    cta_button_text = COALESCE(?, cta_button_text),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`,
+    [header_title, header_description, cta_button_text],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        db.run(`INSERT INTO about_approach_section (id, header_title, header_description, cta_button_text) VALUES (1, ?, ?, ?)`,
+          [header_title || 'Our Approach', header_description, cta_button_text || 'Talk to a Specialist'],
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'Approach section created successfully' });
+          });
+      } else {
+        res.json({ message: 'Approach section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Approach Items CRUD
+app.get('/api/about/approach-items', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM about_approach_items ORDER BY order_index ASC'
+    : 'SELECT * FROM about_approach_items WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, items) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(items || []);
+  });
+});
+
+app.post('/api/about/approach-items', (req, res) => {
+  const { title, description, icon_type, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO about_approach_items (title, description, icon_type, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
+    [title, description, icon_type || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Approach item created successfully' });
+    });
+});
+
+app.put('/api/about/approach-items/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description, icon_type, order_index, is_visible } = req.body;
+  db.run(`UPDATE about_approach_items SET 
+    title = COALESCE(?, title),
+    description = COALESCE(?, description),
+    icon_type = COALESCE(?, icon_type),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [title, description, icon_type, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Approach item updated successfully', changes: this.changes });
+    });
+});
+
+app.delete('/api/about/approach-items/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM about_approach_items WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Approach item deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle visibility endpoints
+app.put('/api/about/milestones/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM about_legacy_milestones WHERE id = ?', [id], (err, milestone) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!milestone) {
+      res.status(404).json({ error: 'Milestone not found' });
+      return;
+    }
+    const newVisibility = milestone.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE about_legacy_milestones SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/stats/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM about_legacy_stats WHERE id = ?', [id], (err, stat) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!stat) {
+      res.status(404).json({ error: 'Stat not found' });
+      return;
+    }
+    const newVisibility = stat.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE about_legacy_stats SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/testimonials/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM about_testimonials WHERE id = ?', [id], (err, testimonial) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!testimonial) {
+      res.status(404).json({ error: 'Testimonial not found' });
+      return;
+    }
+    const newVisibility = testimonial.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE about_testimonials SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/ratings/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM about_testimonial_ratings WHERE id = ?', [id], (err, rating) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!rating) {
+      res.status(404).json({ error: 'Rating not found' });
+      return;
+    }
+    const newVisibility = rating.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE about_testimonial_ratings SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/approach-items/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM about_approach_items WHERE id = ?', [id], (err, item) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!item) {
+      res.status(404).json({ error: 'Approach item not found' });
+      return;
+    }
+    const newVisibility = item.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE about_approach_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+// Toggle visibility for main sections
+app.put('/api/about/hero/toggle-visibility', (req, res) => {
+  db.get('SELECT is_visible FROM about_hero_section WHERE id = 1', (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Hero section not found' });
+      return;
+    }
+    const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
+    db.run('UPDATE about_hero_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [newVisibility], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/story/toggle-visibility', (req, res) => {
+  db.get('SELECT is_visible FROM about_story_section WHERE id = 1', (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Story section not found' });
+      return;
+    }
+    const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
+    db.run('UPDATE about_story_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [newVisibility], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/legacy/toggle-visibility', (req, res) => {
+  db.get('SELECT is_visible FROM about_legacy_section WHERE id = 1', (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Legacy section not found' });
+      return;
+    }
+    const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
+    db.run('UPDATE about_legacy_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [newVisibility], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/testimonials-section/toggle-visibility', (req, res) => {
+  db.get('SELECT is_visible FROM about_testimonials_section WHERE id = 1', (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Testimonials section not found' });
+      return;
+    }
+    const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
+    db.run('UPDATE about_testimonials_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [newVisibility], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+app.put('/api/about/approach-section/toggle-visibility', (req, res) => {
+  db.get('SELECT is_visible FROM about_approach_section WHERE id = 1', (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Approach section not found' });
+      return;
+    }
+    const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
+    db.run('UPDATE about_approach_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [newVisibility], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+// Cleanup orphaned main_products_sections entries (where product doesn't exist or is not visible)
+function cleanupOrphanedMainProductsSections() {
+  db.run(`
+    DELETE FROM main_products_sections 
+    WHERE product_id NOT IN (SELECT id FROM products WHERE is_visible = 1)
+  `, function(err) {
+    if (err) {
+      console.error('Error cleaning up orphaned main_products_sections:', err.message);
+    } else if (this.changes > 0) {
+      console.log(`🧹 Cleaned up ${this.changes} orphaned main_products_sections entries`);
+    }
+  });
+}
+
 // Start server
+
 app.listen(PORT, async () => {
   console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);
+  
+  // Cleanup orphaned entries on server start
+  setTimeout(() => {
+    cleanupOrphanedMainProductsSections();
+  }, 3000);
   console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
   console.log(`💰 Pricing API available at http://localhost:${PORT}/api/pricing`);
   console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
   
-  // Run migrations after server starts
-  await runMigrations();
+  // Run migrations only if RUN_MIGRATIONS environment variable is set to true
+  const shouldRunMigrations = process.env.RUN_MIGRATIONS === 'true';
+  if (shouldRunMigrations) {
+    console.log('🔄 RUN_MIGRATIONS=true - Running database migrations...');
+    await runMigrations();
+  } else {
+    console.log('⏭️  RUN_MIGRATIONS=false - Skipping database migrations (using existing database)');
+  }
   
   // Add missing columns to solutions tables
   setTimeout(() => {
     addMainSolutionsSectionColumns();
     addMainSolutionsContentColumns();
+    addAboutUsSectionColumns();
   }, 2000);
 });
 

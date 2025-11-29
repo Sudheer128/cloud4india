@@ -5,19 +5,12 @@ import {
   EyeSlashIcon,
   CheckIcon,
   XMarkIcon,
-  DocumentDuplicateIcon,
-  TrashIcon,
   PlusIcon
 } from '@heroicons/react/24/outline';
 import { 
   getMainProductsContent, 
   updateMainProductsHero, 
-  updateMainProductsSection,
-  duplicateMainProductsSection,
-  deleteMainProductsSection,
-  toggleMainProductsSectionVisibility,
-  createMainProductsSection,
-  getAllProductsForSection
+  updateMainProductsSection
 } from '../services/cmsApi';
 
 const ProductsMainAdmin = () => {
@@ -52,19 +45,6 @@ const ProductsMainAdmin = () => {
     free_trial_tag: '',
     button_text: ''
   });
-  const [showNewSectionModal, setShowNewSectionModal] = useState(false);
-  const [newSectionForm, setNewSectionForm] = useState({
-    title: '',
-    description: '',
-    popular_tag: '',
-    category: '',
-    features: [],
-    price: '',
-    price_period: '',
-    free_trial_tag: '',
-    button_text: ''
-  });
-  const [availableProducts, setAvailableProducts] = useState([]);
 
   // Fetch main products content (include hidden sections for admin)
   const fetchMainProductsContent = async () => {
@@ -98,106 +78,11 @@ const ProductsMainAdmin = () => {
     }
   };
 
-  // Fetch available products for new section dropdown
-  const fetchAvailableProducts = async () => {
-    try {
-      const products = await getAllProductsForSection();
-      setAvailableProducts(products || []);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-    }
-  };
-
   useEffect(() => {
     fetchMainProductsContent();
-    fetchAvailableProducts();
   }, []);
 
-  // Handle duplicate section
-  const handleDuplicateSection = async (sectionId) => {
-    try {
-      await duplicateMainProductsSection(sectionId);
-      await fetchMainProductsContent();
-      alert('Section duplicated successfully!');
-    } catch (err) {
-      alert('Error duplicating section: ' + err.message);
-    }
-  };
 
-  // Handle delete section
-  const handleDeleteSection = async (sectionId, sectionTitle) => {
-    if (window.confirm(`Are you sure you want to delete "${sectionTitle}"? This action cannot be undone.`)) {
-      try {
-        await deleteMainProductsSection(sectionId);
-        await fetchMainProductsContent();
-        alert('Section deleted successfully!');
-      } catch (err) {
-        alert('Error deleting section: ' + err.message);
-      }
-    }
-  };
-
-  // Handle toggle visibility
-  const handleToggleVisibility = async (sectionId) => {
-    try {
-      await toggleMainProductsSectionVisibility(sectionId);
-      await fetchMainProductsContent();
-    } catch (err) {
-      alert('Error toggling section visibility: ' + err.message);
-    }
-  };
-
-  // Handle create new section
-  const handleCreateNewSection = async () => {
-    // Validation: Check required fields
-    if (!newSectionForm.title || !newSectionForm.title.trim()) {
-      alert('Title is required!');
-      return;
-    }
-    if (!newSectionForm.description || !newSectionForm.description.trim()) {
-      alert('Description is required!');
-      return;
-    }
-    if (!newSectionForm.button_text || !newSectionForm.button_text.trim()) {
-      alert('Button Text is required!');
-      return;
-    }
-
-    try {
-      // Filter out empty features
-      const filteredFeatures = newSectionForm.features.filter(f => f && f.trim());
-      
-      const createData = {
-        ...newSectionForm,
-        is_visible: 1, // Always visible by default
-        features: filteredFeatures,
-        // Set optional fields to null if empty
-        popular_tag: newSectionForm.popular_tag?.trim() || null,
-        category: newSectionForm.category?.trim() || null,
-        price: newSectionForm.price?.trim() || null,
-        price_period: newSectionForm.price_period?.trim() || null,
-        free_trial_tag: newSectionForm.free_trial_tag?.trim() || null
-      };
-
-      await createMainProductsSection(createData);
-      await fetchMainProductsContent();
-      setShowNewSectionModal(false);
-      setNewSectionForm({
-        title: '',
-        description: '',
-        popular_tag: '',
-        category: '',
-        features: [],
-        price: '',
-        price_period: '',
-        free_trial_tag: '',
-        button_text: ''
-      });
-      alert('New section created successfully!');
-    } catch (err) {
-      alert('Error creating section: ' + err.message);
-    }
-  };
 
   // Handle hero section update
   const handleHeroUpdate = async () => {
@@ -273,18 +158,14 @@ const ProductsMainAdmin = () => {
       }
     }
     
-    // If no features exist, provide default ones
-    // if (parsedFeatures.length === 0) {
-    //   parsedFeatures = ['High Performance Computing', 'Enterprise Security', '99.9% Uptime SLA'];
-    // }
-    
+    // Use section.title or fallback to product_name, and section.description or product_description
     setSectionForm({
-      title: section.title || '',
-      description: section.description || '',
-      is_visible: section.is_visible,
+      title: section.title || section.product_name || '',
+      description: section.description || section.product_description || '',
+      is_visible: section.is_visible !== undefined ? section.is_visible : 1,
       popular_tag: section.popular_tag || 'Most Popular',
       category: section.category || '',
-      features: parsedFeatures,
+      features: parsedFeatures.length > 0 ? parsedFeatures : [''],
       price: section.price || '₹2,999',
       price_period: section.price_period || '/month',
       free_trial_tag: section.free_trial_tag || 'Free Trial',
@@ -311,23 +192,6 @@ const ProductsMainAdmin = () => {
     setSectionForm({...sectionForm, features: newFeatures});
   };
 
-  // Handle new section feature change
-  const handleNewSectionFeatureChange = (index, value) => {
-    const newFeatures = [...newSectionForm.features];
-    newFeatures[index] = value;
-    setNewSectionForm({...newSectionForm, features: newFeatures});
-  };
-
-  // Add new feature to new section
-  const addNewSectionFeature = () => {
-    setNewSectionForm({...newSectionForm, features: [...newSectionForm.features, '']});
-  };
-
-  // Remove feature from new section
-  const removeNewSectionFeature = (index) => {
-    const newFeatures = newSectionForm.features.filter((_, i) => i !== index);
-    setNewSectionForm({...newSectionForm, features: newFeatures});
-  };
 
   if (loading) {
     return (
@@ -546,13 +410,6 @@ const ProductsMainAdmin = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Product Sections</h2>
-            <button
-              onClick={() => setShowNewSectionModal(true)}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add New Product
-            </button>
           </div>
           
           {mainPageData?.sections?.length === 0 ? (
@@ -592,41 +449,12 @@ const ProductsMainAdmin = () => {
                       >
                         <PencilIcon className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDuplicateSection(section.id)}
-                        className="inline-flex items-center gap-1 bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
-                        title="Duplicate"
-                      >
-                        <DocumentDuplicateIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleToggleVisibility(section.id)}
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded text-sm ${
-                          section.is_visible
-                            ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
-                        title={section.is_visible ? 'Hide' : 'Show'}
-                      >
-                        {section.is_visible ? (
-                          <EyeSlashIcon className="w-4 h-4" />
-                        ) : (
-                          <EyeIcon className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSection(section.id, section.title || section.product_name)}
-                        className="inline-flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                        title="Delete"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-1">{section.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">{section.description}</p>
+                    <h4 className="font-medium text-gray-900 mb-1">{section.title || section.product_name}</h4>
+                    <p className="text-sm text-gray-600 mb-2">{section.description || section.product_description}</p>
                     
                     {/* Features List */}
                     {Array.isArray(section.features) && section.features.length > 0 && (
@@ -673,11 +501,7 @@ const ProductsMainAdmin = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-blue-800 font-medium mb-2">ℹ️ Information</h3>
           <ul className="text-blue-700 text-sm space-y-1">
-            <li>• Use <strong>Edit</strong> to modify section title and description</li>
-            <li>• Use <strong>Duplicate</strong> to create a copy of the section</li>
-            <li>• Use <strong>Hide/Show</strong> to control visibility on the frontend (hidden sections remain visible in admin)</li>
-            <li>• Use <strong>Delete</strong> to permanently remove a section</li>
-            <li>• Use <strong>Add New Product</strong> to add an existing product to the main page</li>
+            <li>• Use <strong>Edit</strong> to modify section title, description, and other details</li>
           </ul>
         </div>
       </div>
@@ -880,224 +704,6 @@ const ProductsMainAdmin = () => {
         </div>
       )}
 
-      {/* New Section Modal */}
-      {showNewSectionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Add New Product Section</h3>
-              <button
-                onClick={() => {
-                  setShowNewSectionModal(false);
-                  setNewSectionForm({
-                    title: '',
-                    description: '',
-                    is_visible: 1,
-                    popular_tag: '',
-                    category: '',
-                    features: [],
-                    price: '',
-                    price_period: '',
-                    free_trial_tag: '',
-                    button_text: ''
-                  });
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* Title - Required */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newSectionForm.title}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter product title"
-                />
-              </div>
-
-              {/* Description - Required */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  required
-                  value={newSectionForm.description}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter product description"
-                />
-              </div>
-
-              {/* Popular Tag - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Popular Badge Text <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newSectionForm.popular_tag || ''}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, popular_tag: e.target.value})}
-                  placeholder="Most Popular"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Leave empty to hide this badge on frontend</p>
-              </div>
-
-              {/* Category - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newSectionForm.category || ''}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, category: e.target.value})}
-                  placeholder="Cloud Servers"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Leave empty to hide category badge on frontend</p>
-              </div>
-
-              {/* Features - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Features <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <div className="space-y-2">
-                  {newSectionForm.features.map((feature, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={feature || ''}
-                        onChange={(e) => handleNewSectionFeatureChange(index, e.target.value)}
-                        placeholder={`Feature ${index + 1}`}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <button
-                        onClick={() => removeNewSectionFeature(index)}
-                        className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                        title="Remove feature"
-                      >
-                        <XMarkIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={addNewSectionFeature}
-                    className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
-                  >
-                    <PlusIcon className="w-4 h-4 inline mr-1" />
-                    Add Feature
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">Empty features will be filtered out. Leave empty to hide features section on frontend.</p>
-              </div>
-
-              {/* Price Section - Optional */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newSectionForm.price || ''}
-                    onChange={(e) => setNewSectionForm({...newSectionForm, price: e.target.value})}
-                    placeholder="₹2,999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price Period <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newSectionForm.price_period || ''}
-                    onChange={(e) => setNewSectionForm({...newSectionForm, price_period: e.target.value})}
-                    placeholder="/month"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 -mt-2">Leave empty to hide pricing section on frontend</p>
-
-              {/* Free Trial Tag - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Free Trial Tag <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newSectionForm.free_trial_tag || ''}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, free_trial_tag: e.target.value})}
-                  placeholder="Free Trial"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Leave empty to hide this badge on frontend</p>
-              </div>
-
-              {/* Button Text - Required */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Button Text <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newSectionForm.button_text}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, button_text: e.target.value})}
-                  placeholder="Explore Solution"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Text on the main CTA button</p>
-              </div>
-
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleCreateNewSection}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-              >
-                <CheckIcon className="w-4 h-4" />
-                Create Product
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewSectionModal(false);
-                  setNewSectionForm({
-                    title: '',
-                    description: '',
-                    popular_tag: '',
-                    category: '',
-                    features: [],
-                    price: '',
-                    price_period: '',
-                    free_trial_tag: '',
-                    button_text: ''
-                  });
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-              >
-                <XMarkIcon className="w-4 h-4" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

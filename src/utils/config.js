@@ -40,13 +40,13 @@ const config = {
     APP_NAME: 'Cloud4India',
     APP_VERSION: '1.0.0',
     DEBUG: false,
-    BASE_URL: 'http://38.242.248.213:4001',
+    BASE_URL: 'http://149.13.60.6',
     // AI Service Configuration (OpenAI API)
     AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
     AI_API_URL: 'https://api.openai.com/v1/chat/completions',
     AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
     OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://38.242.248.213:4001'
+    OPENROUTER_SITE_URL: 'http://149.13.60.6'
   }
 }
 

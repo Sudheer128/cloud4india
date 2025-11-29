@@ -22,6 +22,8 @@ const UnifiedAdminLayout = () => {
         return 'Apps Management';
       case '/admin/solutions-main':
         return 'Apps Main Page';
+      case '/admin/pricing':
+        return 'Pricing Management';
       default:
         return 'Admin Panel';
     }

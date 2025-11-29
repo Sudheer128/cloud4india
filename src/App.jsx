@@ -13,6 +13,8 @@ import ProductsAdmin from './pages/ProductsAdmin'
 import ProductsMainAdmin from './pages/ProductsMainAdmin'
 import SolutionsAdmin from './pages/SolutionsAdmin'
 import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
+import AboutUsAdmin from './pages/AboutUsAdmin'
+import PricingAdmin from './pages/PricingAdmin'
 import UniversalSolutionPage from './pages/UniversalSolutionPage'
 import UniversalProductPage from './pages/UniversalProductPage'
 import MainProductsPage from './pages/MainProductsPage'
@@ -33,7 +35,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home-new" element={<HomeNew />} />
-          <Route path="/about" element={<AboutUs />} />
+          <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/products" element={<MainProductsPage />} />
           <Route path="/solutions" element={<MainSolutionsPage />} />
@@ -50,6 +52,8 @@ function AppContent() {
             <Route path="products-main" element={<ProductsMainAdmin />} />
             <Route path="solutions" element={<SolutionsAdmin />} />
             <Route path="solutions-main" element={<SolutionsMainAdmin />} />
+            <Route path="pricing" element={<PricingAdmin />} />
+            <Route path="about-us" element={<AboutUsAdmin />} />
           </Route>
           <Route path="/solutions/:solutionId" element={<UniversalSolutionPage />} />
           {/* Product pages - all products use dynamic CMS system */}

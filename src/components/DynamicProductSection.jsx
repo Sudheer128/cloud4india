@@ -44,6 +44,8 @@ const DynamicProductSection = ({ section, items }) => {
   switch (section.section_type) {
     case 'hero':
       return <HeroSection section={section} items={items} />;
+    case 'media_banner':
+      return <MediaBannerSection section={section} items={items} />;
     case 'features':
       return <FeaturesSection section={section} items={items} />;
     case 'pricing':
@@ -196,6 +198,108 @@ const HeroSection = ({ section, items }) => {
 
       {/* Top diagonal accent instead of bottom wave */}
       <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-bl from-white/5 to-transparent pointer-events-none"></div>
+    </section>
+  );
+};
+
+// Media Banner Section Component
+const MediaBannerSection = ({ section }) => {
+  // Get CMS base URL for uploaded files
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+  
+  // Determine media URL
+  let mediaUrl = '';
+  let isYouTube = false;
+  
+  if (section.media_url) {
+    if (section.media_source === 'youtube' || section.media_url.includes('youtube.com/embed/')) {
+      // YouTube video
+      mediaUrl = section.media_url;
+      isYouTube = true;
+    } else if (section.media_source === 'upload') {
+      // Uploaded file - construct full URL
+      mediaUrl = section.media_url.startsWith('http') 
+        ? section.media_url 
+        : `${cmsBaseUrl}${section.media_url}`;
+      isYouTube = false;
+    }
+  }
+
+  return (
+    <section className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Title and Description */}
+        {(section.title || section.description) && (
+          <div className="text-center mb-12">
+            {section.title && (
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                {section.title}
+              </h2>
+            )}
+            {section.description && (
+              <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+                {section.description}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Media Display */}
+        {mediaUrl && (
+          <div className="rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
+            {section.media_type === 'video' && isYouTube ? (
+              // YouTube Video Embed
+              <div className="aspect-video w-full">
+                <iframe
+                  src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=1&mute=1&loop=1&controls=1&rel=0&enablejsapi=1&playlist=${mediaUrl.match(/embed\/([^?&]+)/)?.[1] || ''}`}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  title={section.title || 'Video'}
+                ></iframe>
+              </div>
+            ) : section.media_type === 'video' ? (
+              // Uploaded Video
+              <div className="aspect-video w-full">
+                <video
+                  src={mediaUrl}
+                  autoPlay
+                  muted
+                  loop
+                  controls
+                  className="w-full h-full object-cover"
+                  playsInline
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            ) : section.media_type === 'image' ? (
+              // Image
+              <div className="w-full">
+                <img
+                  src={mediaUrl}
+                  alt={section.title || 'Banner image'}
+                  className="w-full h-auto object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error('Error loading image:', mediaUrl);
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* Fallback message if no media */}
+        {!mediaUrl && (
+          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
+            <p className="text-gray-500">No media configured for this section.</p>
+          </div>
+        )}
+      </div>
     </section>
   );
 };

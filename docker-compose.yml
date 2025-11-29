@@ -6,12 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://38.242.248.213:4002
-        - VITE_CMS_URL=http://38.242.248.213:4002
+        - VITE_API_URL=http://149.13.60.6:4002
+        - VITE_CMS_URL=http://149.13.60.6:4002
         - VITE_AI_API_KEY=${OPENAI_API_KEY}
     container_name: cloud4india-website
     ports:
-      - "4001:80"
+      - "80:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -21,7 +21,7 @@ services:
       - cloud4india-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cloud4india.rule=Host(`38.242.248.213`) || Host(`localhost`)"
+      - "traefik.http.routers.cloud4india.rule=Host(`149.13.60.6`) || Host(`localhost`)"
       - "traefik.http.services.cloud4india.loadbalancer.server.port=80"
 
   cloud4india-cms:
@@ -36,7 +36,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DB_PATH=/app/data/cms.db
-      - RUN_MIGRATIONS=true
+      - RUN_MIGRATIONS=false
     volumes:
       - cms_data:/app/data
       - ./cloud4india-cms/cms.db:/app/data/cms.db:rw

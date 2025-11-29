@@ -7,7 +7,9 @@ import {
   ChevronDoubleRightIcon,
   CubeIcon,
   RectangleGroupIcon,
-  PuzzlePieceIcon
+  PuzzlePieceIcon,
+  InformationCircleIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -50,6 +52,20 @@ const AdminSidebar = () => {
       icon: PuzzlePieceIcon,
       path: '/admin/solutions-main',
       matchPaths: ['/admin/solutions-main']
+    },
+    {
+      id: 'pricing',
+      label: 'Pricing',
+      icon: CurrencyDollarIcon,
+      path: '/admin/pricing',
+      matchPaths: ['/admin/pricing']
+    },
+    {
+      id: 'about-us',
+      label: 'About Us',
+      icon: InformationCircleIcon,
+      path: '/admin/about-us',
+      matchPaths: ['/admin/about-us']
     }
   ];
 
