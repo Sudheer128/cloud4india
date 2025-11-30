@@ -34,10 +34,10 @@ const AdminSidebar = () => {
     },
     {
       id: 'solutions',
-      label: 'Apps',
+      label: 'Marketplace',
       icon: Squares2X2Icon,
-      path: '/admin/solutions',
-      matchPaths: ['/admin/solutions']
+      path: '/admin/marketplace',
+      matchPaths: ['/admin/marketplace']
     },
     {
       id: 'products-main',
@@ -48,10 +48,10 @@ const AdminSidebar = () => {
     },
     {
       id: 'solutions-main',
-      label: 'Apps Main',
+      label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
-      path: '/admin/solutions-main',
-      matchPaths: ['/admin/solutions-main']
+      path: '/admin/marketplace-main',
+      matchPaths: ['/admin/marketplace-main']
     },
     {
       id: 'pricing',

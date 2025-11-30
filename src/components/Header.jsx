@@ -74,7 +74,7 @@ const Header = () => {
                     isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
                   }`}
                 >
-                  Apps
+                  Marketplace
                   <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
                     isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}></span>
@@ -162,12 +162,12 @@ const Header = () => {
                   }}
                   className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
                 >
-                  <span>Apps</span>
+                  <span>Marketplace</span>
                   <ChevronDownIcon className={`h-4 w-4 transition-transform ${isAppsDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isAppsDropdownOpen && (
                   <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
-                    <p className="text-xs text-gray-500 py-2">Tap Apps in desktop view to see categories</p>
+                    <p className="text-xs text-gray-500 py-2">Tap Marketplace in desktop view to see categories</p>
                   </div>
                 )}
               </div>

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CMS_URL } from '../utils/config.js';
+import { toSlug } from '../utils/slugUtils.js';
 
 // CMS API Configuration
 const CMS_BASE_URL = `${CMS_URL}/api`;
@@ -225,7 +226,21 @@ export const getSolutions = async () => {
 };
 
 /**
- * Get single solution
+ * Get solution categories in order
+ * @returns {Promise<Array>} Array of categories with order_index
+ */
+export const getSolutionCategories = async () => {
+  try {
+    const response = await cmsApi.get('/solutions/categories');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching solution categories:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single solution by ID
  * @param {number} id - Solution ID
  * @returns {Promise<Object>} Solution data
  */
@@ -235,6 +250,87 @@ export const getSolution = async (id) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching solution:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single solution by name/slug
+ * @param {string} name - Solution name or slug
+ * @returns {Promise<Object>} Solution data
+ */
+export const getSolutionByName = async (name) => {
+  try {
+    // First, get all solutions and find by name match
+    const solutions = await getSolutions();
+    const inputSlug = name.toLowerCase().trim();
+    
+    // Try multiple matching strategies
+    const solution = solutions.find(s => {
+      const solutionName = (s.name || '').trim();
+      if (!solutionName) return false;
+      
+      // Strategy 1: Exact slug match (convert solution name to slug and compare)
+      const solutionSlug = toSlug(solutionName);
+      if (solutionSlug === inputSlug) {
+        return true;
+      }
+      
+      // Strategy 2: Direct name match (case-insensitive, normalize special chars)
+      // Remove special characters and compare
+      const normalizedName = solutionName.toLowerCase()
+        .replace(/[^\w\s]/g, '') // Remove special chars
+        .replace(/\s+/g, '-'); // Replace spaces with hyphens
+      const normalizedInput = inputSlug; // Input is already a slug
+      if (normalizedName === normalizedInput) {
+        return true;
+      }
+      
+      // Strategy 3: Match without special characters (e.g., "nodejs" matches "Node.js")
+      const nameNoSpecial = solutionName.toLowerCase().replace(/[^\w]/g, '');
+      const inputNoSpecial = inputSlug.replace(/[^\w]/g, '');
+      if (nameNoSpecial === inputNoSpecial) {
+        return true;
+      }
+      
+      // Strategy 4: Check if route contains the slug
+      if (s.route) {
+        const routePart = s.route.split('/').pop(); // Get last part of route
+        const routeSlug = toSlug(routePart);
+        if (routeSlug === inputSlug) {
+          return true;
+        }
+      }
+      
+      // Strategy 5: Partial word match (for single-word inputs like "nodejs" matching "Node.js")
+      // Check if input (without special chars) is contained in name (without special chars) or vice versa
+      if (inputNoSpecial.length > 0 && nameNoSpecial.includes(inputNoSpecial)) {
+        return true;
+      }
+      if (nameNoSpecial.length > 0 && inputNoSpecial.includes(nameNoSpecial)) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    if (!solution) {
+      // Log available solutions for debugging
+      console.warn('Solution not found. Available solutions:', solutions.map(s => ({ 
+        id: s.id,
+        name: s.name, 
+        slug: toSlug(s.name),
+        route: s.route
+      })));
+      console.warn('Looking for slug:', inputSlug);
+      throw new Error(`Solution not found: ${name}`);
+    }
+    
+    console.log('Found solution:', { name: solution.name, id: solution.id, slug: toSlug(solution.name) });
+    
+    return solution;
+  } catch (error) {
+    console.error('Error fetching solution by name:', error);
     throw error;
   }
 };
@@ -1535,6 +1631,8 @@ export default {
   getSolutions,
   getAdminSolutions,
   getSolution,
+  getSolutionByName,
+  getSolutionCategories,
   createSolution,
   updateSolution,
   deleteSolution,

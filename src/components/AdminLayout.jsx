@@ -41,7 +41,7 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
     },
     {
       id: 'solutions',
-      label: 'Apps',
+      label: 'Marketplace',
       icon: Squares2X2Icon,
       href: '/admin',
       isActive: activeSection === 'solutions',
@@ -66,9 +66,9 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
     },
     {
       id: 'solutions-main',
-      label: 'Apps Main',
+      label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
-      href: '/admin/solutions-main',
+      href: '/admin/marketplace-main',
       isActive: activeSection === 'solutions-main'
     }
   ];

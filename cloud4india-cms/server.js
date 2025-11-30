@@ -324,6 +324,15 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Solution categories table for managing category order
+  db.run(`CREATE TABLE IF NOT EXISTS solution_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    order_index INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Solution sections table
   db.run(`CREATE TABLE IF NOT EXISTS solution_sections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -353,6 +362,19 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (section_id) REFERENCES solution_sections (id) ON DELETE CASCADE
   )`);
+
+  // Add navigation options columns to solutions table (Migration)
+  db.run(`ALTER TABLE solutions ADD COLUMN enable_single_page BOOLEAN DEFAULT 1`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      console.error('Error adding enable_single_page column:', err);
+    }
+  });
+  
+  db.run(`ALTER TABLE solutions ADD COLUMN redirect_url TEXT DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      console.error('Error adding redirect_url column:', err);
+    }
+  });
 
   // Insert default data
   // Insert default hero data only if table is empty
@@ -569,6 +591,38 @@ db.serialize(() => {
       console.log('Default solutions inserted.');
     } else {
       console.log(`Solutions table already has ${row.count} items, skipping default insert.`);
+    }
+  });
+
+  // Insert default solution categories with order
+  db.get("SELECT COUNT(*) as count FROM solution_categories", (err, row) => {
+    if (err) {
+      console.error('Error checking solution_categories count:', err.message);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Inserting default solution categories...');
+      const categories = [
+        { name: 'Frameworks', order_index: 0 },
+        { name: 'Content Management Systems', order_index: 1 },
+        { name: 'Databases', order_index: 2 },
+        { name: 'Developer Tools', order_index: 3 },
+        { name: 'Media', order_index: 4 },
+        { name: 'E Commerce', order_index: 5 },
+        { name: 'Business Applications', order_index: 6 },
+        { name: 'Monitoring Applications', order_index: 7 }
+      ];
+
+      categories.forEach((category) => {
+        db.run(`INSERT INTO solution_categories (name, order_index) VALUES (?, ?)`,
+          [category.name, category.order_index], (err) => {
+            if (err) console.error('Error inserting category:', err.message);
+          });
+      });
+      console.log('Default solution categories inserted.');
+    } else {
+      console.log('Solution categories table already has data, skipping default insert.');
     }
   });
 
@@ -2932,6 +2986,23 @@ app.get('/api/solutions', (req, res) => {
   });
 });
 
+// Get solution categories in order
+app.get('/api/solutions/categories', (req, res) => {
+  db.all('SELECT * FROM solution_categories ORDER BY order_index ASC', (err, categories) => {
+    if (err) {
+      // If table doesn't exist yet, return empty array (frontend will handle fallback)
+      if (err.message.includes('no such table')) {
+        console.log('solution_categories table does not exist yet, returning empty array');
+        return res.json([]);
+      }
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    // If no categories exist, return empty array (frontend will handle fallback)
+    res.json(categories || []);
+  });
+});
+
 // Get single solution
 app.get('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
@@ -2950,7 +3021,7 @@ app.get('/api/solutions/:id', (req, res) => {
 
 // Create new solution
 app.post('/api/solutions', (req, res) => {
-  const { name, description, category, color, border_color, route } = req.body;
+  const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null } = req.body;
   
   // Your 4 perfect colors (only these will be used)
   const gradientColors = [
@@ -2974,8 +3045,8 @@ app.post('/api/solutions', (req, res) => {
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
     
-    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end], 
+    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -2994,7 +3065,7 @@ app.post('/api/solutions', (req, res) => {
 // Update solution
 app.put('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
-  const { name, description, category, color, border_color, route, gradient_start, gradient_end } = req.body;
+  const { name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url } = req.body;
   
   // First update the solutions table
   db.run(`UPDATE solutions SET 
@@ -3006,9 +3077,11 @@ app.put('/api/solutions/:id', (req, res) => {
     route = COALESCE(?, route),
     gradient_start = COALESCE(?, gradient_start),
     gradient_end = COALESCE(?, gradient_end),
+    enable_single_page = COALESCE(?, enable_single_page),
+    redirect_url = ?,
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`, 
-    [name, description, category, color, border_color, route, gradient_start, gradient_end, id], 
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, id], 
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });

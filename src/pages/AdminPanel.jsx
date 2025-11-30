@@ -36,8 +36,8 @@ import {
   deleteFeatureBanner,
   toggleFeatureBannerVisibility
 } from '../services/cmsApi';
-import { enhanceDescription, generateFallbackDescription } from '../services/aiService';
 import PricingAdmin from './PricingAdmin';
+import { toSlug } from '../utils/slugUtils';
 import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, DocumentDuplicateIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 
 // Modal Component
@@ -439,7 +439,7 @@ const AdminPanel = () => {
     const newName = prompt('Enter new solution name:', `${solution.name} (Copy)`);
     if (!newName) return;
     
-    const newRoute = prompt('Enter new route:', `/solutions/${solution.name.toLowerCase().replace(/\s+/g, '-')}-copy`);
+    const newRoute = prompt('Enter new route:', `/marketplace/${toSlug(solution.name)}-copy`);
     if (!newRoute) return;
 
     try {
@@ -1944,7 +1944,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                 value={cardData.route}
                 onChange={(e) => setCardData({...cardData, route: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="/solutions/financial-services"
+                placeholder="/marketplace/financial-services"
                 required
               />
             </div>
@@ -2303,8 +2303,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
     title: '',
     content: ''
   });
-  const [isEnhancing, setIsEnhancing] = useState(false);
-
   useEffect(() => {
     if (section) {
       setFormData({
@@ -2327,40 +2325,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
       onUpdate(section.id, formData);
     } else {
       onCreate(formData);
-    }
-  };
-
-  const handleEnhanceContent = async () => {
-    if (!formData.title.trim()) {
-      alert('Please enter a section title first before enhancing the content.');
-      return;
-    }
-
-    if (!formData.content.trim()) {
-      alert('Please enter some basic content first before enhancing.');
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const enhancedContent = await enhanceDescription(
-        formData.title,
-        formData.content,
-        formData.section_type || 'section'
-      );
-      setFormData({
-        ...formData,
-        content: enhancedContent
-      });
-    } catch (error) {
-      console.error('Enhancement error:', error);
-      if (error.message.includes('rate limit')) {
-        alert('Rate limit reached. Your request has been queued and will be processed automatically. Please wait...');
-      } else {
-        alert(error.message);
-      }
-    } finally {
-      setIsEnhancing(false);
     }
   };
 
@@ -2421,29 +2385,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">Content</label>
-              <button
-                type="button"
-                onClick={handleEnhanceContent}
-                disabled={isEnhancing || !formData.title.trim() || !formData.content.trim()}
-                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isEnhancing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enhancing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Enhance with OpenAI
-                  </>
-                )}
-              </button>
             </div>
             <textarea
               value={formData.content}
@@ -2524,8 +2465,6 @@ const HeroEditor = ({ hero, onUpdate }) => {
     secondary_button_text: '',
     secondary_button_link: ''
   });
-  const [isEnhancing, setIsEnhancing] = useState(false);
-
   useEffect(() => {
     if (hero) {
       setFormData({
@@ -2542,40 +2481,6 @@ const HeroEditor = ({ hero, onUpdate }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onUpdate(formData);
-  };
-
-  const handleEnhanceDescription = async () => {
-    if (!formData.title.trim()) {
-      alert('Please enter a title first before enhancing the description.');
-      return;
-    }
-
-    if (!formData.description.trim()) {
-      alert('Please enter some basic description first before enhancing.');
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const enhancedDescription = await enhanceDescription(
-        formData.title,
-        formData.description,
-        'hero'
-      );
-      setFormData({
-        ...formData,
-        description: enhancedDescription
-      });
-    } catch (error) {
-      console.error('Enhancement error:', error);
-      if (error.message.includes('rate limit')) {
-        alert('Rate limit reached. Your request has been queued and will be processed automatically. Please wait...');
-      } else {
-        alert(error.message);
-      }
-    } finally {
-      setIsEnhancing(false);
-    }
   };
 
   return (
@@ -2595,43 +2500,15 @@ const HeroEditor = ({ hero, onUpdate }) => {
         </div>
         
         <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <button
-              type="button"
-              onClick={handleEnhanceDescription}
-              disabled={isEnhancing || !formData.title.trim() || !formData.description.trim()}
-              className="inline-flex items-center px-3 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isEnhancing ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Enhancing...
-                </>
-              ) : (
-                <>
-                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Enhance with OpenAI
-                </>
-              )}
-            </button>
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
             rows={4}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Enter a basic description first, then use 'Enhance with AI' to improve it..."
+            placeholder="Enter description..."
             required
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Tip: Enter a basic description and title first, then click "Enhance with AI" to generate a more compelling hero description. Note: Free tier has rate limits - requests are automatically queued.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2696,8 +2573,6 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
     content: '',
     link: ''
   });
-  const [isEnhancing, setIsEnhancing] = useState(false);
-
   useEffect(() => {
     if (editing && editing !== 'new' && whyItems) {
       const item = whyItems.find(item => item.id === editing);
@@ -2738,40 +2613,6 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
       link: ''
     });
     onCancel();
-  };
-
-  const handleEnhanceDescription = async () => {
-    if (!formData.title.trim()) {
-      alert('Please enter a title first before enhancing the description.');
-      return;
-    }
-
-    if (!formData.content.trim()) {
-      alert('Please enter some basic description first before enhancing.');
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const enhancedDescription = await enhanceDescription(
-        formData.title,
-        formData.content,
-        'why_item'
-      );
-      setFormData({
-        ...formData,
-        content: enhancedDescription
-      });
-    } catch (error) {
-      console.error('Enhancement error:', error);
-      if (error.message.includes('rate limit')) {
-        alert('Rate limit reached. Your request has been queued and will be processed automatically. Please wait...');
-      } else {
-        alert(error.message);
-      }
-    } finally {
-      setIsEnhancing(false);
-    }
   };
 
   return (
@@ -2851,45 +2692,17 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
               </div>
               
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Description <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleEnhanceDescription}
-                    disabled={isEnhancing || !formData.title.trim() || !formData.content.trim()}
-                    className="inline-flex items-center px-3 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isEnhancing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Enhancing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Enhance with OpenAI
-                      </>
-                    )}
-                  </button>
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({...formData, content: e.target.value})}
                   rows={4}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter a basic description first, then use 'Enhance with AI' to improve it..."
+                  placeholder="Enter description..."
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tip: Enter a basic description and title first, then click "Enhance with AI" to generate a more detailed and professional description.
-                </p>
               </div>
               
               <div>

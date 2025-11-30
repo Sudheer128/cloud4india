@@ -1,34 +1,53 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
-import { getSolutions } from '../services/cmsApi'
+import { getSolutions, getSolutionCategories } from '../services/cmsApi'
+import { toSlug } from '../utils/slugUtils'
 
 const AppsDropdown = ({ isOpen, onClose }) => {
   const [activeCategory, setActiveCategory] = useState(null)
   const [solutions, setSolutions] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
   
-  // Fetch solutions from API
+  // Fetch solutions and categories from API
   useEffect(() => {
-    const fetchSolutions = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
-        const solutionsData = await getSolutions()
+        const [solutionsData, categoriesData] = await Promise.all([
+          getSolutions(),
+          getSolutionCategories()
+        ])
         setSolutions(solutionsData)
+        // Map categories to the format expected by the component
+        const formattedCategories = categoriesData.map(cat => ({
+          id: cat.name,
+          label: cat.name,
+          order_index: cat.order_index
+        }))
+        setCategories(formattedCategories)
       } catch (err) {
-        console.error('Error fetching solutions:', err)
+        console.error('Error fetching data:', err)
         setError(err.message)
+        // Fallback: if categories API fails, extract from solutions
+        try {
+          const solutionsData = await getSolutions()
+          setSolutions(solutionsData)
+        } catch (solutionsErr) {
+          console.error('Error fetching solutions:', solutionsErr)
+        }
       } finally {
         setLoading(false)
       }
     }
 
     if (isOpen) {
-      fetchSolutions()
+      fetchData()
     }
   }, [isOpen])
 
@@ -81,7 +100,10 @@ const AppsDropdown = ({ isOpen, onClose }) => {
       name: solution.name,
       description: solution.description,
       buttonText: 'Deploy',
-      route: solution.route
+      route: solution.route,
+      enable_single_page: solution.enable_single_page,
+      redirect_url: solution.redirect_url,
+      color: solution.color
     })
     
     return acc
@@ -99,21 +121,86 @@ const AppsDropdown = ({ isOpen, onClose }) => {
 
   const availableCategories = getAvailableCategories();
   
-  // Extract unique categories from solutions and merge with available categories
-  const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
-  const allCategories = Array.from(new Set([
-    ...categoriesFromSolutions,
-    ...availableCategories.filter(cat => !categoriesFromSolutions.includes(cat))
-  ])).sort();
-  
-  const categories = allCategories.map(cat => ({ id: cat, label: cat }))
+  // Use categories from API if available, otherwise fallback to extracting from solutions
+  const displayCategories = useMemo(() => {
+    let finalCategories = [];
+    
+    if (categories.length > 0) {
+      // Use categories from API - they should already be sorted by order_index from the API
+      // But we'll sort again to be sure
+      finalCategories = [...categories].sort((a, b) => {
+        if (a.order_index !== undefined && b.order_index !== undefined) {
+          return a.order_index - b.order_index;
+        }
+        return 0;
+      });
+      
+      // Add any categories from solutions that aren't in the API list
+      const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
+      const existingCategoryNames = new Set(categories.map(c => c.id));
+      const missingCategories = categoriesFromSolutions.filter(cat => !existingCategoryNames.has(cat));
+      
+      if (missingCategories.length > 0) {
+        // Add missing categories at the end, sorted alphabetically
+        const missingFormatted = missingCategories
+          .sort()
+          .map(cat => ({ id: cat, label: cat, order_index: 9999 }));
+        finalCategories = [...finalCategories, ...missingFormatted];
+      }
+    } else {
+      // Fallback: extract unique categories from solutions and merge with available categories
+      // Use a predefined order
+      const predefinedOrder = [
+        'Frameworks',
+        'Content Management Systems',
+        'Databases',
+        'Developer Tools',
+        'Media',
+        'E Commerce',
+        'Business Applications',
+        'Monitoring Applications'
+      ];
+      
+      const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
+      const allCategories = Array.from(new Set([
+        ...categoriesFromSolutions,
+        ...availableCategories.filter(cat => !categoriesFromSolutions.includes(cat))
+      ]));
+      
+      // Create a map of all categories with their order_index
+      const categoryMap = new Map();
+      allCategories.forEach(cat => {
+        const orderIndex = predefinedOrder.indexOf(cat);
+        categoryMap.set(cat, {
+          id: cat,
+          label: cat,
+          order_index: orderIndex !== -1 ? orderIndex : 9999
+        });
+      });
+      
+      // First, add categories in predefined order
+      predefinedOrder.forEach(catName => {
+        if (categoryMap.has(catName)) {
+          finalCategories.push(categoryMap.get(catName));
+          categoryMap.delete(catName);
+        }
+      });
+      
+      // Then add any remaining categories (not in predefined order) sorted alphabetically
+      const remainingCategories = Array.from(categoryMap.values())
+        .sort((a, b) => a.label.localeCompare(b.label));
+      finalCategories = [...finalCategories, ...remainingCategories];
+    }
+    
+    return finalCategories;
+  }, [categories, appsData, availableCategories]);
 
   // Set active category to first category if not set
   useEffect(() => {
-    if (categories.length > 0 && !activeCategory) {
-      setActiveCategory(categories[0].id)
+    if (displayCategories.length > 0 && !activeCategory) {
+      setActiveCategory(displayCategories[0].id)
     }
-  }, [categories, activeCategory])
+  }, [displayCategories, activeCategory])
   
   // Static apps data based on provided images (fallback - will be removed)
   const staticAppsData = {
@@ -355,8 +442,8 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                     <div className="px-4 py-3 text-sm text-gray-500">Loading categories...</div>
                   ) : error ? (
                     <div className="px-4 py-3 text-sm text-red-600">Error loading categories</div>
-                  ) : categories.length > 0 ? (
-                    categories.map((category) => (
+                  ) : displayCategories.length > 0 ? (
+                    displayCategories.map((category) => (
                       <button
                         key={category.id}
                         onClick={() => setActiveCategory(category.id)}
@@ -376,7 +463,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <Link
-                    to="/solutions"
+                    to="/marketplace"
                     onClick={onClose}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center group"
                   >
@@ -393,7 +480,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="mb-6 flex-shrink-0">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {categories.find(c => c.id === activeCategory)?.label || 'Apps'}
+                  {displayCategories.find(c => c.id === activeCategory)?.label || 'Apps'}
                 </h2>
                 {!loading && displayApps.length === 0 && (
                   <p className="text-gray-500 text-sm mt-2">No apps available in this category.</p>
@@ -415,8 +502,13 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                 <div className="flex-1 overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {displayApps.map((app) => {
-                      // Use route from API data directly
-                      const hasPage = app.route;
+                      // Determine navigation URL based on enable_single_page flag
+                      const shouldUseSinglePage = app.enable_single_page !== undefined ? Boolean(app.enable_single_page) : true;
+                      const navigationUrl = !shouldUseSinglePage && app.redirect_url 
+                        ? app.redirect_url 
+                        : `/marketplace/${toSlug(app.name)}`;
+                      
+                      const isExternalUrl = navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://');
                       
                       const cardContent = (
                         <div className="flex items-start justify-between">
@@ -430,22 +522,34 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                         </div>
                       );
 
-                      return hasPage ? (
+                      // Handle navigation based on URL type
+                      if (isExternalUrl) {
+                        return (
+                          <a
+                            key={app.id}
+                            href={navigationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClose();
+                            }}
+                            className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer block"
+                          >
+                            {cardContent}
+                          </a>
+                        );
+                      }
+
+                      return (
                         <div
                           key={app.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             onClose();
-                            navigate(hasPage);
+                            navigate(navigationUrl);
                           }}
                           className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer block"
-                        >
-                          {cardContent}
-                        </div>
-                      ) : (
-                        <div
-                          key={app.id}
-                          className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                         >
                           {cardContent}
                         </div>

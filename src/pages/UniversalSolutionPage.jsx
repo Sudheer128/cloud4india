@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { getSolutionByName } from '../services/cmsApi'
 import { 
   ArrowRightIcon,
   StarIcon,
@@ -64,10 +65,60 @@ const RupeeIconSimple = ({ className }) => (
 );
 
 const UniversalSolutionPage = () => {
-  const { solutionId } = useParams();
-  const { sections, loading, error } = useSolutionSections(parseInt(solutionId));
+  const { appName } = useParams();
+  const [solution, setSolution] = useState(null);
+  const [solutionLoading, setSolutionLoading] = useState(true);
+  const [solutionError, setSolutionError] = useState(null);
+  const [solutionId, setSolutionId] = useState(null);
+  const [activeSection, setActiveSection] = useState('overview');
+  const { sections, loading, error } = useSolutionSections(solutionId);
 
-  if (loading) {
+  // Fetch solution by name to get the ID
+  useEffect(() => {
+    const fetchSolution = async () => {
+      if (!appName) {
+        setSolutionLoading(false);
+        return;
+      }
+
+      try {
+        setSolutionLoading(true);
+        setSolutionError(null);
+        const solutionData = await getSolutionByName(appName);
+        setSolution(solutionData);
+        setSolutionId(solutionData.id);
+      } catch (err) {
+        setSolutionError(err.message);
+        console.error('Error fetching solution by name:', err);
+      } finally {
+        setSolutionLoading(false);
+      }
+    };
+
+    fetchSolution();
+  }, [appName]);
+
+  // Track active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 130; // Offset for main navbar (64px) + sub navbar (65px) = ~130px
+      const sectionElements = document.querySelectorAll('[data-section-id]');
+      
+      for (let i = sectionElements.length - 1; i >= 0; i--) {
+        const section = sectionElements[i];
+        if (section.offsetTop <= scrollPosition) {
+          setActiveSection(section.getAttribute('data-section-id'));
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [sections]);
+
+  if (solutionLoading || loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -78,15 +129,30 @@ const UniversalSolutionPage = () => {
     );
   }
 
-  if (error) {
+  if (solutionError || error) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Content</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Link to="/" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Homepage
+          <p className="text-gray-600 mb-4">{solutionError || error}</p>
+          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Marketplace
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!solutionId) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-400 text-6xl mb-4">📄</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Solution Not Found</h1>
+          <p className="text-gray-600 mb-4">The solution you're looking for doesn't exist.</p>
+          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Marketplace
           </Link>
         </div>
       </div>
@@ -100,8 +166,8 @@ const UniversalSolutionPage = () => {
           <div className="text-gray-400 text-6xl mb-4">📄</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">No Content Available</h1>
           <p className="text-gray-600 mb-4">This solution page doesn't have any content yet.</p>
-          <Link to="/" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Homepage
+          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Marketplace
           </Link>
         </div>
       </div>
@@ -118,6 +184,56 @@ const UniversalSolutionPage = () => {
   
   // Dynamic order offset: if media_banner exists at 1, all subsequent sections are shifted by 1
   const getOrderOffset = () => hasMediaBanner ? 1 : 0;
+
+  // Generate navigation items from visible sections
+  const getNavigationItems = () => {
+    if (!sections || sections.length === 0) return [];
+    
+    const navItems = [];
+    const offset = getOrderOffset();
+    
+    // Map section types to readable names and IDs
+    const sectionMapping = [
+      { order: 0, id: 'overview', label: 'Overview', type: 'hero' },
+      { order: 1, id: 'media', label: 'Features', type: 'media_banner' },
+      { order: 1 + offset, id: 'benefits', label: 'Why Choose This?', type: 'benefits' },
+      { order: 2 + offset, id: 'segments', label: 'Perfect For', type: 'segments' },
+      { order: 3 + offset, id: 'technology', label: 'Real-World Applications', type: 'technology' },
+      { order: 5 + offset, id: 'use-cases', label: 'Use Cases', type: 'use_cases' },
+      { order: 6 + offset, id: 'roi', label: 'Measurable Results', type: 'roi' },
+      { order: 7 + offset, id: 'implementation', label: 'Getting Started', type: 'implementation' },
+      { order: 8 + offset, id: 'resources', label: 'Resources & Docs', type: 'resources' },
+      { order: 9 + offset, id: 'get-started', label: 'Deploy Now', type: 'cta' }
+    ];
+    
+    sectionMapping.forEach(mapping => {
+      const section = getSectionByOrder(mapping.order);
+      if (section && section.section_type === mapping.type && section.is_visible !== 0) {
+        navItems.push({
+          id: mapping.id,
+          label: section.title || mapping.label, // Use custom title if available
+          order: mapping.order
+        });
+      }
+    });
+    
+    return navItems;
+  };
+
+  const navigationItems = getNavigationItems();
+
+  // Scroll to section smoothly
+  const scrollToSection = (sectionId) => {
+    const element = document.querySelector(`[data-section-id="${sectionId}"]`);
+    if (element) {
+      const offset = 130; // Account for main navbar (64px) + sub navbar (65px)
+      const elementPosition = element.offsetTop - offset;
+      window.scrollTo({
+        top: elementPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Component for dynamic benefit cards
   const DynamicBenefitCards = ({ sectionId }) => {
@@ -769,9 +885,42 @@ const UniversalSolutionPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Secondary Navigation Bar - Sticky below main header */}
+      {navigationItems.length > 0 && (
+        <div className="sticky top-16 z-40 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl shadow-md border border-gray-200">
+              <div className="flex items-center px-6">
+                {/* App Title */}
+                <div className="py-4 pr-8 font-semibold text-gray-900 text-base">
+                  {solution?.name || appName}
+                </div>
+                {/* Navigation Items */}
+                <nav className="flex items-center overflow-x-auto scrollbar-hide -mb-px">
+                  {navigationItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => scrollToSection(item.id)}
+                      className={`px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                        activeSection === item.id
+                          ? 'border-saree-teal text-saree-teal'
+                          : 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       {getSectionByOrder(0) && (
-        <section className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
+        <section data-section-id="overview" className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
+
           {/* Dot Grid Pattern Overlay */}
           <div 
             className="absolute inset-0 opacity-[0.15]"
@@ -791,6 +940,29 @@ const UniversalSolutionPage = () => {
           ></div>
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* Breadcrumb Navigation - Inside Hero */}
+            <nav className="flex items-center text-sm mb-8">
+              <Link 
+                to="/marketplace" 
+                className="text-white/90 hover:text-white font-medium transition-colors"
+              >
+                Marketplace
+              </Link>
+              <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <Link 
+                to={`/marketplace?category=${solution?.category || ''}`}
+                className="text-white/90 hover:text-white font-medium transition-colors"
+              >
+                {solution?.category || 'Category'}
+              </Link>
+              <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="text-white font-semibold">{solution?.name || appName}</span>
+            </nav>
+
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-2xl mb-8 backdrop-blur-sm">
                 <BanknotesIcon className="w-10 h-10 text-white" />
@@ -849,7 +1021,7 @@ const UniversalSolutionPage = () => {
         }
         
         return (
-          <section className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
+          <section data-section-id="media" className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Title and Description */}
               {(mediaBannerSection.title || mediaBannerSection.content) && (
@@ -934,7 +1106,7 @@ const UniversalSolutionPage = () => {
         const section1 = getSectionByOrder(benefitsOrder);
         if (!section1 || section1.section_type === 'media_banner' || section1.section_type !== 'benefits') return null;
         return (
-          <section className="py-20 bg-gray-50">
+          <section data-section-id="benefits" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -958,7 +1130,7 @@ const UniversalSolutionPage = () => {
         const segmentsSection = getSectionByOrder(segmentsOrder);
         if (!segmentsSection || segmentsSection.section_type !== 'segments') return null;
         return (
-          <section className="py-20 bg-gray-50">
+          <section data-section-id="segments" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1040,7 +1212,7 @@ const UniversalSolutionPage = () => {
         const techSection = getSectionByOrder(techOrder);
         if (!techSection || techSection.section_type !== 'technology') return null;
         return (
-        <section className="py-20 bg-gray-50">
+        <section data-section-id="technology" className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1064,7 +1236,7 @@ const UniversalSolutionPage = () => {
         const useCasesSection = getSectionByOrder(useCasesOrder);
         if (!useCasesSection || useCasesSection.section_type !== 'use_cases') return null;
         return (
-          <section className="py-20 bg-white">
+          <section data-section-id="use-cases" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1088,7 +1260,7 @@ const UniversalSolutionPage = () => {
         const roiSection = getSectionByOrder(roiOrder);
         if (!roiSection || roiSection.section_type !== 'roi') return null;
         return (
-          <section className="py-20 bg-gray-50">
+          <section data-section-id="roi" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1112,7 +1284,7 @@ const UniversalSolutionPage = () => {
         const implSection = getSectionByOrder(implOrder);
         if (!implSection || implSection.section_type !== 'implementation') return null;
         return (
-          <section className="py-20 bg-gray-50">
+          <section data-section-id="implementation" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1136,7 +1308,7 @@ const UniversalSolutionPage = () => {
         const resourcesSection = getSectionByOrder(resourcesOrder);
         if (!resourcesSection || resourcesSection.section_type !== 'resources') return null;
         return (
-          <section className="py-20 bg-white">
+          <section data-section-id="resources" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -1160,7 +1332,7 @@ const UniversalSolutionPage = () => {
         const ctaSection = getSectionByOrder(ctaOrder);
         if (!ctaSection || ctaSection.section_type !== 'cta') return null;
         return (
-          <section className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
+          <section data-section-id="get-started" className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
             {/* Dot Grid Pattern Overlay */}
             <div 
               className="absolute inset-0 opacity-[0.15]"

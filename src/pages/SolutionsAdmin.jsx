@@ -6,7 +6,7 @@ import {
   deleteSolution,
   updateSolution
 } from '../services/cmsApi';
-import { enhanceDescription } from '../services/aiService';
+import { toSlug } from '../utils/slugUtils';
 import { 
   PencilSquareIcon, 
   TrashIcon, 
@@ -536,7 +536,7 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Apps</h3>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Marketplace</h3>
         <div className="flex items-center gap-3">
           {/* Category Filter Dropdown */}
           <div className="relative">
@@ -601,7 +601,7 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 mt-2 md:mt-0">{solution.description}</div>
-                <div className="text-xs text-gray-500 mt-2 md:mt-0">{solution.route}</div>
+                <div className="text-xs text-gray-500 mt-2 md:mt-0">/marketplace/{toSlug(solution.name)}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
                     onClick={() => onEditSolution(solution)}
@@ -787,7 +787,9 @@ const SolutionEditor = ({ solution, onBack }) => {
     border_color: '',
     route: '',
     gradient_start: '',
-    gradient_end: ''
+    gradient_end: '',
+    enable_single_page: true,
+    redirect_url: ''
   });
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -840,7 +842,9 @@ const SolutionEditor = ({ solution, onBack }) => {
         border_color: solution.border_color,
         route: solution.route,
         gradient_start: solution.gradient_start || 'blue',
-        gradient_end: solution.gradient_end || 'blue-700'
+        gradient_end: solution.gradient_end || 'blue-700',
+        enable_single_page: solution.enable_single_page !== undefined ? Boolean(solution.enable_single_page) : true,
+        redirect_url: solution.redirect_url || ''
       });
       loadSections();
     }
@@ -1091,7 +1095,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                 value={cardData.route}
                 onChange={(e) => setCardData({...cardData, route: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="/solutions/financial-services"
+                placeholder="/marketplace/financial-services"
                 required
               />
             </div>
@@ -1119,6 +1123,62 @@ const SolutionEditor = ({ solution, onBack }) => {
                 required
               />
             </div>
+          </div>
+
+          {/* Navigation Options Section */}
+          <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+            <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Navigation Options
+            </h4>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose how users navigate when clicking this app in the marketplace. Enable single page to show detailed app page, or provide a custom URL (like a sign-in page).
+            </p>
+
+            <div className="mb-4">
+              <label className="flex items-center cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={cardData.enable_single_page}
+                    onChange={(e) => setCardData({...cardData, enable_single_page: e.target.checked, redirect_url: e.target.checked ? '' : cardData.redirect_url})}
+                    className="sr-only"
+                  />
+                  <div className={`block w-14 h-8 rounded-full transition-colors ${cardData.enable_single_page ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                  <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${cardData.enable_single_page ? 'transform translate-x-6' : ''}`}></div>
+                </div>
+                <div className="ml-3 text-sm font-medium text-gray-700">
+                  Enable Single Page View
+                </div>
+              </label>
+              <p className="text-xs text-gray-500 mt-2 ml-1">
+                {cardData.enable_single_page 
+                  ? '✓ Users will navigate to the detailed app page: /marketplace/' + toSlug(cardData.name || solution.name)
+                  : '✗ Users will be redirected to custom URL (specify below)'}
+              </p>
+            </div>
+
+            {!cardData.enable_single_page && (
+              <div className="mt-4 animate-fadeIn">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Redirect URL
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={cardData.redirect_url}
+                  onChange={(e) => setCardData({...cardData, redirect_url: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://portal.cloud4india.com/login"
+                  required={!cardData.enable_single_page}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Enter the full URL where users should be redirected (e.g., sign-in page, external link, etc.)
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-4 border-t border-gray-200">
@@ -1288,7 +1348,7 @@ const SolutionEditor = ({ solution, onBack }) => {
             </div>
             <div className="flex space-x-3">
               <a
-                href={cardData.route}
+                href={`/marketplace/${toSlug(cardData.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -1390,7 +1450,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
     media_source: '',
     media_url: ''
   });
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -1574,39 +1633,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
     }
   };
 
-  const handleEnhanceContent = async () => {
-    if (!formData.title.trim()) {
-      alert('Please enter a section title first before enhancing the content.');
-      return;
-    }
-
-    if (!formData.content.trim()) {
-      alert('Please enter some basic content first before enhancing.');
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const enhancedContent = await enhanceDescription(
-        formData.title,
-        formData.content,
-        formData.section_type || 'section'
-      );
-      setFormData({
-        ...formData,
-        content: enhancedContent
-      });
-    } catch (error) {
-      console.error('Enhancement error:', error);
-      if (error.message.includes('rate limit')) {
-        alert('Rate limit reached. Your request has been queued and will be processed automatically. Please wait...');
-      } else {
-        alert(error.message);
-      }
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
 
   const selectedSectionType = sectionTypes.find(t => t.value === formData.section_type);
 
@@ -1677,29 +1703,6 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">Content</label>
-              <button
-                type="button"
-                onClick={handleEnhanceContent}
-                disabled={isEnhancing || !formData.title.trim() || !formData.content.trim()}
-                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isEnhancing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Enhancing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Enhance with OpenAI
-                  </>
-                )}
-              </button>
             </div>
             <textarea
               value={formData.content}

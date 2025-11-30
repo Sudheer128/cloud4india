@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { useMainSolutionsContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
+import { toSlug } from '../utils/slugUtils'
 
 const SolutionsSection = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -101,7 +102,7 @@ const SolutionsSection = () => {
               return (
                 <Link
                   key={solution.id}
-                  to={`/solutions/${solutionId}`}
+                  to={`/marketplace/${toSlug(solutionName)}`}
                   className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group block"
                 >
                   <div className="mb-4">

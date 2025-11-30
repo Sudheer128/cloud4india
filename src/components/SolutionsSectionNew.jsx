@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { useMainSolutionsContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
+import { toSlug } from '../utils/slugUtils'
 
 const SolutionsSectionNew = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -110,7 +111,7 @@ const SolutionsSectionNew = () => {
               return (
                 <Link
                   key={solution.id}
-                  to={`/solutions/${solutionId}`}
+                  to={`/marketplace/${toSlug(solutionName)}`}
                   className={`relative bg-white border ${colors.border} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block overflow-hidden`}
                 >
                   {/* single-color hover wash: light teal, under content */}
@@ -148,7 +149,7 @@ const SolutionsSectionNew = () => {
         {solutions.length > 6 && (
           <div className="text-center mt-12">
             <button 
-              onClick={() => window.location.href = 'http://38.242.248.213:4001/solutions'}
+              onClick={() => window.location.href = '/marketplace'}
               className="bg-saree-teal text-white border-2 border-saree-teal px-8 py-3 rounded-lg font-semibold hover:bg-saree-teal-dark transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
               View more Apps

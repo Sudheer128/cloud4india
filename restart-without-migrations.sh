@@ -38,3 +38,4 @@ echo "📊 Check logs: ssh $SERVER_USER@$SERVER_IP 'cd $PROJECT_DIR && docker-co
 
 
 
+

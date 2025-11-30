@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { toSlug } from '../utils/slugUtils';
 import { 
   ServerIcon, 
   CpuChipIcon, 
@@ -146,7 +147,7 @@ const MainSolutionsPage = () => {
 
             {/* Main Heading with Glow Effect */}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white drop-shadow-2xl">
-              {mainPageData?.hero?.title || 'Cloud Apps'}
+              {mainPageData?.hero?.title || 'Our Marketplace'}
             </h1>
 
             {/* Description */}
@@ -163,7 +164,7 @@ const MainSolutionsPage = () => {
                 View Pricing
               </Link>
               <Link 
-                to="#solutions"
+                to="#marketplace"
                 className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white text-base font-semibold rounded-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300 shadow-xl"
               >
                 Explore Solutions
@@ -218,7 +219,7 @@ const MainSolutionsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-5">
-            Search All Solutions
+            Search All Apps
           </h1>
 
           {/* Filter and Search Bar */}
@@ -499,7 +500,7 @@ const SolutionCard = ({ section, index, isHovered, onHover }) => {
 
           {/* Action Button - Balanced design */}
           <Link 
-            to={`/solutions/${section.solution_id}`}
+            to={`/marketplace/${toSlug(section.title || section.name || 'app')}`}
             className={`
               group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
               ${isHovered 

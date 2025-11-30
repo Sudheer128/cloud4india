@@ -38,7 +38,7 @@ function AppContent() {
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/products" element={<MainProductsPage />} />
-          <Route path="/solutions" element={<MainSolutionsPage />} />
+          <Route path="/marketplace" element={<MainSolutionsPage />} />
           {/* Login route */}
           <Route path="/login" element={<Login />} />
           {/* Admin routes with unified layout - Protected */}
@@ -50,12 +50,12 @@ function AppContent() {
             <Route index element={<AdminPanel />} />
             <Route path="products" element={<ProductsAdmin />} />
             <Route path="products-main" element={<ProductsMainAdmin />} />
-            <Route path="solutions" element={<SolutionsAdmin />} />
-            <Route path="solutions-main" element={<SolutionsMainAdmin />} />
+            <Route path="marketplace" element={<SolutionsAdmin />} />
+            <Route path="marketplace-main" element={<SolutionsMainAdmin />} />
             <Route path="pricing" element={<PricingAdmin />} />
             <Route path="about-us" element={<AboutUsAdmin />} />
           </Route>
-          <Route path="/solutions/:solutionId" element={<UniversalSolutionPage />} />
+          <Route path="/marketplace/:appName" element={<UniversalSolutionPage />} />
           {/* Product pages - all products use dynamic CMS system */}
           <Route path="/products/:productId" element={<UniversalProductPage />} />
         </Routes>

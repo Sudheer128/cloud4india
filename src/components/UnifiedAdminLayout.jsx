@@ -18,10 +18,10 @@ const UnifiedAdminLayout = () => {
         return 'Products Administration';
       case '/admin/products-main':
         return 'Products Main Page';
-      case '/admin/solutions':
-        return 'Apps Management';
-      case '/admin/solutions-main':
-        return 'Apps Main Page';
+      case '/admin/marketplace':
+        return 'Marketplace Management';
+      case '/admin/marketplace-main':
+        return 'Marketplace Main Page';
       case '/admin/pricing':
         return 'Pricing Management';
       default:

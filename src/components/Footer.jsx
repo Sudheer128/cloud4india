@@ -11,7 +11,7 @@ const Footer = () => {
         { text: 'About Us', href: '/about-us' },
         { text: 'Pricing', href: '/pricing' },
         { text: 'Products', href: '/products' },
-        { text: 'Solutions', href: '/solutions' }
+        { text: 'Marketplace', href: '/marketplace' }
       ]
     },
     {
@@ -27,11 +27,11 @@ const Footer = () => {
     {
       title: 'Solutions',
       links: [
-        { text: 'All Apps', href: '/solutions' },
-        { text: 'Frameworks', href: '/solutions?category=frameworks' },
-        { text: 'CMS', href: '/solutions?category=cms' },
-        { text: 'Databases', href: '/solutions?category=databases' },
-        { text: 'Developer Tools', href: '/solutions?category=developer-tools' }
+        { text: 'All Apps', href: '/marketplace' },
+        { text: 'Frameworks', href: '/marketplace?category=frameworks' },
+        { text: 'CMS', href: '/marketplace?category=cms' },
+        { text: 'Databases', href: '/marketplace?category=databases' },
+        { text: 'Developer Tools', href: '/marketplace?category=developer-tools' }
       ]
     },
     {

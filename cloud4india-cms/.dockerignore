@@ -31,7 +31,7 @@ Thumbs.db
 
 # Documentation
 README.md
-DEPLOYMENT_GUIDE.md
+*.md
 
 # Logs
 logs
@@ -42,45 +42,23 @@ pids
 *.pid
 *.seed
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage
 
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Docker files (not needed in container)
+# Docker files
 Dockerfile
 docker-compose.yml
 .dockerignore
 
-# Source maps (not needed in production)
-*.map
-
-# Development files
-.vite
-.cache
+# Database files (will be mounted as volume)
+*.db
+*.db-journal
 
 # Test files
 test
 tests
 __tests__
 *.test.js
-*.test.jsx
 *.spec.js
-*.spec.jsx
 
-# CI/CD files
-.github
-.gitlab-ci.yml
-.travis.yml
 
-# Other project files
-cloud4india-cms
-*.md
-!README.md

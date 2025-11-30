@@ -484,7 +484,7 @@ const SolutionsMainAdmin = () => {
           ) : (
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Apps'}</h3>
+                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Marketplace'}</h3>
                 <p className="text-sm text-gray-600">{mainPageData?.hero?.subtitle || 'Enterprise Solutions - Made in India'}</p>
                 <p className="text-sm text-gray-500 mt-2">{mainPageData?.hero?.description || 'Explore our enterprise-grade solutions designed to transform your business operations.'}</p>
               </div>
