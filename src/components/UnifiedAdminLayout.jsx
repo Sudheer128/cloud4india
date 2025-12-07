@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../utils/auth';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import AdminSidebar from './AdminSidebar';
+import ErrorBoundary from './ErrorBoundary';
 
 const UnifiedAdminLayout = () => {
   const location = useLocation();
@@ -14,14 +15,14 @@ const UnifiedAdminLayout = () => {
     switch (path) {
       case '/admin':
         return 'Home Page Management';
-      case '/admin/products':
-        return 'Products Administration';
-      case '/admin/products-main':
-        return 'Products Main Page';
       case '/admin/marketplace':
         return 'Marketplace Management';
       case '/admin/marketplace-main':
         return 'Marketplace Main Page';
+      case '/admin/products':
+        return 'Products Management';
+      case '/admin/products-main':
+        return 'Products Main Page';
       case '/admin/pricing':
         return 'Pricing Management';
       default:
@@ -63,7 +64,9 @@ const UnifiedAdminLayout = () => {
 
         {/* Content */}
         <div className="flex-1 p-6 overflow-auto">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

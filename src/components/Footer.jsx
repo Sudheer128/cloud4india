@@ -10,28 +10,35 @@ const Footer = () => {
         { text: 'Home', href: '/' },
         { text: 'About Us', href: '/about-us' },
         { text: 'Pricing', href: '/pricing' },
+        { text: 'Marketplace', href: '/marketplace' },
         { text: 'Products', href: '/products' },
-        { text: 'Marketplace', href: '/marketplace' }
+        { text: 'Solutions', href: '/solutions' }
       ]
     },
     {
-      title: 'Products',
-      links: [
-        { text: 'Microsoft 365 Licenses', href: '/products/microsoft-365-licenses' },
-        { text: 'Acronis Server Backup', href: '/products/acronis-server-backup' },
-        { text: 'Acronis M365 Backup', href: '/products/acronis-m365-backup' },
-        { text: 'Acronis Google Workspace Backup', href: '/products/acronis-google-workspace-backup' },
-        { text: 'Anti Virus', href: '/products/anti-virus' }
-      ]
-    },
-    {
-      title: 'Solutions',
+      title: 'Marketplace',
       links: [
         { text: 'All Apps', href: '/marketplace' },
         { text: 'Frameworks', href: '/marketplace?category=frameworks' },
         { text: 'CMS', href: '/marketplace?category=cms' },
         { text: 'Databases', href: '/marketplace?category=databases' },
         { text: 'Developer Tools', href: '/marketplace?category=developer-tools' }
+      ]
+    },
+    {
+      title: 'Products',
+      links: [
+        { text: 'All Products', href: '/products' },
+        { text: 'Cloud Services', href: '/products' },
+        { text: 'Infrastructure', href: '/products' }
+      ]
+    },
+    {
+      title: 'Solutions',
+      links: [
+        { text: 'All Solutions', href: '/solutions' },
+        { text: 'Industry Solutions', href: '/solutions?category=Industry' },
+        { text: 'Use Case Solutions', href: '/solutions?category=Use%20Case' }
       ]
     },
     {
@@ -60,7 +67,7 @@ const Footer = () => {
         </div>
 
         {/* Footer Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           {footerSections.map((section, index) => (
             <div key={index}>
               <h3 className="text-lg font-semibold mb-6 text-white">{section.title}</h3>

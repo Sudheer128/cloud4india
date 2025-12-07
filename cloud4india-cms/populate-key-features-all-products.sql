@@ -135,7 +135,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Key Features',
-    'Comprehensive backup and disaster recovery solutions',
+    'Comprehensive backup and disaster recovery Apps',
     'features',
     2,
     1
@@ -146,7 +146,7 @@ WHERE route = 'acronis-server-backup';
 UPDATE product_sections 
 SET 
     title = 'Key Features',
-    description = 'Comprehensive backup and disaster recovery solutions',
+    description = 'Comprehensive backup and disaster recovery Apps',
     order_index = 2,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -173,7 +173,7 @@ INSERT INTO product_items (section_id, title, description, item_type, icon, orde
 SELECT 
     ps.id,
     'Universal Backup',
-    'Complete backup solution for Windows, Linux, VMware, and Hyper-V with support for physical and virtual machines.',
+    'Complete backup App for Windows, Linux, VMware, and Hyper-V with support for physical and virtual machines.',
     'feature_card',
     'ServerIcon',
     1,
@@ -256,7 +256,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Key Features',
-    'Complete backup solution for Microsoft 365',
+    'Complete backup App for Microsoft 365',
     'features',
     2,
     1
@@ -267,7 +267,7 @@ WHERE route = 'acronis-m365-backup';
 UPDATE product_sections 
 SET 
     title = 'Key Features',
-    description = 'Complete backup solution for Microsoft 365',
+    description = 'Complete backup App for Microsoft 365',
     order_index = 2,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -377,7 +377,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Key Features',
-    'Complete backup solution for Google Workspace',
+    'Complete backup App for Google Workspace',
     'features',
     2,
     1
@@ -388,7 +388,7 @@ WHERE route = 'acronis-google-workspace-backup';
 UPDATE product_sections 
 SET 
     title = 'Key Features',
-    description = 'Complete backup solution for Google Workspace',
+    description = 'Complete backup App for Google Workspace',
     order_index = 2,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP

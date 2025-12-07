@@ -19,7 +19,7 @@ const OurStorySection = () => {
           founding_year: '2010',
           story_items: JSON.stringify([
             'Founded in 2010, Cloud 4 India was established to address the growing demand for secure, reliable data centres and managed IT services.',
-            'Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting solutions at competitive prices.',
+            'Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting Apps at competitive prices.',
             'With a commitment to innovation and customer satisfaction, we offer comprehensive managed IT services, catering to businesses of all sizes — from ambitious startups to established enterprises.'
           ]),
           image_url: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=600&fit=crop',

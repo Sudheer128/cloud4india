@@ -12,7 +12,7 @@ const SolutionsSectionNew = () => {
   
   const solutions = mainPageData?.sections || []
 
-  const categories = ['all', 'Frameworks', 'Content Management Systems', 'Databases']
+  const categories = ['all', 'Industry', 'Use Case']
 
   const filteredSolutions = solutions?.filter(solution => {
     const solutionName = solution.solution_name || solution.title || solution.name || '';
@@ -44,7 +44,7 @@ const SolutionsSectionNew = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-4xl font-light text-gray-900">Explore our Apps</h2>
+          <h2 className="text-4xl font-light text-gray-900">Explore our Solutions</h2>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -105,13 +105,13 @@ const SolutionsSectionNew = () => {
             {filteredSolutions.slice(0, 6).map((solution, index) => {
               const solutionId = solution.solution_id || solution.id;
               const solutionName = solution.solution_name || solution.title || solution.name || '';
-              const solutionCategory = solution.category || 'Enterprise Solutions';
+              const solutionCategory = solution.category || 'Cloud Solutions';
               const colors = getSolutionColor()
               
               return (
                 <Link
                   key={solution.id}
-                  to={`/marketplace/${toSlug(solutionName)}`}
+                  to={`/solutions/${toSlug(solutionName)}`}
                   className={`relative bg-white border ${colors.border} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block overflow-hidden`}
                 >
                   {/* single-color hover wash: light teal, under content */}
@@ -149,10 +149,10 @@ const SolutionsSectionNew = () => {
         {solutions.length > 6 && (
           <div className="text-center mt-12">
             <button 
-              onClick={() => window.location.href = '/marketplace'}
+              onClick={() => window.location.href = '/solutions'}
               className="bg-saree-teal text-white border-2 border-saree-teal px-8 py-3 rounded-lg font-semibold hover:bg-saree-teal-dark transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
-              View more Apps
+              View more Solutions
             </button>
           </div>
         )}
@@ -162,3 +162,4 @@ const SolutionsSectionNew = () => {
 }
 
 export default SolutionsSectionNew
+

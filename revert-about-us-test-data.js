@@ -58,7 +58,7 @@ async function revertData() {
     badge_text: 'About Cloud 4 India',
     title: 'The Power of',
     highlighted_text: 'Next-generation',
-    description: 'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT solutions. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
+    description: 'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT Apps. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
     button_text: 'Explore Our Services',
     button_link: '',
     image_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop',
@@ -80,7 +80,7 @@ async function revertData() {
     founding_year: '2010',
     story_items: JSON.stringify([
       'Founded in 2010, Cloud 4 India was established to address the growing demand for secure, reliable data centres and managed IT services.',
-      'Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting solutions at competitive prices.',
+      'Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting Apps at competitive prices.',
       'With a commitment to innovation and customer satisfaction, we offer comprehensive managed IT services, catering to businesses of all sizes — from ambitious startups to established enterprises.'
     ]),
     image_url: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=600&fit=crop',
@@ -126,7 +126,7 @@ async function revertData() {
   log('\n🎯 Reverting Approach Section...', 'yellow');
   const approachSectionData = {
     header_title: 'Our Approach',
-    header_description: 'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre solutions designed to empower your business growth.',
+    header_description: 'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre Apps designed to empower your business growth.',
     cta_button_text: 'Talk to a Specialist'
   };
   const approachSectionResult = await updateEndpoint('/about/approach-section', approachSectionData);

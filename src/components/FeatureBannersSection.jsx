@@ -21,7 +21,7 @@ const FeatureBannersSection = () => {
     {
       id: 2,
       category: 'Innovation',
-      title: 'Accelerate your digital transformation with AI-powered cloud solutions',
+      title: 'Accelerate your digital transformation with AI-powered cloud Apps',
       subtitle: 'Discover how leading enterprises are scaling with Cloud4India\'s intelligent infrastructure',
       gradient: 'from-saree-teal via-phulkari-turquoise to-saree-lime',
       accentGradient: 'from-saree-teal to-phulkari-turquoise',

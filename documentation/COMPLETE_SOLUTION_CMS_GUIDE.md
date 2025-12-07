@@ -1,25 +1,25 @@
-# Complete Solution CMS Guide
+# Complete Marketplace CMS Guide
 
 ## Overview
-The Cloud4India CMS now provides comprehensive content management for individual solution pages. Each solution (like Financial Services, Healthcare, etc.) has its own dedicated page with multiple manageable sections through a powerful CMS interface.
+The Cloud4India CMS now provides comprehensive content management for individual marketplace pages. Each marketplace (like Financial Services, Healthcare, etc.) has its own dedicated page with multiple manageable sections through a powerful CMS interface.
 
-## 🎯 **What's New: Complete Solution Page CMS**
+## 🎯 **What's New: Complete Marketplace Page CMS**
 
-### 🎛️ **Individual Solution Management**
-Each solution now has:
-- **Solution Overview**: Basic solution information and card details
+### 🎛️ **Individual Marketplace Management**
+Each marketplace now has:
+- **Marketplace Overview**: Basic marketplace information and card details
 - **Page Sections**: Complete content management for all page sections
-- **Preview**: Real-time preview of the solution page
+- **Preview**: Real-time preview of the marketplace page
 
-### 📋 **Solution Page Sections**
-Each solution page can contain multiple sections:
+### 📋 **Marketplace Page Sections**
+Each marketplace page can contain multiple sections:
 
 1. **Hero Section** - Main banner with title, subtitle, and CTA buttons
 2. **Key Benefits** - Main benefits and value propositions  
 3. **Industry Segments** - Different target markets and segments
 4. **Success Stories** - Customer testimonials and case studies
 5. **Technology Features** - Technical capabilities and innovations
-6. **Use Cases & Solutions** - Real-world applications and scenarios
+6. **Use Cases & Apps** - Real-world applications and scenarios
 7. **ROI & Value** - Return on investment information
 8. **Implementation Timeline** - Step-by-step process
 9. **Resources & Support** - Documentation and training materials
@@ -30,19 +30,19 @@ Each solution page can contain multiple sections:
 14. **Client Testimonials** - Customer feedback
 15. **Pricing Information** - Cost and pricing tiers
 
-## 🚀 **How to Use the Complete Solution CMS**
+## 🚀 **How to Use the Complete Marketplace CMS**
 
-### 1. **Access Solution Management**
+### 1. **Access Marketplace Management**
 - Go to `http://localhost:3003/admin`
-- Click **"Solutions"** in the sidebar
-- Click the **blue "Edit"** button next to any solution
+- Click **"Marketplace"** in the sidebar
+- Click the **blue "Edit"** button next to any marketplace
 
-### 2. **Solution Overview Tab**
-Manage basic solution information:
-- **Solution Name**: Display name for the solution
+### 2. **Marketplace Overview Tab**
+Manage basic marketplace information:
+- **Marketplace Name**: Display name for the marketplace
 - **Category**: Industry or Technology classification
-- **Description**: Brief description for solution cards
-- **Page Route**: URL path (e.g., `/solutions/financial-services`)
+- **Description**: Brief description for marketplace cards
+- **Page Route**: URL path (e.g., `/marketplace/financial-services`)
 - **Card Background**: Tailwind gradient classes
 - **Card Border**: Tailwind border classes
 
@@ -57,10 +57,10 @@ Complete content management:
 
 ### 4. **Preview Tab**
 Real-time preview:
-- **Solution Card Preview**: See how the solution card looks
+- **Marketplace Card Preview**: See how the marketplace card looks
 - **Page Content Overview**: Preview all sections
 - **Page Structure Summary**: Quick stats and information
-- **Live Page Link**: Direct link to the actual solution page
+- **Live Page Link**: Direct link to the actual marketplace page
 
 ## 🎨 **Section Management Features**
 
@@ -88,12 +88,12 @@ Real-time preview:
 <h2>Key Benefits</h2>
 <ul>
   <li><strong>Enhanced Security:</strong> Bank-grade security protocols</li>
-  <li><strong>Scalable Solutions:</strong> Grow with your business needs</li>
+  <li><strong>Scalable Marketplaces:</strong> Grow with your business needs</li>
   <li><strong>24/7 Support:</strong> Round-the-clock expert assistance</li>
 </ul>
 ```
 
-#### **Use Cases & Solutions**
+#### **Use Cases & Marketplaces**
 ```html
 <h2>Real-World Applications</h2>
 <h3>Banking Automation</h3>
@@ -105,38 +105,38 @@ Real-time preview:
 ## 🔧 **Technical Implementation**
 
 ### **Database Structure**
-The system uses the existing `solution_sections` table:
+The system uses the existing `marketplace_sections` table:
 ```sql
-CREATE TABLE solution_sections (
+CREATE TABLE marketplace_sections (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  solution_id INTEGER NOT NULL,
+  marketplace_id INTEGER NOT NULL,
   section_type TEXT NOT NULL,
   title TEXT,
   content TEXT,
   order_index INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (solution_id) REFERENCES solutions (id)
+  FOREIGN KEY (marketplace_id) REFERENCES marketplaces (id)
 );
 ```
 
 ### **API Endpoints**
-- `GET /api/solutions/:id/sections` - Get all sections for a solution
-- `POST /api/solutions/:id/sections` - Create new section
-- `PUT /api/solutions/:id/sections/:sectionId` - Update section
-- `DELETE /api/solutions/:id/sections/:sectionId` - Delete section
+- `GET /api/marketplaces/:id/sections` - Get all sections for a marketplace
+- `POST /api/marketplaces/:id/sections` - Create new section
+- `PUT /api/marketplaces/:id/sections/:sectionId` - Update section
+- `DELETE /api/marketplaces/:id/sections/:sectionId` - Delete section
 
 ### **Frontend Components**
-- **SolutionEditor**: Main solution management interface
+- **MarketplaceEditor**: Main marketplace management interface
 - **SectionEditor**: Rich content editing modal
-- **SolutionsManagement**: Solution listing and navigation
+- **MarketplacesManagement**: Marketplace listing and navigation
 
 ## 🎯 **Content Management Workflow**
 
-### **Step 1: Solution Setup**
-1. Access Solutions in admin panel
-2. Click Edit on desired solution
-3. Go to "Solution Overview" tab
+### **Step 1: Marketplace Setup**
+1. Access Marketplaces in admin panel
+2. Click Edit on desired marketplace
+3. Go to "Marketplace Overview" tab
 4. Set basic information and save
 
 ### **Step 2: Content Creation**
@@ -164,7 +164,7 @@ CREATE TABLE solution_sections (
 ### **Smart Content Generation**
 - **Context-Aware**: Understands section type and purpose
 - **Professional Tone**: Business-appropriate language
-- **Industry-Specific**: Tailored to solution category
+- **Industry-Specific**: Tailored to marketplace category
 - **HTML Formatting**: Proper markup for web display
 
 ### **Usage Tips**
@@ -174,7 +174,7 @@ CREATE TABLE solution_sections (
 4. **Review & Edit**: Always review AI-generated content
 5. **Test Different Approaches**: Try various content styles
 
-## 📊 **Content Examples by Solution Type**
+## 📊 **Content Examples by Marketplace Type**
 
 ### **Financial Services**
 - **Hero**: "Transform Your Financial Future"
@@ -188,7 +188,7 @@ CREATE TABLE solution_sections (
 - **Segments**: Hospitals, Clinics, Pharma, Research
 - **Use Cases**: EHR Integration, Telemedicine, Analytics
 
-### **Technology Solutions**
+### **Technology Marketplaces**
 - **Hero**: "Accelerate Digital Transformation"
 - **Benefits**: Innovation, Efficiency, Integration
 - **Segments**: Enterprise, Startups, Government
@@ -220,7 +220,7 @@ CREATE TABLE solution_sections (
 ## 🚦 **Current Status**
 
 ### ✅ **Completed Features**
-- Complete solution page CMS interface
+- Complete marketplace page CMS interface
 - 15+ section types with descriptions
 - AI-powered content enhancement
 - Rich HTML content editing
@@ -230,7 +230,7 @@ CREATE TABLE solution_sections (
 - Modal-based editing experience
 
 ### 🔄 **Next Steps**
-- Dynamic solution page rendering
+- Dynamic marketplace page rendering
 - Content templates and presets
 - Bulk section operations
 - Advanced preview modes
@@ -239,7 +239,7 @@ CREATE TABLE solution_sections (
 
 ## 🎉 **Summary**
 
-The Complete Solution CMS transforms how you manage individual solution pages. Instead of editing static code, you now have:
+The Complete Marketplace CMS transforms how you manage individual marketplace pages. Instead of editing static code, you now have:
 
 - **Visual Interface**: Easy-to-use admin panel
 - **Flexible Content**: 15+ section types for any content need
@@ -248,16 +248,16 @@ The Complete Solution CMS transforms how you manage individual solution pages. I
 - **Professional Design**: Modern, responsive interface
 - **Complete Control**: Full content management capabilities
 
-Each solution page can now be completely customized and managed through the CMS, making it easy to create compelling, professional solution pages that drive engagement and conversions.
+Each marketplace page can now be completely customized and managed through the CMS, making it easy to create compelling, professional marketplace pages that drive engagement and conversions.
 
 ## 📞 **Support**
 
-For questions about the Solution CMS:
+For questions about the Marketplace CMS:
 1. Check the preview tab for real-time feedback
 2. Use AI enhancement for content improvement
 3. Refer to section examples for guidance
 4. Test changes in preview before going live
 5. Contact support for technical issues
 
-Transform your solution pages from static content to dynamic, manageable experiences with the Complete Solution CMS!
+Transform your marketplace pages from static content to dynamic, manageable experiences with the Complete Marketplace CMS!
 

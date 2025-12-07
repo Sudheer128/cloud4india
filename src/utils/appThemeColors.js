@@ -1,6 +1,6 @@
 /**
  * App Pages Theme Colors - Matching Home Page Saree/Phulkari Theme
- * Centralized color configuration for UniversalSolutionPage and related components
+ * Centralized color configuration for UniversalMarketplacePage and related components
  */
 
 export const appThemeColors = {

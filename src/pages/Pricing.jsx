@@ -404,7 +404,7 @@ const Pricing = () => {
                 {hero?.title || 'Cloud Server Pricing for Startups, SMEs and Enterprises'}
               </h1>
               <p className="text-base md:text-lg text-white/90 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
-                {hero?.description || 'Experience the perfect balance of performance and affordability with Cloud4India\'s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud solutions while optimizing cloud cost savings. Whether you\'re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'}
+                {hero?.description || 'Experience the perfect balance of performance and affordability with Cloud4India\'s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud Apps while optimizing cloud cost savings. Whether you\'re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'}
               </p>
             </>
           )}
@@ -614,7 +614,7 @@ const Pricing = () => {
                           {categoriesData.find(cat => cat.id === activeTab)?.name} Pricing and Plans
                         </h3>
                         <p className="text-sm md:text-base text-gray-600">
-                          Choose from our comprehensive {activeTab} solutions designed to meet your specific needs.
+                          Choose from our comprehensive {activeTab} Apps designed to meet your specific needs.
                         </p>
                       </div>
 
@@ -662,7 +662,7 @@ const Pricing = () => {
                         {categoriesData.find(cat => cat.id === activeTab)?.name} Pricing and Plans
                       </h3>
                       <p className="text-sm md:text-base text-gray-600 mb-8 max-w-2xl mx-auto">
-                        Advanced {activeTab} solutions to enhance your cloud infrastructure.
+                        Advanced {activeTab} Apps to enhance your cloud infrastructure.
                       </p>
                       <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         Contact Sales

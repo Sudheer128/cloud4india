@@ -7,7 +7,7 @@ console.log('🚀 Migrating section items with dynamic section lookup...');
 const getSectionIdByType = (sectionType) => {
   return new Promise((resolve, reject) => {
     db.get(
-      'SELECT id FROM solution_sections WHERE section_type = ? ORDER BY id DESC LIMIT 1',
+      'SELECT id FROM marketplace_sections WHERE section_type = ? ORDER BY id DESC LIMIT 1',
       [sectionType],
       (err, row) => {
         if (err) {
@@ -108,7 +108,7 @@ const runMigration = async () => {
       {
         item_type: 'timeline_phase',
         title: 'System Design & Integration',
-        description: 'Architectural design and system integration planning with focus on scalability, security, and compliance. We design custom solutions tailored to your specific financial services requirements and integrate with your existing infrastructure.',
+        description: 'Architectural design and system integration planning with focus on scalability, security, and compliance. We design custom Apps tailored to your specific financial services requirements and integrate with your existing infrastructure.',
         icon: 'CogIcon',
         value: '4-8 weeks',
         label: 'Duration',
@@ -118,7 +118,7 @@ const runMigration = async () => {
       {
         item_type: 'timeline_phase',
         title: 'Implementation & Testing',
-        description: 'Phased implementation with continuous testing, validation, and optimization throughout the process. We ensure minimal disruption to your operations while delivering a robust, scalable financial solution.',
+        description: 'Phased implementation with continuous testing, validation, and optimization throughout the process. We ensure minimal disruption to your operations while delivering a robust, scalable financial App.',
         icon: 'RocketLaunchIcon',
         value: '8-16 weeks',
         label: 'Duration',
@@ -137,15 +137,15 @@ const runMigration = async () => {
       }
     ];
 
-    // Advanced Technology Solutions content (for technology section)
-    const techSolutionsItems = [
+    // Advanced Technology Apps content (for technology section)
+    const techAppsItems = [
       {
         item_type: 'ai_ml_section',
         title: 'AI & Machine Learning for Financial Services',
-        description: 'Transform your financial operations with AI-powered solutions for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.',
+        description: 'Transform your financial operations with AI-powered Apps for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.',
         icon: 'CpuChipIcon',
-        value: 'Explore AI Solutions',
-        label: 'AI Solutions',
+        value: 'Explore AI Apps',
+        label: 'AI Apps',
         features: '["Advanced fraud detection and prevention", "Real-time risk assessment and monitoring", "Algorithmic trading and portfolio optimization", "Personalized financial recommendations"]',
         order_index: 0
       },
@@ -246,8 +246,8 @@ const runMigration = async () => {
     console.log('\n📝 Inserting Implementation Journey phases...');
     await insertSectionItems('implementation', journeyPhases);
 
-    console.log('\n📝 Inserting Technology Solutions items...');
-    await insertSectionItems('technology', techSolutionsItems);
+    console.log('\n📝 Inserting Technology Apps items...');
+    await insertSectionItems('technology', techAppsItems);
 
     console.log('\n📝 Inserting Use Cases items...');
     await insertSectionItems('use_cases', useCasesItems);

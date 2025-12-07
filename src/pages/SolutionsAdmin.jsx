@@ -4,7 +4,15 @@ import {
   toggleSolutionVisibility,
   duplicateSolution,
   deleteSolution,
-  updateSolution
+  updateSolution,
+  getSolutionSections,
+  createSolutionSection,
+  updateSolutionSection,
+  deleteSolutionSection,
+  getSolutionItems,
+  createSolutionItem,
+  updateSolutionItem,
+  deleteSolutionItem
 } from '../services/cmsApi';
 import { toSlug } from '../utils/slugUtils';
 import { 
@@ -536,7 +544,7 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Marketplace</h3>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Solution</h3>
         <div className="flex items-center gap-3">
           {/* Category Filter Dropdown */}
           <div className="relative">
@@ -601,7 +609,7 @@ const SolutionsManagement = ({ solutions, onEditSolution, onDuplicateSolution, o
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 mt-2 md:mt-0">{solution.description}</div>
-                <div className="text-xs text-gray-500 mt-2 md:mt-0">/marketplace/{toSlug(solution.name)}</div>
+                <div className="text-xs text-gray-500 mt-2 md:mt-0">/solution/{toSlug(solution.name)}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
                     onClick={() => onEditSolution(solution)}
@@ -979,22 +987,16 @@ const SolutionEditor = ({ solution, onBack }) => {
   };
 
   const sectionTypes = [
-    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
-    { value: 'media_banner', label: 'Video/Photo Banner', description: 'Video or photo banner section with title and sub-text (appears after hero section)' },
-    { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions' },
-    { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets' },
-    { value: 'success_story', label: 'Success Stories', description: 'Customer testimonials and case studies' },
-    { value: 'technology', label: 'Technology Features', description: 'Technical capabilities and innovations' },
-    { value: 'use_cases', label: 'Use Cases & Solutions', description: 'Real-world applications and scenarios' },
-    { value: 'roi', label: 'ROI & Value', description: 'Return on investment and business value' },
-    { value: 'implementation', label: 'Implementation Timeline', description: 'Step-by-step implementation process' },
-    { value: 'resources', label: 'Resources & Support', description: 'Documentation, training, and support materials' },
-    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' },
-    { value: 'stats', label: 'Statistics & Metrics', description: 'Key performance indicators and metrics' },
-    { value: 'comparison', label: 'Comparison Table', description: 'Feature comparisons and competitive analysis' },
-    { value: 'faq', label: 'FAQ Section', description: 'Frequently asked questions' },
-    { value: 'testimonials', label: 'Client Testimonials', description: 'Customer feedback and reviews' },
-    { value: 'pricing', label: 'Pricing Information', description: 'Pricing tiers and cost information' }
+    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons (Order: 0)' },
+    { value: 'media_banner', label: 'Video/Photo Banner', description: 'Video or photo banner section with title and sub-text (Order: 1, appears after hero section)' },
+    { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions (Order: 1+offset)' },
+    { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets (Order: 2+offset)' },
+    { value: 'technology', label: 'Technology Features', description: 'Technical capabilities and innovations (Order: 4+offset)' },
+    { value: 'use_cases', label: 'Use Cases & Solutions', description: 'Real-world applications and scenarios (Order: 5+offset)' },
+    { value: 'roi', label: 'ROI & Value', description: 'Return on investment and business value (Order: 6+offset)' },
+    { value: 'implementation', label: 'Implementation Timeline', description: 'Step-by-step implementation process (Order: 7+offset)' },
+    { value: 'resources', label: 'Resources & Support', description: 'Documentation, training, and support materials (Order: 8+offset)' },
+    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms (Order: 9+offset)' }
   ];
 
   return (
@@ -1095,31 +1097,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                 value={cardData.route}
                 onChange={(e) => setCardData({...cardData, route: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="/marketplace/financial-services"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Card Background</label>
-              <input
-                type="text"
-                value={cardData.color}
-                onChange={(e) => setCardData({...cardData, color: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="from-blue-50 to-blue-100"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Card Border</label>
-              <input
-                type="text"
-                value={cardData.border_color}
-                onChange={(e) => setCardData({...cardData, border_color: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="border-blue-200"
+                placeholder="/solution/financial-services"
                 required
               />
             </div>
@@ -1134,7 +1112,7 @@ const SolutionEditor = ({ solution, onBack }) => {
               Navigation Options
             </h4>
             <p className="text-sm text-gray-600 mb-4">
-              Choose how users navigate when clicking this app in the marketplace. Enable single page to show detailed app page, or provide a custom URL (like a sign-in page).
+              Choose how users navigate when clicking this app in the solution. Enable single page to show detailed app page, or provide a custom URL (like a sign-in page).
             </p>
 
             <div className="mb-4">
@@ -1155,7 +1133,7 @@ const SolutionEditor = ({ solution, onBack }) => {
               </label>
               <p className="text-xs text-gray-500 mt-2 ml-1">
                 {cardData.enable_single_page 
-                  ? '✓ Users will navigate to the detailed app page: /marketplace/' + toSlug(cardData.name || solution.name)
+                  ? '✓ Users will navigate to the detailed app page: /solution/' + toSlug(cardData.name || solution.name)
                   : '✗ Users will be redirected to custom URL (specify below)'}
               </p>
             </div>
@@ -1348,7 +1326,7 @@ const SolutionEditor = ({ solution, onBack }) => {
             </div>
             <div className="flex space-x-3">
               <a
-                href={`/marketplace/${toSlug(cardData.name)}`}
+                href={`/solution/${toSlug(cardData.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -2020,26 +1998,26 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
     }
   };
 
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) {
-      return;
-    }
-
+  const handleToggleItemVisibility = async (itemId, currentVisibility) => {
     try {
       const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
-        method: 'DELETE',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_visible: currentVisibility ? 0 : 1 }),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      
+      if (response.ok) {
+        await loadItems();
+        alert(`Item ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
+      } else {
+        throw new Error('Failed to toggle item visibility');
       }
-
-      await loadItems();
-      alert('Item deleted successfully!');
     } catch (err) {
-      console.error('Error deleting item:', err);
-      alert('Failed to delete item. Please try again.');
+      console.error('Error toggling item visibility:', err);
+      alert('Error toggling item visibility: ' + err.message);
     }
   };
 
@@ -2075,19 +2053,10 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
         </div>
 
         <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
-          {/* Add New Item Button */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">Section Items</h4>
-              <p className="text-sm text-gray-600 mt-1">Manage detailed content like cards, stats, and features</p>
-            </div>
-            <button
-              onClick={() => setEditingItem('new')}
-              className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors flex items-center"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Item
-            </button>
+          {/* Section Items Header */}
+          <div className="mb-6">
+            <h4 className="text-lg font-semibold text-gray-900">Section Items</h4>
+            <p className="text-sm text-gray-600 mt-1">Manage detailed content like cards, stats, and features</p>
           </div>
 
           {loading ? (
@@ -2152,10 +2121,14 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                          onClick={() => handleToggleItemVisibility(item.id, (item.is_visible ?? 1) !== 0)}
+                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
+                            (item.is_visible ?? 1) !== 0 
+                              ? 'text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100' 
+                              : 'text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100'
+                          }`}
                         >
-                          Delete
+                          {(item.is_visible ?? 1) !== 0 ? 'Hide' : 'Unhide'}
                         </button>
                       </div>
                     </div>
@@ -2166,14 +2139,8 @@ const SectionItemsManager = ({ section, solutionId, onCancel }) => {
                   <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                     <DocumentTextIcon className="h-8 w-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No items created yet</h3>
-                  <p className="text-gray-500 mb-4">Add detailed content like benefit cards, features, or statistics.</p>
-                  <button
-                    onClick={() => setEditingItem('new')}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    Add First Item
-                  </button>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No items available</h3>
+                  <p className="text-gray-500 mb-4">No section items found in this section.</p>
                 </div>
               )}
             </div>
@@ -2488,6 +2455,7 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
 const SolutionsAdmin = () => {
   const [solutions, setSolutions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editingSolution, setEditingSolution] = useState(null);
 
   useEffect(() => {
@@ -2497,10 +2465,12 @@ const SolutionsAdmin = () => {
   const fetchSolutions = async () => {
     try {
       setLoading(true);
+      setError(null);
       const solutionsData = await getAdminSolutions();
-      setSolutions(solutionsData);
+      setSolutions(solutionsData || []);
     } catch (error) {
       console.error('Error fetching solutions:', error);
+      setError(error.message || 'Failed to load solutions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -2551,6 +2521,23 @@ const SolutionsAdmin = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading solutions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Solutions</h3>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button 
+            onClick={fetchSolutions}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

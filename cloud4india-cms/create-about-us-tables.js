@@ -220,7 +220,7 @@ const createTables = () => {
       // Insert default data
       db.run(`INSERT OR IGNORE INTO about_hero_section (id, badge_text, title, highlighted_text, description, button_text, image_url, stat_value, stat_label) 
         VALUES (1, 'About Cloud 4 India', 'The Power of', 'Next-generation', 
-        'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT solutions. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
+        'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT Apps. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
         'Explore Our Services', 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop', '14+', 'Years Experience')`, (err) => {
         if (err) console.error('Error inserting default hero:', err.message);
         else console.log('✅ Inserted default about_hero_section data');
@@ -228,7 +228,7 @@ const createTables = () => {
 
       db.run(`INSERT OR IGNORE INTO about_story_section (id, header_title, header_description, founding_year, story_items, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label) 
         VALUES (1, 'Our Story', 'A journey of innovation, trust, and excellence spanning over a decade', '2010',
-        '["Founded in 2010, Cloud 4 India was established to address the growing demand for secure, reliable data centres and managed IT services.", "Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting solutions at competitive prices.", "With a commitment to innovation and customer satisfaction, we offer comprehensive managed IT services, catering to businesses of all sizes — from ambitious startups to established enterprises."]',
+        '["Founded in 2010, Cloud 4 India was established to address the growing demand for secure, reliable data centres and managed IT services.", "Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting Apps at competitive prices.", "With a commitment to innovation and customer satisfaction, we offer comprehensive managed IT services, catering to businesses of all sizes — from ambitious startups to established enterprises."]',
         'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=600&fit=crop', 'clock', '24H', 'Support', 'users', '1M+', 'Happy Customers')`, (err) => {
         if (err) console.error('Error inserting default story:', err.message);
         else console.log('✅ Inserted default about_story_section data');
@@ -243,9 +243,9 @@ const createTables = () => {
 
       // Insert default milestones
       const milestones = [
-        { year: '2010', title: 'Inception and Start of services', description: 'Cloud 4 India was founded with a vision to provide reliable and affordable cloud infrastructure solutions.', order_index: 0 },
+        { year: '2010', title: 'Inception and Start of services', description: 'Cloud 4 India was founded with a vision to provide reliable and affordable cloud infrastructure Apps.', order_index: 0 },
         { year: '2015', title: 'Remote Infrastructure management services', description: 'Expanded our offerings to include comprehensive remote infrastructure management for enterprises.', order_index: 1 },
-        { year: '2019', title: 'Launched Tally On Cloud + Application As A Service and serving over 1+ million users', description: 'Successfully launched cloud-based Tally solutions and reached a milestone of 1+ million satisfied users.', order_index: 2 },
+        { year: '2019', title: 'Launched Tally On Cloud + Application As A Service and serving over 1+ million users', description: 'Successfully launched cloud-based Tally Apps and reached a milestone of 1+ million satisfied users.', order_index: 2 },
         { year: '2022', title: 'Launch of Self Service portal, Cloud Automation, Market Place and complete SDN stack', description: 'Introduced cutting-edge automation tools and a comprehensive SDN infrastructure for enhanced customer experience.', order_index: 3 },
         { year: '2024', title: 'Started operations in USA', description: 'Expanded our global footprint by establishing operations in the United States market.', order_index: 4 }
       ];
@@ -316,7 +316,7 @@ const createTables = () => {
 
       db.run(`INSERT OR IGNORE INTO about_approach_section (id, header_title, header_description, cta_button_text) 
         VALUES (1, 'Our Approach', 
-        'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre solutions designed to empower your business growth.',
+        'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre Apps designed to empower your business growth.',
         'Talk to a Specialist')`, (err) => {
         if (err) console.error('Error inserting default approach section:', err.message);
         else console.log('✅ Inserted default about_approach_section data');

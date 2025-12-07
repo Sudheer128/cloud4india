@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 
 /**
  * Custom hook to fetch section items from CMS
- * @param {number} solutionId - The solution ID
+ * @param {number} marketplaceId - The marketplace ID
  * @param {number} sectionId - The section ID
  * @returns {Object} { items, loading, error, refetch }
  */
-export const useSectionItems = (solutionId, sectionId) => {
+export const useSectionItems = (marketplaceId, sectionId) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchData = async () => {
-    if (!solutionId || !sectionId) {
+    if (!marketplaceId || !sectionId) {
       setItems([]);
       setLoading(false);
       return;
@@ -21,7 +21,7 @@ export const useSectionItems = (solutionId, sectionId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/solutions/${solutionId}/sections/${sectionId}/items`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/marketplaces/${marketplaceId}/sections/${sectionId}/items`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -40,7 +40,7 @@ export const useSectionItems = (solutionId, sectionId) => {
 
   useEffect(() => {
     fetchData();
-  }, [solutionId, sectionId]);
+  }, [marketplaceId, sectionId]);
 
   return {
     items,

@@ -22,9 +22,9 @@ const OurLegacySection = () => {
           header_title: 'Our Legacy',
           header_description: 'With strategically located global data centres, we empower you to host your VPS exactly where it\'s needed most. Partner with a hosting provider that not only delivers excellence but also champions sustainability for a better future.',
           milestones: [
-            { year: '2010', title: 'Inception and Start of services', description: 'Cloud 4 India was founded with a vision to provide reliable and affordable cloud infrastructure solutions.' },
+            { year: '2010', title: 'Inception and Start of services', description: 'Cloud 4 India was founded with a vision to provide reliable and affordable cloud infrastructure Apps.' },
             { year: '2015', title: 'Remote Infrastructure management services', description: 'Expanded our offerings to include comprehensive remote infrastructure management for enterprises.' },
-            { year: '2019', title: 'Launched Tally On Cloud + Application As A Service and serving over 1+ million users', description: 'Successfully launched cloud-based Tally solutions and reached a milestone of 1+ million satisfied users.' },
+            { year: '2019', title: 'Launched Tally On Cloud + Application As A Service and serving over 1+ million users', description: 'Successfully launched cloud-based Tally Apps and reached a milestone of 1+ million satisfied users.' },
             { year: '2022', title: 'Launch of Self Service portal, Cloud Automation, Market Place and complete SDN stack', description: 'Introduced cutting-edge automation tools and a comprehensive SDN infrastructure for enhanced customer experience.' },
             { year: '2024', title: 'Started operations in USA', description: 'Expanded our global footprint by establishing operations in the United States market.' }
           ],

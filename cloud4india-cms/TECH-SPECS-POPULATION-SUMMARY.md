@@ -17,7 +17,7 @@ Technical Specifications have been successfully populated for:
 6. **Service Level & Support** - Uptime guarantees and support options
 
 ### Acronis Server Backup (6 Specifications):
-1. **Storage & Backup Capacity** - Flexible backup storage solutions
+1. **Storage & Backup Capacity** - Flexible backup storage Apps
 2. **Data Protection & Security** - Enterprise-grade encryption and security
 3. **Supported Operating Systems** - Platform compatibility
 4. **Backup Scheduling & Frequency** - Flexible scheduling options

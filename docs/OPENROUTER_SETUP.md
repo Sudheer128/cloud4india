@@ -39,7 +39,7 @@ Current configuration:
 
 The AI service is used in the Admin Panel for:
 - Enhancing product descriptions
-- Improving solution content
+- Improving marketplace content
 - Generating professional content for various sections
 
 ## Troubleshooting

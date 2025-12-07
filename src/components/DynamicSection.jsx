@@ -25,8 +25,8 @@ const iconMap = {
   CheckCircleIcon
 };
 
-const DynamicSection = ({ section, solutionId }) => {
-  const { items, loading, error } = useSectionItems(solutionId, section.id);
+const DynamicSection = ({ section, marketplaceId }) => {
+  const { items, loading, error } = useSectionItems(marketplaceId, section.id);
 
   if (loading) {
     return (

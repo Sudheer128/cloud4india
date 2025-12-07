@@ -2,8 +2,7 @@ import React from 'react'
 import HeroSectionNew from '../components/HeroSectionNew'
 import ComprehensiveSectionNew from '../components/ComprehensiveSectionNew'
 import WhySectionNew from '../components/WhySectionNew'
-import SolutionsSectionNew from '../components/SolutionsSectionNew'
-import ProductsSectionNew from '../components/ProductsSectionNew'
+import MarketplacesSectionNew from '../components/MarketplacesSectionNew'
 
 const HomeNew = () => {
   return (
@@ -11,8 +10,7 @@ const HomeNew = () => {
       <HeroSectionNew />
       <ComprehensiveSectionNew />
       <WhySectionNew />
-      <SolutionsSectionNew />
-      <ProductsSectionNew />
+      <MarketplacesSectionNew />
     </div>
   )
 }

@@ -608,7 +608,7 @@ const BasicCloudServers = () => {
             </p>
           </div>
 
-          {/* Problem-Solution Layout */}
+          {/* Problem-App Layout */}
           <div className="space-y-16">
             {/* Use Case 1 - Web Applications */}
             <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-2xl p-8 border border-green-200">
@@ -711,7 +711,7 @@ const BasicCloudServers = () => {
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex items-center">
                       <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                      Cost-effective solutions
+                      Cost-effective Apps
                     </li>
                     <li className="flex items-center">
                       <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>

@@ -1,4 +1,4 @@
-// Script to update button_text from "Explore Solution" to "Explore App" in main_solutions_sections
+// Script to update button_text from "Explore Solution" to "Explore App" in main_marketplaces_sections (legacy script)
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
@@ -13,9 +13,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 console.log('🔄 Updating button_text from "Explore Solution" to "Explore App"...\n');
 
-// Update all records that have 'Explore Solution' as button_text
+// Update all records that have 'Explore Solution' as button_text (legacy value)
 db.run(`
-  UPDATE main_solutions_sections 
+  UPDATE main_marketplaces_sections 
   SET button_text = 'Explore App'
   WHERE button_text = 'Explore Solution'
 `, function(err) {
@@ -28,7 +28,7 @@ db.run(`
   console.log(`✅ Successfully updated ${this.changes} record(s)`);
   
   // Verify the changes
-  db.all(`SELECT id, title, button_text FROM main_solutions_sections`, [], (err, rows) => {
+  db.all(`SELECT id, title, button_text FROM main_marketplaces_sections`, [], (err, rows) => {
     if (err) {
       console.error('❌ Error verifying changes:', err.message);
     } else {

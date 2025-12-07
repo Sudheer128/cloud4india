@@ -1,0 +1,60 @@
+import { useState, useEffect } from 'react';
+
+/**
+ * Custom hook to fetch product sections from CMS
+ * @param {number} productId - The product ID
+ * @returns {Object} { sections, loading, error, refetch }
+ */
+export const useProductSections = (productId) => {
+  const [sections, setSections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    if (!productId) {
+      setSections([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/products/${productId}/sections`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      // Filter out hidden sections (is_visible = 0 or false)
+      const visibleSections = result.filter(section => section.is_visible !== 0);
+      setSections(visibleSections);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching product sections:', err);
+      setSections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [productId]);
+
+  return {
+    sections,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
+
+
+
+
+
+
+

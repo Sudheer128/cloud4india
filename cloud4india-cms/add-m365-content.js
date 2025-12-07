@@ -99,7 +99,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                   UPDATE product_sections 
                   SET 
                     title = 'Technical Specifications',
-                    description = 'Comprehensive technical specifications and system requirements for Microsoft 365 business solutions',
+                    description = 'Comprehensive technical specifications and system requirements for Microsoft 365 business Apps',
                     order_index = 3,
                     is_visible = 1,
                     updated_at = CURRENT_TIMESTAMP

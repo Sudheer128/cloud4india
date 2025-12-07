@@ -218,9 +218,9 @@ export const enhanceDescription = async (title, currentDescription, context = 'g
 export const generateFallbackDescription = (title, currentDescription, context) => {
   const templates = {
     'why_item': `${title}: ${currentDescription} Our cloud platform delivers enterprise-grade reliability, security, and performance to help your business scale efficiently.`,
-    'product': `${title}: ${currentDescription} This powerful cloud solution provides advanced capabilities and seamless integration to accelerate your digital transformation.`,
+    'product': `${title}: ${currentDescription} This powerful cloud App provides advanced capabilities and seamless integration to accelerate your digital transformation.`,
     'hero': `${title}: ${currentDescription} Experience the future of cloud computing with our innovative platform designed for modern businesses.`,
-    'general': `${title}: ${currentDescription} Discover how our cloud solutions can transform your business operations and drive growth.`
+    'general': `${title}: ${currentDescription} Discover how our cloud Apps can transform your business operations and drive growth.`
   };
   
   return templates[context] || templates['general'];

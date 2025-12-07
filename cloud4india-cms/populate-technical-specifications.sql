@@ -143,7 +143,7 @@ INSERT INTO product_sections (product_id, title, description, section_type, orde
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive backup solution specifications',
+    'Comprehensive backup App specifications',
     'specifications',
     3,
     1
@@ -471,7 +471,7 @@ INSERT INTO product_items (section_id, title, description, content, item_type, i
 SELECT 
     ps.id,
     'Storage',
-    'Scalable storage solutions',
+    'Scalable storage Apps',
     '{"features": ["Scalable storage options to meet growing needs", "Automatic daily backups included", "Data redundancy across multiple locations", "Fast storage with SSD technology"]}',
     'specification',
     'CircleStackIcon',

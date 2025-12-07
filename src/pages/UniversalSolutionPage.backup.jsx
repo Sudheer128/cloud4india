@@ -38,19 +38,19 @@ import {
   CheckCircleIcon,
   CodeBracketIcon
 } from '@heroicons/react/24/outline'
-import { useSolutionSections } from '../hooks/useSolutionSections'
+import { useMarketplaceSections } from '../hooks/useMarketplaceSections'
 import { useSectionItems } from '../hooks/useSectionItems'
 
-const UniversalSolutionPage = () => {
-  const { solutionId } = useParams();
-  const { sections, loading, error } = useSolutionSections(parseInt(solutionId));
+const UniversalMarketplacePage = () => {
+  const { marketplaceId } = useParams();
+  const { sections, loading, error } = useMarketplaceSections(parseInt(marketplaceId));
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading solution content...</p>
+          <p className="text-gray-600">Loading marketplace content...</p>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ const UniversalSolutionPage = () => {
         <div className="text-center">
           <div className="text-gray-400 text-6xl mb-4">📄</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">No Content Available</h1>
-          <p className="text-gray-600 mb-4">This solution page doesn't have any content yet.</p>
+          <p className="text-gray-600 mb-4">This marketplace page doesn't have any content yet.</p>
           <Link to="/" className="text-blue-600 hover:text-blue-800 font-semibold">
             Return to Homepage
           </Link>
@@ -93,7 +93,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic benefit cards
   const DynamicBenefitCards = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -156,7 +156,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic financial segments
   const DynamicFinancialSegments = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -205,7 +205,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic ROI stats
   const DynamicROIStats = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -245,7 +245,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic HSBC success story metrics
   // const DynamicHSBCMetrics = ({ sectionId }) => {
-  //   const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+  //   const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
   //   if (loading) return <div>Loading...</div>;
   //   if (error) return <div>Error loading items: {error}</div>;
@@ -264,9 +264,9 @@ const UniversalSolutionPage = () => {
   //   );
   // };
 
-  // Component for dynamic Advanced Technology Solutions
-  const DynamicTechSolutions = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+  // Component for dynamic Advanced Technology Marketplaces
+  const DynamicTechMarketplaces = ({ sectionId }) => {
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -330,7 +330,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Real-World Use Cases
   const DynamicUseCases = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -392,7 +392,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Implementation Journey timeline
   const DynamicImplementationJourney = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -515,7 +515,7 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Resources & Documentation
   const DynamicResourcesDocs = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -831,7 +831,7 @@ const UniversalSolutionPage = () => {
         </section>
       )} */}
 
-      {/* Technology Solutions Section */}
+      {/* Technology Marketplaces Section */}
       {getSectionByOrder(4) && (
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -844,12 +844,12 @@ const UniversalSolutionPage = () => {
               </p>
             </div>
 
-            <DynamicTechSolutions sectionId={getSectionByOrder(4).id} />
+            <DynamicTechMarketplaces sectionId={getSectionByOrder(4).id} />
           </div>
         </section>
       )}
 
-      {/* Real-World Use Cases & Solutions */}
+      {/* Real-World Use Cases & Marketplaces */}
       {getSectionByOrder(5) && (
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -946,6 +946,6 @@ const UniversalSolutionPage = () => {
   )
 }
 
-export default UniversalSolutionPage
+export default UniversalMarketplacePage
 
 

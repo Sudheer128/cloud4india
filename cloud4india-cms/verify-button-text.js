@@ -11,27 +11,27 @@ const db = new sqlite3.Database(dbPath, (err) => {
   console.log('✅ Connected to SQLite database\n');
 });
 
-console.log('🔍 Checking button_text values in main_solutions_sections...\n');
+console.log('🔍 Checking button_text values in main_marketplaces_sections...\n');
 
-db.all(`SELECT id, title, button_text FROM main_solutions_sections`, [], (err, rows) => {
-  if (err) {
-    console.error('❌ Error querying main_solutions_sections:', err.message);
-  } else if (rows.length === 0) {
-    console.log('ℹ️  No records found in main_solutions_sections');
+db.all(`SELECT id, title, button_text FROM main_marketplaces_sections`, [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error querying main_marketplaces_sections:', err.message);
+    } else if (rows.length === 0) {
+      console.log('ℹ️  No records found in main_marketplaces_sections');
   } else {
     console.log('📊 Current button_text values:');
     console.table(rows);
     
     const exploreAppCount = rows.filter(r => r.button_text === 'Explore App').length;
-    const exploreSolutionCount = rows.filter(r => r.button_text === 'Explore Solution').length;
+    const exploreSolutionCount = rows.filter(r => r.button_text === 'Explore Solution').length; // Legacy value check
     
     console.log(`\n✅ Records with "Explore App": ${exploreAppCount}`);
-    console.log(`❌ Records with "Explore Solution": ${exploreSolutionCount}`);
+    console.log(`❌ Records with legacy "Explore Solution": ${exploreSolutionCount}`);
     
     if (exploreSolutionCount === 0) {
       console.log('\n🎉 All button_text values have been successfully updated!');
     } else {
-      console.log('\n⚠️  Some records still have "Explore Solution"');
+      console.log('\n⚠️  Some records still have legacy "Explore Solution" value');
     }
   }
   

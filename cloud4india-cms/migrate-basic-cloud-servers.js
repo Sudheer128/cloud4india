@@ -396,7 +396,7 @@ function insertSectionItems(sectionIds) {
       title: 'Small Business',
       description: 'Startups, SMEs, Growing Companies',
       content: JSON.stringify({
-        benefits: ['Cost-effective solutions', 'Easy scalability as you grow', '24/7 support included', 'No upfront investment']
+        benefits: ['Cost-effective Apps', 'Easy scalability as you grow', '24/7 support included', 'No upfront investment']
       }),
       item_type: 'use_case',
       icon: 'UsersIcon',

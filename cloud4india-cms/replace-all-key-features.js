@@ -21,7 +21,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       { title: '24/7 Support', description: 'Round-the-clock Microsoft support with guaranteed 99.9% uptime SLA, phone support, and comprehensive knowledge base access.', icon: 'ClockIcon' }
     ],
     'acronis-server-backup': [
-      { title: 'Universal Backup', description: 'Complete backup solution for Windows, Linux, VMware, and Hyper-V with support for physical and virtual machines.', icon: 'ServerIcon' },
+      { title: 'Universal Backup', description: 'Complete backup App for Windows, Linux, VMware, and Hyper-V with support for physical and virtual machines.', icon: 'ServerIcon' },
       { title: 'Ransomware Protection', description: 'Advanced AI-powered ransomware detection and prevention with blockchain-based data authentication and recovery.', icon: 'ShieldCheckIcon' },
       { title: 'Instant Recovery', description: 'Fast recovery with instant VM recovery, granular file restore, and bare metal recovery capabilities.', icon: 'ArrowPathIcon' },
       { title: 'Unlimited Storage', description: 'Unlimited cloud and local backup storage with advanced compression and deduplication for optimal efficiency.', icon: 'CircleStackIcon' },

@@ -19,7 +19,7 @@ const OurApproachSection = () => {
         setContent({
           section: {
             header_title: 'Our Approach',
-            header_description: 'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre solutions designed to empower your business growth.',
+            header_description: 'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre Apps designed to empower your business growth.',
             cta_button_text: 'Talk to a Specialist'
           },
           items: [
@@ -105,17 +105,24 @@ const OurApproachSection = () => {
         {/* Header */}
         <div className="text-center mb-16">
           {section.header_title && (
-            <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
-              {section.header_title}
-            </h2>
+            <div className="mb-6">
+              <div className="inline-block bg-saree-teal/10 rounded-full px-6 py-2 mb-4">
+                <span className="text-saree-teal font-semibold text-sm uppercase tracking-wider">
+                  Our Commitment
+                </span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                {section.header_title}
+              </h2>
+            </div>
           )}
           {section.header_description && (
-            <p className="text-base text-gray-700 max-w-4xl mx-auto">
+            <p className="text-lg text-gray-700 max-w-4xl mx-auto leading-relaxed">
               {section.header_description.split('Cloud 4 India').map((part, index, array) => (
                 <React.Fragment key={index}>
                   {part}
                   {index < array.length - 1 && (
-                    <span className="font-semibold text-gray-900">Cloud 4 India</span>
+                    <span className="font-bold text-saree-teal">Cloud 4 India</span>
                   )}
                 </React.Fragment>
               ))}

@@ -1,16 +1,16 @@
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('cms.db');
 
-// Advanced Technology Solutions content (section_id = 25)
-const techSolutionsItems = [
+// Advanced Technology Apps content (section_id = 25)
+const techAppsItems = [
   {
     section_id: 25,
     item_type: 'ai_ml_section',
     title: 'AI & Machine Learning for Financial Services',
-    description: 'Transform your financial operations with AI-powered solutions for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.',
-    icon: 'CpuChipIcon',
-    value: 'Explore AI Solutions',
-    label: 'AI Solutions',
+        description: 'Transform your financial operations with AI-powered Apps for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.',
+        icon: 'CpuChipIcon',
+        value: 'Explore AI Apps',
+        label: 'AI Apps',
     features: '["Advanced fraud detection and prevention", "Real-time risk assessment and monitoring", "Algorithmic trading and portfolio optimization", "Personalized financial recommendations"]',
     order_index: 0
   },
@@ -27,9 +27,9 @@ const techSolutionsItems = [
   }
 ];
 
-console.log('Adding Advanced Technology Solutions content...');
+console.log('Adding Advanced Technology Apps content...');
 
-techSolutionsItems.forEach((item, index) => {
+techAppsItems.forEach((item, index) => {
   db.run(
     `INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, order_index, created_at, updated_at) 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
@@ -47,6 +47,6 @@ techSolutionsItems.forEach((item, index) => {
 // Close database after a short delay to allow inserts to complete
 setTimeout(() => {
   db.close();
-  console.log('✓ Advanced Technology Solutions migration completed!');
+  console.log('✓ Advanced Technology Apps migration completed!');
 }, 1000);
 

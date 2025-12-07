@@ -18,7 +18,7 @@ const AboutHeroSection = () => {
           title: 'The Power of',
           highlighted_text: 'Next-generation',
           title_after: 'Control',
-          description: 'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT solutions. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
+          description: 'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT Apps. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
           button_text: 'Explore Our Services',
           image_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop',
           stat_value: '14+',

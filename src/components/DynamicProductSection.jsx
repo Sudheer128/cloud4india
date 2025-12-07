@@ -34,7 +34,7 @@ const iconMap = {
   'EyeSlashIcon': EyeSlashIcon
 };
 
-const DynamicProductSection = ({ section, items }) => {
+const DynamicProductSection = ({ section, items, product, hasNavigation = false }) => {
   // Don't render if section is hidden
   if (!section.is_visible) {
     return null;
@@ -43,7 +43,7 @@ const DynamicProductSection = ({ section, items }) => {
   // Render different section types
   switch (section.section_type) {
     case 'hero':
-      return <HeroSection section={section} items={items} />;
+      return <HeroSection section={section} items={items} product={product} hasNavigation={hasNavigation} />;
     case 'media_banner':
       return <MediaBannerSection section={section} items={items} />;
     case 'features':
@@ -68,7 +68,7 @@ const DynamicProductSection = ({ section, items }) => {
 };
 
 // Hero Section Component
-const HeroSection = ({ section, items }) => {
+const HeroSection = ({ section, items, product, hasNavigation = false }) => {
   // Get items by type for dynamic rendering
   const badgeItem = items.find(item => item.item_type === 'badge' && item.is_visible);
   const titleItem = items.find(item => item.item_type === 'title' && item.is_visible);
@@ -78,7 +78,7 @@ const HeroSection = ({ section, items }) => {
   const heroImageItem = items.find(item => item.item_type === 'image' && item.is_visible);
 
   return (
-    <section className="relative py-20 overflow-hidden bg-gradient-to-br from-phulkari-turquoise via-saree-teal to-saree-teal-dark">
+    <section className={`relative py-20 overflow-hidden bg-gradient-to-br from-phulkari-turquoise via-saree-teal to-saree-teal-dark ${hasNavigation ? '-mt-32' : ''}`}>
       {/* Different Background Patterns - Inspired but unique */}
       <div className="absolute inset-0">
         {/* Diagonal lines pattern */}
@@ -103,7 +103,7 @@ const HeroSection = ({ section, items }) => {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-saree-amber/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 ${hasNavigation ? 'pt-14' : ''}`}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left Content */}
           <div>
@@ -115,11 +115,11 @@ const HeroSection = ({ section, items }) => {
             )}
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              {section.title || titleItem?.title || 'Product Name'}
+              {product?.name || section.title || titleItem?.title || 'Product Name'}
             </h1>
             
             <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8">
-              {section.description || descriptionItem?.title || 'Product description goes here'}
+              {section.description || descriptionItem?.title || product?.description || 'Product description goes here'}
             </p>
             
             {/* Feature list with icons */}
@@ -202,19 +202,30 @@ const HeroSection = ({ section, items }) => {
   );
 };
 
-// Media Banner Section Component
-const MediaBannerSection = ({ section }) => {
+// Media Banner Section Component (for videos and images)
+const MediaBannerSection = ({ section, items }) => {
   // Get CMS base URL for uploaded files
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002');
   
   // Determine media URL
   let mediaUrl = '';
   let isYouTube = false;
   
   if (section.media_url) {
-    if (section.media_source === 'youtube' || section.media_url.includes('youtube.com/embed/')) {
-      // YouTube video
-      mediaUrl = section.media_url;
+    if (section.media_source === 'youtube' || 
+        section.media_url.includes('youtube.com/embed/') ||
+        section.media_url.includes('youtube.com/watch') ||
+        section.media_url.includes('youtu.be/')) {
+      // YouTube video - normalize to embed format
+      let embedUrl = section.media_url;
+      if (embedUrl.includes('youtube.com/watch?v=')) {
+        const videoId = embedUrl.split('v=')[1]?.split('&')[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else if (embedUrl.includes('youtu.be/')) {
+        const videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      }
+      mediaUrl = embedUrl;
       isYouTube = true;
     } else if (section.media_source === 'upload') {
       // Uploaded file - construct full URL
@@ -224,81 +235,72 @@ const MediaBannerSection = ({ section }) => {
       isYouTube = false;
     }
   }
-
+  
+  if (!mediaUrl) {
+    return null; // Don't render if no media URL
+  }
+  
   return (
-    <section className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
+    <section className="py-20 bg-gradient-to-br from-saree-teal-light/20 via-white to-saree-amber-light/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Title and Description */}
-        {(section.title || section.description) && (
+        {section.title && (
           <div className="text-center mb-12">
-            {section.title && (
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                {section.title}
-              </h2>
-            )}
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {section.title}
+            </h2>
             {section.description && (
-              <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-base text-gray-600 max-w-3xl mx-auto">
                 {section.description}
               </p>
             )}
           </div>
         )}
-
-        {/* Media Display */}
-        {mediaUrl && (
-          <div className="rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
-            {section.media_type === 'video' && isYouTube ? (
-              // YouTube Video Embed
-              <div className="aspect-video w-full">
-                <iframe
-                  src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=1&mute=1&loop=1&controls=1&rel=0&enablejsapi=1&playlist=${mediaUrl.match(/embed\/([^?&]+)/)?.[1] || ''}`}
-                  className="w-full h-full"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  title={section.title || 'Video'}
-                ></iframe>
-              </div>
-            ) : section.media_type === 'video' ? (
-              // Uploaded Video
-              <div className="aspect-video w-full">
-                <video
-                  src={mediaUrl}
-                  autoPlay
-                  muted
-                  loop
-                  controls
-                  className="w-full h-full object-cover"
-                  playsInline
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            ) : section.media_type === 'image' ? (
-              // Image
-              <div className="w-full">
-                <img
-                  src={mediaUrl}
-                  alt={section.title || 'Banner image'}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error('Error loading image:', mediaUrl);
-                    e.target.style.display = 'none';
-                  }}
-                />
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Fallback message if no media */}
-        {!mediaUrl && (
-          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-            <p className="text-gray-500">No media configured for this section.</p>
-          </div>
-        )}
+        
+        <div className="rounded-2xl overflow-hidden shadow-2xl bg-white">
+          {section.media_type === 'video' && isYouTube ? (
+            // YouTube Video Embed
+            <div className="aspect-video w-full">
+              <iframe
+                src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=0&mute=0&loop=0&controls=1&rel=0&enablejsapi=1`}
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                title={section.title || 'Video'}
+              ></iframe>
+            </div>
+          ) : section.media_type === 'video' ? (
+            // Uploaded Video
+            <div className="aspect-video w-full">
+              <video
+                src={mediaUrl}
+                autoPlay
+                muted
+                loop
+                controls
+                className="w-full h-full object-cover"
+                playsInline
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          ) : section.media_type === 'image' ? (
+            // Image
+            <div className="w-full">
+              <img
+                src={mediaUrl}
+                alt={section.title || 'Banner image'}
+                className="w-full h-auto object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  console.error('Error loading image:', mediaUrl);
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
   );

@@ -60,7 +60,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
           } else if (section.route === 'acronis-server-backup') {
             insertData = {
               title: 'Storage & Backup Capacity',
-              description: 'Flexible and scalable backup storage solutions',
+              description: 'Flexible and scalable backup storage Apps',
               content: '{"features": ["Unlimited backup storage capacity with no size restrictions", "Advanced compression reduces storage usage by up to 50%", "Incremental and differential backup support for efficiency", "Cloud storage, local storage, and hybrid backup options", "Network-attached storage (NAS) and SAN support", "Automatic storage management and cleanup policies"]}',
               icon: 'CircleStackIcon'
             };

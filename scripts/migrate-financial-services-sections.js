@@ -33,13 +33,13 @@ const financialServicesSections = [
   {
     section_type: 'segments',
     title: 'Industry Segments We Serve',
-    content: 'Retail Banking: Digital banking solutions, mobile apps, and customer portals. Investment Banking: High-frequency trading platforms and risk management systems. Insurance: Claims processing, underwriting automation, and customer management. Fintech: Payment processing, lending platforms, and digital wallets.',
+    content: 'Retail Banking: Digital banking Apps, mobile apps, and customer portals. Investment Banking: High-frequency trading platforms and risk management systems. Insurance: Claims processing, underwriting automation, and customer management. Fintech: Payment processing, lending platforms, and digital wallets.',
     order_index: 2
   },
   {
     section_type: 'use_cases',
     title: 'Real-World Financial Use Cases',
-    content: 'Digital Banking Transformation: Modernize legacy systems with cloud-native architecture. Risk Management: Real-time risk assessment and regulatory reporting. Payment Processing: Secure, scalable payment gateway solutions. Trading Platforms: Low-latency trading systems with 99.99% uptime.',
+    content: 'Digital Banking Transformation: Modernize legacy systems with cloud-native architecture. Risk Management: Real-time risk assessment and regulatory reporting. Payment Processing: Secure, scalable payment gateway Apps. Trading Platforms: Low-latency trading systems with 99.99% uptime.',
     order_index: 3
   },
   {
@@ -75,7 +75,7 @@ const financialServicesSections = [
   {
     section_type: 'cta',
     title: 'Ready to Transform Your Financial Services?',
-    content: 'Contact our financial services specialists today to discuss your specific requirements and get a customized solution proposal.',
+    content: 'Contact our financial services specialists today to discuss your specific requirements and get a customized App proposal.',
     order_index: 9
   }
 ];
@@ -91,24 +91,24 @@ async function migrateFinancialServicesSections() {
       console.log('Connected to the SQLite database.');
     });
 
-    // First, find the Financial Services solution ID
-    db.get("SELECT id FROM solutions WHERE name = 'Financial Services' OR name = 'Financial services' OR name LIKE '%Financial%'", (err, solution) => {
+    // First, find the Financial Services marketplace ID
+    db.get("SELECT id FROM marketplaces WHERE name = 'Financial Services' OR name = 'Financial services' OR name LIKE '%Financial%'", (err, marketplace) => {
       if (err) {
-        console.error('Error finding Financial Services solution:', err.message);
+        console.error('Error finding Financial Services marketplace:', err.message);
         reject(err);
         return;
       }
 
-      if (!solution) {
-        console.error('Financial Services solution not found in database');
-        reject(new Error('Financial Services solution not found'));
+      if (!marketplace) {
+        console.error('Financial Services marketplace not found in database');
+        reject(new Error('Financial Services marketplace not found'));
         return;
       }
 
-      console.log(`Found Financial Services solution with ID: ${solution.id}`);
+      console.log(`Found Financial Services marketplace with ID: ${marketplace.id}`);
 
       // Check if sections already exist
-      db.get("SELECT COUNT(*) as count FROM solution_sections WHERE solution_id = ?", [solution.id], (err, result) => {
+      db.get("SELECT COUNT(*) as count FROM marketplace_sections WHERE marketplace_id = ?", [marketplace.id], (err, result) => {
         if (err) {
           console.error('Error checking existing sections:', err.message);
           reject(err);
@@ -136,8 +136,8 @@ async function migrateFinancialServicesSections() {
 
         financialServicesSections.forEach((section, index) => {
           db.run(
-            `INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
-            [solution.id, section.section_type, section.title, section.content, section.order_index],
+            `INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
+            [marketplace.id, section.section_type, section.title, section.content, section.order_index],
             function(err) {
               if (err) {
                 console.error(`Error inserting section ${index + 1}:`, err.message);

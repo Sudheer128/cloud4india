@@ -3,9 +3,10 @@ import {
   getHomepageContent, 
   getHeroContent, 
   getWhyItems, 
+  getMarketplaces,
   getProducts,
-  getSolutions,
   checkCMSHealth,
+  getMainMarketplacesContent,
   getMainProductsContent,
   getMainSolutionsContent,
   getComprehensiveSectionContent,
@@ -118,6 +119,41 @@ export const useWhyItems = () => {
 };
 
 /**
+ * Custom hook to fetch marketplaces content
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useMarketplaces = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getMarketplaces();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching marketplaces:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};
+
+/**
  * Custom hook to fetch products content
  * @returns {Object} { data, loading, error, refetch }
  */
@@ -152,40 +188,6 @@ export const useProducts = () => {
   };
 };
 
-/**
- * Custom hook to fetch solutions content
- * @returns {Object} { data, loading, error, refetch }
- */
-export const useSolutions = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await getSolutions();
-      setData(result);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching solutions:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  return {
-    data,
-    loading,
-    error,
-    refetch: fetchData
-  };
-};
 export const useCMSHealth = () => {
   const [isHealthy, setIsHealthy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -248,6 +250,41 @@ export const useError = () => {
     error,
     setError,
     clearError
+  };
+};
+
+/**
+ * Custom hook to fetch main marketplaces page content
+ * @returns {Object} { data, loading, error, refetch }
+ */
+export const useMainMarketplacesContent = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getMainMarketplacesContent();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching main marketplaces content:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch: fetchData
   };
 };
 
@@ -396,11 +433,12 @@ export default {
   useHomepageContent,
   useHeroContent,
   useWhyItems,
+  useMarketplaces,
   useProducts,
-  useSolutions,
   useCMSHealth,
   useLoading,
   useError,
+  useMainMarketplacesContent,
   useMainProductsContent,
   useMainSolutionsContent,
   useComprehensiveSectionContent,

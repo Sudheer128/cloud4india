@@ -21,7 +21,7 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
-import { useSolutions, useMainSolutionsContent } from '../hooks/useCMS';
+import { useMainSolutionsContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const MainSolutionsPage = () => {
@@ -142,17 +142,17 @@ const MainSolutionsPage = () => {
             {/* Badge */}
             <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300 cursor-pointer">
               <CloudIcon className="w-5 h-5 mr-2" />
-              {mainPageData?.hero?.subtitle || 'Industry Solutions - Made in India'}
+              {mainPageData?.hero?.subtitle || 'Cloud Solutions - Made in India'}
             </div>
 
             {/* Main Heading with Glow Effect */}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white drop-shadow-2xl">
-              {mainPageData?.hero?.title || 'Our Marketplace'}
+              {mainPageData?.hero?.title || 'Our Solutions'}
             </h1>
 
             {/* Description */}
             <p className="text-base md:text-lg text-white/90 leading-relaxed mb-8 max-w-3xl mx-auto drop-shadow-lg">
-              {mainPageData?.hero?.description || 'Discover industry-specific cloud apps tailored for your business needs. From financial services to healthcare, our specialized apps drive digital transformation across various sectors.'}
+              {mainPageData?.hero?.description || 'Explore our comprehensive cloud solutions designed to transform your business operations. From industry-specific solutions to use case solutions, we provide comprehensive solutions tailored to your needs.'}
             </p>
 
             {/* CTA Buttons */}
@@ -214,12 +214,12 @@ const MainSolutionsPage = () => {
         </div>
       </section>
 
-      {/* Solutions Grid Section */}
+      {/* Marketplaces Grid Section */}
       <section className="relative py-12 bg-gradient-to-br from-saree-amber-light/20 via-white to-saree-rose-light/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-5">
-            Search All Apps
+            Search All Solutions
           </h1>
 
           {/* Filter and Search Bar */}
@@ -285,18 +285,29 @@ const MainSolutionsPage = () => {
               visibleSolutions.map((solution, index) => {
                 // Map solution to section format for SolutionCard
                 // Use section data if available, otherwise fall back to solution data
+                // Parse features if it's a JSON string
+                let features = [];
+                if (solution.features) {
+                  try {
+                    if (typeof solution.features === 'string') {
+                      features = JSON.parse(solution.features);
+                    } else if (Array.isArray(solution.features)) {
+                      features = solution.features;
+                    }
+                  } catch (e) {
+                    features = [];
+                  }
+                }
+                
                 const section = {
                   id: solution.id,
                   solution_id: solution.solution_id || solution.id,
                   title: solution.title || solution.name,
                   description: solution.description,
                   category: solution.category,
-                  popular_tag: solution.popular_tag || 'Most Popular',
-                  features: solution.features || [],
-                  price: solution.price || '₹2,999',
-                  price_period: solution.price_period || '/month',
-                  free_trial_tag: solution.free_trial_tag || 'Free Trial',
-                  button_text: solution.button_text || 'Explore App'
+                  popular_tag: solution.popular_tag || null,
+                  features: features,
+                  button_text: solution.button_text || 'Explore Solution'
                 };
                 return (
                   <SolutionCard 
@@ -311,7 +322,7 @@ const MainSolutionsPage = () => {
             ) : (
               !loading && (
                 <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No apps found</p>
+                  <p className="text-gray-500">No solutions found</p>
                 </div>
               )
             )}
@@ -479,28 +490,11 @@ const SolutionCard = ({ section, index, isHovered, onHover }) => {
             </div>
           )}
 
-          {/* Pricing - Clean version */}
-          {section.price && section.price.trim() && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-2xl font-bold text-gray-900">{section.price}</span>
-                  {section.price_period && section.price_period.trim() && (
-                    <span className="text-gray-600 text-sm ml-1">{section.price_period}</span>
-                  )}
-                </div>
-                {section.free_trial_tag && section.free_trial_tag.trim() && (
-                  <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold">
-                    {section.free_trial_tag}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Pricing section removed - not needed for solution cards */}
 
           {/* Action Button - Balanced design */}
           <Link 
-            to={`/marketplace/${toSlug(section.title || section.name || 'app')}`}
+            to={`/solutions/${toSlug(section.title || section.name || 'solution')}`}
             className={`
               group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
               ${isHovered 
@@ -509,7 +503,7 @@ const SolutionCard = ({ section, index, isHovered, onHover }) => {
               }
             `}
           >
-            {section.button_text || 'Explore App'}
+            {section.button_text || 'Explore Solution'}
             <ArrowRightIcon className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
           </Link>
         </div>

@@ -27,8 +27,10 @@ export const useSolutionSections = (solutionId) => {
       }
       
       const result = await response.json();
+      // Ensure result is always an array before filtering
+      const sectionsArray = Array.isArray(result) ? result : [];
       // Filter out hidden sections (is_visible = 0 or false)
-      const visibleSections = result.filter(section => section.is_visible !== 0);
+      const visibleSections = sectionsArray.filter(section => section.is_visible !== 0);
       setSections(visibleSections);
     } catch (err) {
       setError(err.message);
@@ -50,3 +52,5 @@ export const useSolutionSections = (solutionId) => {
     refetch: fetchData
   };
 };
+
+

@@ -14,7 +14,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive technical specifications and system requirements for Microsoft 365 business solutions',
+    'Comprehensive technical specifications and system requirements for Microsoft 365 business Apps',
     'specifications',
     3,
     1
@@ -25,7 +25,7 @@ WHERE route = 'microsoft-365-licenses';
 UPDATE product_sections 
 SET 
     title = 'Technical Specifications',
-    description = 'Comprehensive technical specifications and system requirements for Microsoft 365 business solutions',
+    description = 'Comprehensive technical specifications and system requirements for Microsoft 365 business Apps',
     order_index = 3,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -142,7 +142,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive backup solution specifications and system requirements',
+    'Comprehensive backup App specifications and system requirements',
     'specifications',
     3,
     1
@@ -153,7 +153,7 @@ WHERE route = 'acronis-server-backup';
 UPDATE product_sections 
 SET 
     title = 'Technical Specifications',
-    description = 'Comprehensive backup solution specifications and system requirements',
+    description = 'Comprehensive backup App specifications and system requirements',
     order_index = 3,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -181,7 +181,7 @@ INSERT INTO product_items (section_id, title, description, content, item_type, i
 SELECT 
     ps.id,
     'Storage & Backup Capacity',
-    'Flexible and scalable backup storage solutions',
+    'Flexible and scalable backup storage Apps',
     '{"features": ["Unlimited backup storage capacity with no size restrictions", "Advanced compression reduces storage usage by up to 50%", "Cloud storage, local storage, and hybrid backup options"]}',
     'specification',
     'CircleStackIcon',

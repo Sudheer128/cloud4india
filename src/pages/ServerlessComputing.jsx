@@ -59,7 +59,7 @@ const ServerlessComputing = () => {
           <div className="text-center">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/20 mb-8">
               <BoltIcon className="h-5 w-5 text-blue-400 mr-2" />
-              <span className="text-blue-300 text-sm font-medium">Serverless Computing Solutions</span>
+              <span className="text-blue-300 text-sm font-medium">Serverless Computing Apps</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
@@ -469,7 +469,7 @@ const ServerlessComputing = () => {
         </div>
       </section>
 
-      {/* Technology Solutions Section */}
+      {/* Technology Apps Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -513,7 +513,7 @@ const ServerlessComputing = () => {
               </div>
               
               <button className="text-blue-600 hover:text-blue-800 font-semibold text-lg flex items-center group">
-                Explore Serverless Solutions
+                Explore Serverless Apps
                 <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
@@ -534,7 +534,7 @@ const ServerlessComputing = () => {
         </div>
       </section>
 
-      {/* Use Cases & Solutions Section */}
+      {/* Use Cases & Apps Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">

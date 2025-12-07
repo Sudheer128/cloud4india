@@ -62,7 +62,7 @@ db.serialize(() => {
   // Management subcategories (category_id = 6)
   const managementSubcategories = [
     { name: 'Server Monitoring', slug: 'server-monitoring', description: 'Comprehensive server performance monitoring and alerts', header_color: 'yellow-100' },
-    { name: 'Backup Services', slug: 'backup-services', description: 'Automated backup solutions for your data protection', header_color: 'yellow-200' },
+    { name: 'Backup Services', slug: 'backup-services', description: 'Automated backup Apps for your data protection', header_color: 'yellow-200' },
     { name: 'Migration Services', slug: 'migration-services', description: 'Professional migration services for seamless transitions', header_color: 'yellow-300' },
     { name: 'Support Plans', slug: 'support-plans', description: 'Premium support plans with dedicated assistance', header_color: 'yellow-400' }
   ];

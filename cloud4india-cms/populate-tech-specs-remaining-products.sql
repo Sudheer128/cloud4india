@@ -14,7 +14,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive backup solution specifications for Microsoft 365',
+    'Comprehensive backup App specifications for Microsoft 365',
     'specifications',
     3,
     1
@@ -25,7 +25,7 @@ WHERE route = 'acronis-m365-backup';
 UPDATE product_sections 
 SET 
     title = 'Technical Specifications',
-    description = 'Comprehensive backup solution specifications for Microsoft 365',
+    description = 'Comprehensive backup App specifications for Microsoft 365',
     order_index = 3,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -142,7 +142,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive backup solution specifications for Google Workspace',
+    'Comprehensive backup App specifications for Google Workspace',
     'specifications',
     3,
     1
@@ -153,7 +153,7 @@ WHERE route = 'acronis-google-workspace-backup';
 UPDATE product_sections 
 SET 
     title = 'Technical Specifications',
-    description = 'Comprehensive backup solution specifications for Google Workspace',
+    description = 'Comprehensive backup App specifications for Google Workspace',
     order_index = 3,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP
@@ -270,7 +270,7 @@ INSERT OR IGNORE INTO product_sections (product_id, title, description, section_
 SELECT 
     id,
     'Technical Specifications',
-    'Comprehensive antivirus and security solution specifications',
+    'Comprehensive antivirus and security App specifications',
     'specifications',
     3,
     1
@@ -281,7 +281,7 @@ WHERE route = 'anti-virus';
 UPDATE product_sections 
 SET 
     title = 'Technical Specifications',
-    description = 'Comprehensive antivirus and security solution specifications',
+    description = 'Comprehensive antivirus and security App specifications',
     order_index = 3,
     is_visible = 1,
     updated_at = CURRENT_TIMESTAMP

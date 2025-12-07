@@ -4,8 +4,6 @@ import {
   Squares2X2Icon, 
   ChevronDoubleLeftIcon, 
   ChevronDoubleRightIcon,
-  CubeIcon,
-  RectangleGroupIcon,
   PuzzlePieceIcon
 } from '@heroicons/react/24/outline';
 
@@ -33,43 +31,29 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
       isActive: activeSection === 'home'
     },
     {
-      id: 'products',
-      label: 'Products',
-      icon: CubeIcon,
-      href: '/admin/products',
-      isActive: activeSection === 'products'
-    },
-    {
-      id: 'solutions',
+      id: 'marketplace',
       label: 'Marketplace',
       icon: Squares2X2Icon,
       href: '/admin',
-      isActive: activeSection === 'solutions',
+      isActive: activeSection === 'marketplace',
       onClick: () => {
         // This will be handled by the parent component
         if (window.location.pathname === '/admin') {
-          // If we're on the main admin page, trigger the solutions section
-          const event = new CustomEvent('admin-navigate', { detail: { section: 'solutions' } });
+          // If we're on the main admin page, trigger the marketplace section
+          const event = new CustomEvent('admin-navigate', { detail: { section: 'marketplace' } });
           window.dispatchEvent(event);
         } else {
           // If we're on a different admin page, navigate to main admin
-          window.location.href = '/admin#solutions';
+          window.location.href = '/admin#marketplace';
         }
       }
     },
     {
-      id: 'products-main',
-      label: 'Products Main',
-      icon: RectangleGroupIcon,
-      href: '/admin/products-main',
-      isActive: activeSection === 'products-main'
-    },
-    {
-      id: 'solutions-main',
+      id: 'marketplace-main',
       label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
       href: '/admin/marketplace-main',
-      isActive: activeSection === 'solutions-main'
+      isActive: activeSection === 'marketplace-main'
     }
   ];
 

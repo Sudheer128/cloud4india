@@ -1,29 +1,36 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XMarkIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
-import { getSolutions, getSolutionCategories } from '../services/cmsApi'
+import { getMarketplaces, getMarketplaceCategories } from '../services/cmsApi'
 import { toSlug } from '../utils/slugUtils'
 
 const AppsDropdown = ({ isOpen, onClose }) => {
   const [activeCategory, setActiveCategory] = useState(null)
-  const [solutions, setSolutions] = useState([])
+  const [marketplaces, setMarketplaces] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
   
-  // Fetch solutions and categories from API
+  // Reset active category when popup closes
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveCategory(null)
+    }
+  }, [isOpen])
+
+  // Fetch marketplaces and categories from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
-        const [solutionsData, categoriesData] = await Promise.all([
-          getSolutions(),
-          getSolutionCategories()
+        const [marketplacesData, categoriesData] = await Promise.all([
+          getMarketplaces(),
+          getMarketplaceCategories()
         ])
-        setSolutions(solutionsData)
+        setMarketplaces(marketplacesData)
         // Map categories to the format expected by the component
         const formattedCategories = categoriesData.map(cat => ({
           id: cat.name,
@@ -34,12 +41,12 @@ const AppsDropdown = ({ isOpen, onClose }) => {
       } catch (err) {
         console.error('Error fetching data:', err)
         setError(err.message)
-        // Fallback: if categories API fails, extract from solutions
+        // Fallback: if categories API fails, extract from marketplaces
         try {
-          const solutionsData = await getSolutions()
-          setSolutions(solutionsData)
-        } catch (solutionsErr) {
-          console.error('Error fetching solutions:', solutionsErr)
+          const marketplacesData = await getMarketplaces()
+          setMarketplaces(marketplacesData)
+        } catch (marketplacesErr) {
+          console.error('Error fetching marketplaces:', marketplacesErr)
         }
       } finally {
         setLoading(false)
@@ -51,59 +58,59 @@ const AppsDropdown = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
-  // Group solutions by category
-  const appsData = solutions.reduce((acc, solution) => {
-    const category = solution.category || 'Uncategorized'
+  // Group marketplaces by category
+  const appsData = marketplaces.reduce((acc, marketplace) => {
+    const category = marketplace.category || 'Uncategorized'
     if (!acc[category]) {
       acc[category] = []
     }
     
-    // Generate app ID from route (e.g., '/solutions/1' -> '1', then map to known IDs)
+    // Generate app ID from route (e.g., '/marketplaces/1' -> '1', then map to known IDs)
     // For now, we'll use a simple approach: extract ID from route
-    let appId = solution.route?.replace('/solutions/', '') || solution.id?.toString()
+    let appId = marketplace.route?.replace('/marketplaces/', '') || marketplace.id?.toString()
     
     // Map to known app IDs if possible (for backward compatibility with existing routes)
     const routeToIdMap = {
-      '/solutions/1': 'nodejs',
-      '/solutions/2': 'lamp',
-      '/solutions/3': 'lemp',
-      '/solutions/4': 'laravel',
-      '/solutions/9': 'openlitespeed',
-      '/solutions/26': 'wordpress',
-      '/solutions/27': 'nextcloud',
-      '/solutions/28': 'mediawiki',
-      '/solutions/29': 'mariadb',
-      '/solutions/30': 'mongodb',
-      '/solutions/31': 'postgresql',
-      '/solutions/32': 'influxdb',
-      '/solutions/33': 'rethinkdb',
-      '/solutions/34': 'mysql',
-      '/solutions/35': 'kafka',
-      '/solutions/36': 'opensearch',
-      '/solutions/37': 'docker',
-      '/solutions/38': 'gitlab',
-      '/solutions/39': 'rabbitmq',
-      '/solutions/40': 'jenkins',
-      '/solutions/41': 'ant-media',
-      '/solutions/42': 'magento',
-      '/solutions/43': 'guacamole',
-      '/solutions/44': 'owncloud',
-      '/solutions/45': 'prometheus',
-      '/solutions/46': 'activemq',
-      '/solutions/47': 'anaconda'
+      '/marketplaces/1': 'nodejs',
+      '/marketplaces/2': 'lamp',
+      '/marketplaces/3': 'lemp',
+      '/marketplaces/4': 'laravel',
+      '/marketplaces/9': 'openlitespeed',
+      '/marketplaces/26': 'wordpress',
+      '/marketplaces/27': 'nextcloud',
+      '/marketplaces/28': 'mediawiki',
+      '/marketplaces/29': 'mariadb',
+      '/marketplaces/30': 'mongodb',
+      '/marketplaces/31': 'postgresql',
+      '/marketplaces/32': 'influxdb',
+      '/marketplaces/33': 'rethinkdb',
+      '/marketplaces/34': 'mysql',
+      '/marketplaces/35': 'kafka',
+      '/marketplaces/36': 'opensearch',
+      '/marketplaces/37': 'docker',
+      '/marketplaces/38': 'gitlab',
+      '/marketplaces/39': 'rabbitmq',
+      '/marketplaces/40': 'jenkins',
+      '/marketplaces/41': 'ant-media',
+      '/marketplaces/42': 'magento',
+      '/marketplaces/43': 'guacamole',
+      '/marketplaces/44': 'owncloud',
+      '/marketplaces/45': 'prometheus',
+      '/marketplaces/46': 'activemq',
+      '/marketplaces/47': 'anaconda'
     }
     
-    appId = routeToIdMap[solution.route] || appId
+    appId = routeToIdMap[marketplace.route] || appId
     
     acc[category].push({
       id: appId,
-      name: solution.name,
-      description: solution.description,
+      name: marketplace.name,
+      description: marketplace.description,
       buttonText: 'Deploy',
-      route: solution.route,
-      enable_single_page: solution.enable_single_page,
-      redirect_url: solution.redirect_url,
-      color: solution.color
+      route: marketplace.route,
+      enable_single_page: marketplace.enable_single_page,
+      redirect_url: marketplace.redirect_url,
+      color: marketplace.color
     })
     
     return acc
@@ -121,7 +128,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
 
   const availableCategories = getAvailableCategories();
   
-  // Use categories from API if available, otherwise fallback to extracting from solutions
+  // Use categories from API if available, otherwise fallback to extracting from marketplaces
   const displayCategories = useMemo(() => {
     let finalCategories = [];
     
@@ -135,10 +142,10 @@ const AppsDropdown = ({ isOpen, onClose }) => {
         return 0;
       });
       
-      // Add any categories from solutions that aren't in the API list
-      const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
+      // Add any categories from marketplaces that aren't in the API list
+      const categoriesFromMarketplaces = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
       const existingCategoryNames = new Set(categories.map(c => c.id));
-      const missingCategories = categoriesFromSolutions.filter(cat => !existingCategoryNames.has(cat));
+      const missingCategories = categoriesFromMarketplaces.filter(cat => !existingCategoryNames.has(cat));
       
       if (missingCategories.length > 0) {
         // Add missing categories at the end, sorted alphabetically
@@ -148,7 +155,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
         finalCategories = [...finalCategories, ...missingFormatted];
       }
     } else {
-      // Fallback: extract unique categories from solutions and merge with available categories
+      // Fallback: extract unique categories from marketplaces and merge with available categories
       // Use a predefined order
       const predefinedOrder = [
         'Frameworks',
@@ -161,10 +168,10 @@ const AppsDropdown = ({ isOpen, onClose }) => {
         'Monitoring Applications'
       ];
       
-      const categoriesFromSolutions = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
-      const allCategories = Array.from(new Set([
-        ...categoriesFromSolutions,
-        ...availableCategories.filter(cat => !categoriesFromSolutions.includes(cat))
+  const categoriesFromMarketplaces = Object.keys(appsData).filter(cat => cat !== 'Uncategorized');
+  const allCategories = Array.from(new Set([
+    ...categoriesFromMarketplaces,
+    ...availableCategories.filter(cat => !categoriesFromMarketplaces.includes(cat))
       ]));
       
       // Create a map of all categories with their order_index
@@ -195,12 +202,22 @@ const AppsDropdown = ({ isOpen, onClose }) => {
     return finalCategories;
   }, [categories, appsData, availableCategories]);
 
-  // Set active category to first category if not set
+  // Set active category to first category with apps when data loads
   useEffect(() => {
-    if (displayCategories.length > 0 && !activeCategory) {
-      setActiveCategory(displayCategories[0].id)
+    if (displayCategories.length > 0 && !activeCategory && !loading) {
+      // Find the first category that has apps
+      const firstCategoryWithApps = displayCategories.find(category => {
+        return appsData[category.id] && appsData[category.id].length > 0
+      })
+      
+      // If found, set it; otherwise set the first category
+      if (firstCategoryWithApps) {
+        setActiveCategory(firstCategoryWithApps.id)
+      } else if (displayCategories.length > 0) {
+        setActiveCategory(displayCategories[0].id)
+      }
     }
-  }, [displayCategories, activeCategory])
+  }, [displayCategories, activeCategory, loading, appsData])
   
   // Static apps data based on provided images (fallback - will be removed)
   const staticAppsData = {
@@ -220,7 +237,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
       {
         id: 'lamp',
         name: 'LAMP',
-        description: 'Quickly deploy a cloud server with Apache, MySQL, and PHP pre-installed—the foundation for hosting robust web applications. The LAMP stack is widely used for hosting websites and web apps, offering a flexible, scalable, and reliable solution.',
+        description: 'Quickly deploy a cloud server with Apache, MySQL, and PHP pre-installed—the foundation for hosting robust web applications. The LAMP stack is widely used for hosting websites and web apps, offering a flexible, scalable, and reliable marketplace.',
         buttonText: 'Deploy'
       },
       {
@@ -366,7 +383,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
       {
         id: 'prometheus',
         name: 'Prometheus',
-        description: 'Open source metrics and monitoring for your systems and services Monitor your applications, systems, and services with the leading open source monitoring solution. Instrument, collect, store, and query your metrics for alerting, dashboarding, and other use cases',
+        description: 'Open source metrics and monitoring for your systems and services Monitor your applications, systems, and services with the leading open source monitoring marketplace. Instrument, collect, store, and query your metrics for alerting, dashboarding, and other use cases',
         buttonText: 'Deploy'
       },
       {
@@ -412,42 +429,52 @@ const AppsDropdown = ({ isOpen, onClose }) => {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-40 z-40"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
+        
         onClick={onClose}
       />
       
-      {/* Dropdown */}
+      {/* Dropdown - Top positioned with reasonable height */}
       <div 
         ref={dropdownRef}
-        className="fixed top-16 left-0 right-0 bg-white shadow-2xl border-t border-gray-200 z-50 max-h-[85vh] overflow-hidden rounded-b-xl"
+        className="fixed top-16 left-0 right-0 bg-white z-[80] shadow-2xl border-t border-gray-200
+                   max-h-[75vh] sm:max-h-[80vh] md:max-h-[85vh]
+                   overflow-hidden rounded-b-xl
+                   mx-2 sm:mx-4 md:mx-auto
+                   max-w-7xl
+                   flex flex-col
+                   pointer-events-auto"
       >
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex gap-8">
+        <div className="px-4 sm:px-6 md:px-8 py-4 md:py-6 flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4 flex-shrink-0 pb-4 border-b border-gray-200">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Explore Apps</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+              aria-label="Close"
+            >
+              <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-4 md:gap-6 flex-1 min-h-0 overflow-hidden">
             
-            {/* Left Sidebar - Categories */}
-            <div className="w-72 flex-shrink-0">
-              <div className="border-r border-gray-200 pr-6 h-full">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Explore Apps</h3>
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-                
+            {/* Left Sidebar - Categories (Desktop Only) */}
+            <div className="hidden lg:block w-64 flex-shrink-0">
+              <div className="border-r border-gray-200 pr-4 h-full overflow-y-auto">
+                {/* Desktop Category List */}
                 <nav className="space-y-0.5">
                   {loading ? (
-                    <div className="px-4 py-3 text-sm text-gray-500">Loading categories...</div>
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading categories...</div>
                   ) : error ? (
-                    <div className="px-4 py-3 text-sm text-red-600">Error loading categories</div>
+                    <div className="px-3 py-2 text-sm text-red-600">Error loading categories</div>
                   ) : displayCategories.length > 0 ? (
                     displayCategories.map((category) => (
                       <button
                         key={category.id}
                         onClick={() => setActiveCategory(category.id)}
-                        className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
+                        className={`w-full text-left px-3 py-2.5 rounded-md text-sm font-medium transition-all ${
                           activeCategory === category.id
                             ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
                             : 'text-gray-700 hover:bg-gray-50'
@@ -457,11 +484,11 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-3 text-sm text-gray-500">No categories available</div>
+                    <div className="px-3 py-2 text-sm text-gray-500">No categories available</div>
                   )}
                 </nav>
                 
-                <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="mt-6 pt-4 border-t border-gray-200">
                   <Link
                     to="/marketplace"
                     onClick={onClose}
@@ -476,31 +503,46 @@ const AppsDropdown = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* Mobile/Tablet Category Selector */}
+            <div className="lg:hidden flex-shrink-0">
+              <select
+                value={activeCategory || ''}
+                onChange={(e) => setActiveCategory(e.target.value)}
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {displayCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Right Content Area - Apps */}
-            <div className="flex-1 min-h-0 flex flex-col">
-              <div className="mb-6 flex-shrink-0">
-                <h2 className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div className="mb-3 md:mb-4 flex-shrink-0">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                   {displayCategories.find(c => c.id === activeCategory)?.label || 'Apps'}
                 </h2>
                 {!loading && displayApps.length === 0 && (
-                  <p className="text-gray-500 text-sm mt-2">No apps available in this category.</p>
+                  <p className="text-gray-500 text-xs sm:text-sm mt-1">No apps available in this category.</p>
                 )}
               </div>
               
               {loading ? (
-                <div className="flex items-center justify-center h-64">
+                <div className="flex items-center justify-center flex-1 min-h-[150px]">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading apps...</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                    <p className="text-gray-600 text-sm">Loading apps...</p>
                   </div>
                 </div>
               ) : error ? (
-                <div className="flex items-center justify-center h-64 text-red-600">
+                <div className="flex items-center justify-center flex-1 min-h-[150px] text-red-600 text-sm">
                   <p>Error loading apps: {error}</p>
                 </div>
               ) : displayApps.length > 0 ? (
-                <div className="flex-1 overflow-y-auto pr-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex-1 overflow-y-auto pr-0 md:pr-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {displayApps.map((app) => {
                       // Determine navigation URL based on enable_single_page flag
                       const shouldUseSinglePage = app.enable_single_page !== undefined ? Boolean(app.enable_single_page) : true;
@@ -512,13 +554,13 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                       
                       const cardContent = (
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-base font-medium text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1.5 sm:mb-2 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
                               {app.name}
                             </h3>
-                            <p className="text-gray-600 text-sm line-clamp-3">{app.description}</p>
+                            <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 sm:line-clamp-3 leading-relaxed">{app.description}</p>
                           </div>
-                          <ArrowRightIcon className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0" />
+                          <ArrowRightIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-gray-600 transition-all duration-200 ml-2 flex-shrink-0 mt-0.5" />
                         </div>
                       );
 
@@ -534,7 +576,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                               e.stopPropagation();
                               onClose();
                             }}
-                            className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer block"
+                            className="group rounded-lg p-3 sm:p-4 md:p-5 border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition-all duration-200 hover:shadow-sm cursor-pointer block"
                           >
                             {cardContent}
                           </a>
@@ -549,7 +591,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                             onClose();
                             navigate(navigationUrl);
                           }}
-                          className="group rounded-lg p-6 border border-gray-200 hover:bg-gray-50 transition-all duration-200 hover:border-gray-300 hover:shadow-sm cursor-pointer block"
+                          className="group rounded-lg p-3 sm:p-4 md:p-5 border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition-all duration-200 hover:shadow-sm cursor-pointer block"
                         >
                           {cardContent}
                         </div>
@@ -558,7 +600,7 @@ const AppsDropdown = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="flex items-center justify-center flex-1 min-h-[150px] text-gray-500 text-sm">
                   <p>No apps available in this category.</p>
                 </div>
               )}

@@ -3,8 +3,9 @@ import HeroSectionNew from '../components/HeroSectionNew'
 import ComprehensiveSectionNew from '../components/ComprehensiveSectionNew'
 import WhySectionNew from '../components/WhySectionNew'
 import FeatureBannersSection from '../components/FeatureBannersSection'
-import SolutionsSectionNew from '../components/SolutionsSectionNew'
 import ProductsSectionNew from '../components/ProductsSectionNew'
+import MarketplacesSectionNew from '../components/MarketplacesSectionNew'
+import SolutionsSectionNew from '../components/SolutionsSectionNew'
 // import InfrastructureSection from '../components/InfrastructureSection'
 
 const Home = () => {
@@ -14,8 +15,9 @@ const Home = () => {
       <ComprehensiveSectionNew />
       <WhySectionNew />
       <FeatureBannersSection />
-      <SolutionsSectionNew />
       <ProductsSectionNew />
+      <MarketplacesSectionNew />
+      <SolutionsSectionNew />
       {/* <InfrastructureSection /> */}
     </div>
   )

@@ -9,14 +9,18 @@ import AboutUs from './pages/AboutUs'
 import Login from './pages/Login'
 import UnifiedAdminLayout from './components/UnifiedAdminLayout'
 import AdminPanel from './pages/AdminPanel'
+import MarketplacesAdmin from './pages/MarketplacesAdmin'
+import MarketplacesMainAdmin from './pages/MarketplacesMainAdmin'
 import ProductsAdmin from './pages/ProductsAdmin'
 import ProductsMainAdmin from './pages/ProductsMainAdmin'
 import SolutionsAdmin from './pages/SolutionsAdmin'
 import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
 import AboutUsAdmin from './pages/AboutUsAdmin'
 import PricingAdmin from './pages/PricingAdmin'
-import UniversalSolutionPage from './pages/UniversalSolutionPage'
+import UniversalMarketplacePage from './pages/UniversalMarketplacePage'
 import UniversalProductPage from './pages/UniversalProductPage'
+import UniversalSolutionPage from './pages/UniversalSolutionPage'
+import MainMarketplacesPage from './pages/MainMarketplacesPage'
 import MainProductsPage from './pages/MainProductsPage'
 import MainSolutionsPage from './pages/MainSolutionsPage'
 import Pricing from './pages/Pricing'
@@ -37,8 +41,9 @@ function AppContent() {
           <Route path="/home-new" element={<HomeNew />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/marketplace" element={<MainMarketplacesPage />} />
           <Route path="/products" element={<MainProductsPage />} />
-          <Route path="/marketplace" element={<MainSolutionsPage />} />
+          <Route path="/solutions" element={<MainSolutionsPage />} />
           {/* Login route */}
           <Route path="/login" element={<Login />} />
           {/* Admin routes with unified layout - Protected */}
@@ -48,16 +53,18 @@ function AppContent() {
             </ProtectedRoute>
           }>
             <Route index element={<AdminPanel />} />
+            <Route path="marketplace" element={<MarketplacesAdmin />} />
+            <Route path="marketplace-main" element={<MarketplacesMainAdmin />} />
             <Route path="products" element={<ProductsAdmin />} />
             <Route path="products-main" element={<ProductsMainAdmin />} />
-            <Route path="marketplace" element={<SolutionsAdmin />} />
-            <Route path="marketplace-main" element={<SolutionsMainAdmin />} />
+            <Route path="solutions" element={<SolutionsAdmin />} />
+            <Route path="solutions-main" element={<SolutionsMainAdmin />} />
             <Route path="pricing" element={<PricingAdmin />} />
             <Route path="about-us" element={<AboutUsAdmin />} />
           </Route>
-          <Route path="/marketplace/:appName" element={<UniversalSolutionPage />} />
-          {/* Product pages - all products use dynamic CMS system */}
+          <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />
+          <Route path="/solutions/:solutionName" element={<UniversalSolutionPage />} />
         </Routes>
       </main>
       {showHeaderFooter && <Footer />}

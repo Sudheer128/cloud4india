@@ -5,8 +5,6 @@ import {
   Squares2X2Icon, 
   ChevronDoubleLeftIcon, 
   ChevronDoubleRightIcon,
-  CubeIcon,
-  RectangleGroupIcon,
   PuzzlePieceIcon,
   InformationCircleIcon,
   CurrencyDollarIcon
@@ -26,32 +24,46 @@ const AdminSidebar = () => {
       matchPaths: ['/admin']
     },
     {
-      id: 'products',
-      label: 'Products',
-      icon: CubeIcon,
-      path: '/admin/products',
-      matchPaths: ['/admin/products']
-    },
-    {
-      id: 'solutions',
+      id: 'marketplace',
       label: 'Marketplace',
       icon: Squares2X2Icon,
       path: '/admin/marketplace',
       matchPaths: ['/admin/marketplace']
     },
     {
-      id: 'products-main',
-      label: 'Products Main',
-      icon: RectangleGroupIcon,
-      path: '/admin/products-main',
-      matchPaths: ['/admin/products-main']
-    },
-    {
-      id: 'solutions-main',
+      id: 'marketplace-main',
       label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
       path: '/admin/marketplace-main',
       matchPaths: ['/admin/marketplace-main']
+    },
+    {
+      id: 'products',
+      label: 'Products',
+      icon: Squares2X2Icon,
+      path: '/admin/products',
+      matchPaths: ['/admin/products']
+    },
+    {
+      id: 'products-main',
+      label: 'Products Main',
+      icon: PuzzlePieceIcon,
+      path: '/admin/products-main',
+      matchPaths: ['/admin/products-main']
+    },
+    {
+      id: 'solutions',
+      label: 'Solutions',
+      icon: Squares2X2Icon,
+      path: '/admin/solutions',
+      matchPaths: ['/admin/solutions']
+    },
+    {
+      id: 'solutions-main',
+      label: 'Solutions Main',
+      icon: PuzzlePieceIcon,
+      path: '/admin/solutions-main',
+      matchPaths: ['/admin/solutions-main']
     },
     {
       id: 'pricing',

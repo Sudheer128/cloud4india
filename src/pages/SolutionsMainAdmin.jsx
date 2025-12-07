@@ -46,9 +46,6 @@ const SolutionsMainAdmin = () => {
     popular_tag: '',
     category: '',
     features: [],
-    price: '',
-    price_period: '',
-    free_trial_tag: '',
     button_text: ''
   });
   const [showNewSectionModal, setShowNewSectionModal] = useState(false);
@@ -58,9 +55,6 @@ const SolutionsMainAdmin = () => {
     popular_tag: '',
     category: '',
     features: [],
-    price: '',
-    price_period: '',
-    free_trial_tag: '',
     button_text: ''
   });
 
@@ -159,10 +153,7 @@ const SolutionsMainAdmin = () => {
         features: filteredFeatures,
         // Set optional fields to null if empty
         popular_tag: newSectionForm.popular_tag?.trim() || null,
-        category: newSectionForm.category?.trim() || null,
-        price: newSectionForm.price?.trim() || null,
-        price_period: newSectionForm.price_period?.trim() || null,
-        free_trial_tag: newSectionForm.free_trial_tag?.trim() || null
+        category: newSectionForm.category?.trim() || null
       };
 
       await createMainSolutionsSection(createData);
@@ -174,9 +165,6 @@ const SolutionsMainAdmin = () => {
         popular_tag: '',
         category: '',
         features: [],
-        price: '',
-        price_period: '',
-        free_trial_tag: '',
         button_text: ''
       });
       alert('New section created successfully!');
@@ -221,9 +209,6 @@ const SolutionsMainAdmin = () => {
       popular_tag: section.popular_tag || '',
       category: section.category || '',
       features: parsedFeatures,
-      price: section.price || '',
-      price_period: section.price_period || '',
-      free_trial_tag: section.free_trial_tag || '',
       button_text: section.button_text || ''
     });
     setEditingSection(section);
@@ -255,10 +240,7 @@ const SolutionsMainAdmin = () => {
         features: filteredFeatures,
         // Set optional fields to null if empty
         popular_tag: sectionForm.popular_tag?.trim() || null,
-        category: sectionForm.category?.trim() || null,
-        price: sectionForm.price?.trim() || null,
-        price_period: sectionForm.price_period?.trim() || null,
-        free_trial_tag: sectionForm.free_trial_tag?.trim() || null
+        category: sectionForm.category?.trim() || null
       };
 
       await updateMainSolutionsSection(editingSection.id, updateData);
@@ -322,7 +304,7 @@ const SolutionsMainAdmin = () => {
       <div className="w-full">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">Error: {error}</p>
-          <button 
+            <button 
             onClick={fetchMainSolutionsContent}
             className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
@@ -484,9 +466,9 @@ const SolutionsMainAdmin = () => {
           ) : (
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Marketplace'}</h3>
-                <p className="text-sm text-gray-600">{mainPageData?.hero?.subtitle || 'Enterprise Solutions - Made in India'}</p>
-                <p className="text-sm text-gray-500 mt-2">{mainPageData?.hero?.description || 'Explore our enterprise-grade solutions designed to transform your business operations.'}</p>
+                <h3 className="text-lg font-medium text-gray-900">{mainPageData?.hero?.title || 'Our Solutions'}</h3>
+                <p className="text-sm text-gray-600">{mainPageData?.hero?.subtitle || 'Cloud Solutions - Made in India'}</p>
+                <p className="text-sm text-gray-500 mt-2">{mainPageData?.hero?.description || 'Explore our comprehensive cloud solutions designed to transform your business operations.'}</p>
               </div>
               
               {/* Stats Preview */}
@@ -512,24 +494,24 @@ const SolutionsMainAdmin = () => {
           )}
         </div>
 
-        {/* Solution Sections */}
+        {/* Marketplace Sections */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">App Sections</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Solution Sections</h2>
             <button
               onClick={() => setShowNewSectionModal(true)}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
               <PlusIcon className="w-4 h-4" />
-              Add New App
+              Add New Solution
             </button>
           </div>
           
-          {mainPageData?.sections?.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No app sections found.</p>
+          {!mainPageData || !mainPageData.sections || mainPageData.sections.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No solution sections found.</p>
           ) : (
             <div className="space-y-4">
-              {mainPageData?.sections?.map((section) => (
+              {mainPageData.sections.map((section) => (
                 <div key={section.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -554,33 +536,35 @@ const SolutionsMainAdmin = () => {
                       <p className="text-gray-600 mb-3">{section.description}</p>
                       
                       {/* Features Display */}
-                      {section.features && section.features.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Features:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {section.features.map((feature, idx) => (
-                              <span key={idx} className="bg-green-50 text-green-700 text-xs px-2 py-1 rounded">
-                                ✓ {feature}
-                              </span>
-                            ))}
+                      {(() => {
+                        let features = [];
+                        if (section.features) {
+                          if (Array.isArray(section.features)) {
+                            features = section.features;
+                          } else if (typeof section.features === 'string') {
+                            try {
+                              const parsed = JSON.parse(section.features);
+                              features = Array.isArray(parsed) ? parsed : [];
+                            } catch (e) {
+                              features = [];
+                            }
+                          }
+                        }
+                        return features.length > 0 ? (
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 mb-1">Features:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {features.map((feature, idx) => (
+                                <span key={idx} className="bg-green-50 text-green-700 text-xs px-2 py-1 rounded">
+                                  ✓ {feature}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ) : null;
+                      })()}
                       
-                      {/* Price Display */}
-                      {section.price && (
-                        <div className="mb-3">
-                          <span className="text-lg font-bold text-gray-900">{section.price}</span>
-                          {section.price_period && (
-                            <span className="text-gray-600">{section.price_period}</span>
-                          )}
-                          {section.free_trial_tag && (
-                            <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
-                              {section.free_trial_tag}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {/* Price section removed - not needed for solutions */}
                       
                       {section.button_text && (
                         <p className="text-sm text-gray-500">Button: "{section.button_text}"</p>
@@ -634,7 +618,7 @@ const SolutionsMainAdmin = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Edit App Section</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Edit Solution Section</h3>
               <button
                 onClick={() => {
                   setShowEditModal(false);
@@ -701,7 +685,7 @@ const SolutionsMainAdmin = () => {
                   type="text"
                   value={sectionForm.category || ''}
                   onChange={(e) => setSectionForm({...sectionForm, category: e.target.value})}
-                  placeholder="Enterprise Solutions"
+                  placeholder="Enterprise Marketplaces"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">Leave empty to hide category badge on frontend</p>
@@ -742,49 +726,7 @@ const SolutionsMainAdmin = () => {
                 <p className="mt-1 text-xs text-gray-500">Empty features will be filtered out. Leave empty to hide features section on frontend.</p>
               </div>
 
-              {/* Price Section - Optional */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={sectionForm.price || ''}
-                    onChange={(e) => setSectionForm({...sectionForm, price: e.target.value})}
-                    placeholder="₹2,999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price Period <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={sectionForm.price_period || ''}
-                    onChange={(e) => setSectionForm({...sectionForm, price_period: e.target.value})}
-                    placeholder="/month"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 -mt-2">Leave empty to hide pricing section on frontend</p>
-
-              {/* Free Trial Tag - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Free Trial Tag <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={sectionForm.free_trial_tag || ''}
-                  onChange={(e) => setSectionForm({...sectionForm, free_trial_tag: e.target.value})}
-                  placeholder="Free Trial"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Leave empty to hide this badge on frontend</p>
-              </div>
+              {/* Price section removed - not needed for solutions */}
 
               {/* Button Text - Required */}
               <div>
@@ -832,7 +774,7 @@ const SolutionsMainAdmin = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Add New App Section</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Add New Solution Section</h3>
               <button
                 onClick={() => {
                   setShowNewSectionModal(false);
@@ -842,9 +784,6 @@ const SolutionsMainAdmin = () => {
                     popular_tag: '',
                     category: '',
                     features: [],
-                    price: '',
-                    price_period: '',
-                    free_trial_tag: '',
                     button_text: ''
                   });
                 }}
@@ -909,7 +848,7 @@ const SolutionsMainAdmin = () => {
                   type="text"
                   value={newSectionForm.category || ''}
                   onChange={(e) => setNewSectionForm({...newSectionForm, category: e.target.value})}
-                  placeholder="Enterprise Solutions"
+                  placeholder="Enterprise Marketplaces"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">Leave empty to hide category badge on frontend</p>
@@ -950,49 +889,7 @@ const SolutionsMainAdmin = () => {
                 <p className="mt-1 text-xs text-gray-500">Empty features will be filtered out. Leave empty to hide features section on frontend.</p>
               </div>
 
-              {/* Price Section - Optional */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newSectionForm.price || ''}
-                    onChange={(e) => setNewSectionForm({...newSectionForm, price: e.target.value})}
-                    placeholder="₹2,999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price Period <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newSectionForm.price_period || ''}
-                    onChange={(e) => setNewSectionForm({...newSectionForm, price_period: e.target.value})}
-                    placeholder="/month"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 -mt-2">Leave empty to hide pricing section on frontend</p>
-
-              {/* Free Trial Tag - Optional */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Free Trial Tag <span className="text-xs text-gray-500">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newSectionForm.free_trial_tag || ''}
-                  onChange={(e) => setNewSectionForm({...newSectionForm, free_trial_tag: e.target.value})}
-                  placeholder="Free Trial"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">Leave empty to hide this badge on frontend</p>
-              </div>
+              {/* Price section removed - not needed for solutions */}
 
               {/* Button Text - Required */}
               <div>
@@ -1018,7 +915,7 @@ const SolutionsMainAdmin = () => {
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
               >
                 <CheckIcon className="w-4 h-4" />
-                Create App
+                Create Solution
               </button>
               <button
                 onClick={() => {
@@ -1029,9 +926,6 @@ const SolutionsMainAdmin = () => {
                     popular_tag: '',
                     category: '',
                     features: [],
-                    price: '',
-                    price_period: '',
-                    free_trial_tag: '',
                     button_text: ''
                   });
                 }}

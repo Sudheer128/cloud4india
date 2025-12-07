@@ -46,7 +46,16 @@ import {
   toggleAboutStoryVisibility,
   toggleAboutLegacyVisibility,
   toggleAboutTestimonialsSectionVisibility,
-  toggleAboutApproachSectionVisibility
+  toggleAboutApproachSectionVisibility,
+  updateAboutMissionVision,
+  toggleAboutMissionVisionVisibility,
+  updateAboutCoreValuesSection,
+  toggleAboutCoreValuesSectionVisibility,
+  getAboutCoreValues,
+  createAboutCoreValue,
+  updateAboutCoreValue,
+  deleteAboutCoreValue,
+  toggleAboutCoreValueVisibility
 } from '../services/cmsApi';
 
 const AboutUsAdmin = () => {
@@ -130,6 +139,28 @@ const AboutUsAdmin = () => {
   const [showApproachItemModal, setShowApproachItemModal] = useState(false);
   const [approachItemForm, setApproachItemForm] = useState({ title: '', description: '', icon_type: 'database', order_index: 0, is_visible: 1 });
 
+  // Mission & Vision Section
+  const [editingMissionVision, setEditingMissionVision] = useState(false);
+  const [missionVisionForm, setMissionVisionForm] = useState({
+    mission_title: '',
+    mission_description: '',
+    vision_title: '',
+    vision_description: ''
+  });
+  const [missionVisionVisible, setMissionVisionVisible] = useState(true);
+
+  // Core Values Section
+  const [editingCoreValuesSection, setEditingCoreValuesSection] = useState(false);
+  const [coreValuesSectionForm, setCoreValuesSectionForm] = useState({
+    header_title: '',
+    header_description: ''
+  });
+  const [coreValuesSectionVisible, setCoreValuesSectionVisible] = useState(true);
+  const [coreValues, setCoreValues] = useState([]);
+  const [editingCoreValue, setEditingCoreValue] = useState(null);
+  const [showCoreValueModal, setShowCoreValueModal] = useState(false);
+  const [coreValueForm, setCoreValueForm] = useState({ title: '', description: '', icon_type: 'lightbulb', order_index: 0, is_visible: 1 });
+
   // Fetch all About Us content
   const fetchAboutUsContent = async () => {
     try {
@@ -212,6 +243,26 @@ const AboutUsAdmin = () => {
         setApproachSectionVisible(data.approachSection.is_visible !== 0);
       }
 
+      // Initialize mission & vision form
+      if (data.missionVision) {
+        setMissionVisionForm({
+          mission_title: data.missionVision.mission_title || '',
+          mission_description: data.missionVision.mission_description || '',
+          vision_title: data.missionVision.vision_title || '',
+          vision_description: data.missionVision.vision_description || ''
+        });
+        setMissionVisionVisible(data.missionVision.is_visible !== 0);
+      }
+
+      // Initialize core values section form
+      if (data.coreValuesSection) {
+        setCoreValuesSectionForm({
+          header_title: data.coreValuesSection.header_title || '',
+          header_description: data.coreValuesSection.header_description || ''
+        });
+        setCoreValuesSectionVisible(data.coreValuesSection.is_visible !== 0);
+      }
+
       // Fetch milestones and stats
       const milestonesData = await getAboutMilestones(true);
       setMilestones(milestonesData || []);
@@ -229,6 +280,10 @@ const AboutUsAdmin = () => {
       // Fetch approach items
       const approachItemsData = await getAboutApproachItems(true);
       setApproachItems(approachItemsData || []);
+
+      // Fetch core values
+      const coreValuesData = await getAboutCoreValues(true);
+      setCoreValues(coreValuesData || []);
 
     } catch (err) {
       setError(err.message);
@@ -661,6 +716,107 @@ const AboutUsAdmin = () => {
     setShowApproachItemModal(true);
   };
 
+  // Mission & Vision Handlers
+  const handleMissionVisionUpdate = async () => {
+    try {
+      await updateAboutMissionVision(missionVisionForm);
+      await fetchAboutUsContent();
+      setEditingMissionVision(false);
+      alert('Mission & Vision updated successfully!');
+    } catch (err) {
+      alert('Error updating mission & vision: ' + err.message);
+    }
+  };
+
+  const handleToggleMissionVisionVisibility = async () => {
+    try {
+      await toggleAboutMissionVisionVisibility();
+      await fetchAboutUsContent();
+    } catch (err) {
+      alert('Error toggling mission & vision visibility: ' + err.message);
+    }
+  };
+
+  // Core Values Section Handlers
+  const handleCoreValuesSectionUpdate = async () => {
+    try {
+      await updateAboutCoreValuesSection(coreValuesSectionForm);
+      await fetchAboutUsContent();
+      setEditingCoreValuesSection(false);
+      alert('Core Values section updated successfully!');
+    } catch (err) {
+      alert('Error updating core values section: ' + err.message);
+    }
+  };
+
+  const handleToggleCoreValuesSectionVisibility = async () => {
+    try {
+      await toggleAboutCoreValuesSectionVisibility();
+      await fetchAboutUsContent();
+    } catch (err) {
+      alert('Error toggling core values section visibility: ' + err.message);
+    }
+  };
+
+  // Core Value Handlers
+  const handleCreateCoreValue = async () => {
+    try {
+      await createAboutCoreValue(coreValueForm);
+      await fetchAboutUsContent();
+      setShowCoreValueModal(false);
+      setCoreValueForm({ title: '', description: '', icon_type: 'lightbulb', order_index: coreValues.length, is_visible: 1 });
+      alert('Core value created successfully!');
+    } catch (err) {
+      alert('Error creating core value: ' + err.message);
+    }
+  };
+
+  const handleUpdateCoreValue = async () => {
+    try {
+      await updateAboutCoreValue(editingCoreValue, coreValueForm);
+      await fetchAboutUsContent();
+      setEditingCoreValue(null);
+      setShowCoreValueModal(false);
+      setCoreValueForm({ title: '', description: '', icon_type: 'lightbulb', order_index: 0, is_visible: 1 });
+      alert('Core value updated successfully!');
+    } catch (err) {
+      alert('Error updating core value: ' + err.message);
+    }
+  };
+
+  const handleDeleteCoreValue = async (id) => {
+    if (window.confirm('Are you sure you want to delete this core value?')) {
+      try {
+        await deleteAboutCoreValue(id);
+        await fetchAboutUsContent();
+        alert('Core value deleted successfully!');
+      } catch (err) {
+        alert('Error deleting core value: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleCoreValueVisibility = async (id) => {
+    try {
+      await toggleAboutCoreValueVisibility(id);
+      await fetchAboutUsContent();
+    } catch (err) {
+      alert('Error toggling core value visibility: ' + err.message);
+    }
+  };
+
+  const startEditingCoreValue = (value) => {
+    setEditingCoreValue(value.id);
+    setCoreValueForm({
+      title: value.title || '',
+      description: value.description || '',
+      icon_type: value.icon_type || 'lightbulb',
+      order_index: value.order_index || 0,
+      is_visible: value.is_visible !== undefined ? value.is_visible : 1
+    });
+    setShowCoreValueModal(true);
+  };
+
   if (loading) {
     return (
       <div className="w-full">
@@ -850,6 +1006,130 @@ const AboutUsAdmin = () => {
         )}
       </div>
 
+      {/* Mission & Vision Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-gray-900">Mission & Vision Section</h2>
+            <span className={`px-2 py-1 rounded text-xs font-medium ${missionVisionVisible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {missionVisionVisible ? <><EyeIcon className="w-3 h-3 inline mr-1" />Visible</> : <><EyeSlashIcon className="w-3 h-3 inline mr-1" />Hidden</>}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {!editingMissionVision ? (
+              <>
+                <button
+                  onClick={handleToggleMissionVisionVisibility}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${missionVisionVisible ? 'bg-yellow-600 text-white hover:bg-yellow-700' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                >
+                  {missionVisionVisible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  {missionVisionVisible ? 'Hide' : 'Show'}
+                </button>
+                <button
+                  onClick={() => setEditingMissionVision(true)}
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                  Edit
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleMissionVisionUpdate}
+                  className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  <CheckIcon className="w-4 h-4" />
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingMissionVision(false)}
+                  className="inline-flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {editingMissionVision ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-900"><strong>ℹ️ Mission & Vision:</strong> Edit the mission and vision content displayed on the About Us page</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Mission Title
+              </label>
+              <input
+                type="text"
+                value={missionVisionForm.mission_title}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, mission_title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Our Mission"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Mission Description
+              </label>
+              <textarea
+                value={missionVisionForm.mission_description}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, mission_description: e.target.value})}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe your mission..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Vision Title
+              </label>
+              <input
+                type="text"
+                value={missionVisionForm.vision_title}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, vision_title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Our Vision"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Vision Description
+              </label>
+              <textarea
+                value={missionVisionForm.vision_description}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, vision_description: e.target.value})}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe your vision..."
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Mission Title:</span>
+              <p className="text-lg font-semibold text-gray-900">{aboutData?.missionVision?.mission_title || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Mission Description:</span>
+              <p className="text-sm text-gray-700">{aboutData?.missionVision?.mission_description || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Vision Title:</span>
+              <p className="text-lg font-semibold text-gray-900">{aboutData?.missionVision?.vision_title || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Vision Description:</span>
+              <p className="text-sm text-gray-700">{aboutData?.missionVision?.vision_description || 'Not Set'}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Story Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -1010,6 +1290,150 @@ const AboutUsAdmin = () => {
             <p><strong>Story Items:</strong> {storyForm.story_items.length} items</p>
           </div>
         )}
+      </div>
+
+      {/* Core Values Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-gray-900">Core Values Section (Header + Values)</h2>
+            <span className={`px-2 py-1 rounded text-xs font-medium ${coreValuesSectionVisible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {coreValuesSectionVisible ? <><EyeIcon className="w-3 h-3 inline mr-1" />Visible</> : <><EyeSlashIcon className="w-3 h-3 inline mr-1" />Hidden</>}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {!editingCoreValuesSection ? (
+              <>
+                <button
+                  onClick={handleToggleCoreValuesSectionVisibility}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${coreValuesSectionVisible ? 'bg-yellow-600 text-white hover:bg-yellow-700' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                >
+                  {coreValuesSectionVisible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  {coreValuesSectionVisible ? 'Hide' : 'Show'}
+                </button>
+                <button
+                  onClick={() => setEditingCoreValuesSection(true)}
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                  Edit Header
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleCoreValuesSectionUpdate}
+                  className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  <CheckIcon className="w-4 h-4" />
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditingCoreValuesSection(false)}
+                  className="inline-flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-blue-900"><strong>ℹ️ Section Header:</strong> Edit the main title and description that appears at the top of the Core Values section</p>
+        </div>
+
+        {editingCoreValuesSection ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Header Title (Main Section Heading)
+              </label>
+              <input
+                type="text"
+                value={coreValuesSectionForm.header_title}
+                onChange={(e) => setCoreValuesSectionForm({...coreValuesSectionForm, header_title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Our Core Values"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Header Description (Below the heading)
+              </label>
+              <textarea
+                value={coreValuesSectionForm.header_description}
+                onChange={(e) => setCoreValuesSectionForm({...coreValuesSectionForm, header_description: e.target.value})}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe your core values..."
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3 mb-6">
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Header Title:</span>
+              <p className="text-lg font-semibold text-gray-900">{aboutData?.coreValuesSection?.header_title || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Header Description:</span>
+              <p className="text-sm text-gray-700">{aboutData?.coreValuesSection?.header_description || 'Not Set'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Core Values Management */}
+        <div className="mt-6 border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Core Values</h3>
+            <button
+              onClick={() => {
+                setCoreValueForm({ title: '', description: '', icon_type: 'lightbulb', order_index: coreValues.length, is_visible: 1 });
+                setEditingCoreValue(null);
+                setShowCoreValueModal(true);
+              }}
+              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add Core Value
+            </button>
+          </div>
+          <div className="space-y-2">
+            {coreValues.map((value) => (
+              <div key={value.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 rounded text-xs ${value.is_visible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {value.is_visible ? 'Visible' : 'Hidden'}
+                  </span>
+                  <span className="font-medium">{value.title}</span>
+                  <span className="text-xs text-gray-500">({value.icon_type})</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEditingCoreValue(value)}
+                    className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleCoreValueVisibility(value.id)}
+                    className="p-1 text-yellow-600 hover:bg-yellow-100 rounded"
+                  >
+                    {value.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCoreValue(value.id)}
+                    className="p-1 text-red-600 hover:bg-red-100 rounded"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Legacy Section */}
@@ -1382,7 +1806,7 @@ const AboutUsAdmin = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-gray-900">Approach Section</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Approach Section (Header + Items)</h2>
             <span className={`px-2 py-1 rounded text-xs font-medium ${approachSectionVisible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {approachSectionVisible ? <><EyeIcon className="w-3 h-3 inline mr-1" />Visible</> : <><EyeSlashIcon className="w-3 h-3 inline mr-1" />Hidden</>}
             </span>
@@ -1426,40 +1850,73 @@ const AboutUsAdmin = () => {
           </div>
         </div>
 
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-blue-900"><strong>ℹ️ Section Header:</strong> Edit the main title and description that appears at the top of the Approach section</p>
+        </div>
+
         {editingApproachSection ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Header Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Header Title (Main Section Heading)
+              </label>
               <input
                 type="text"
                 value={approachSectionForm.header_title}
                 onChange={(e) => setApproachSectionForm({...approachSectionForm, header_title: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Our Approach"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Header Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> Header Description (Below the heading)
+              </label>
               <textarea
                 value={approachSectionForm.header_description}
                 onChange={(e) => setApproachSectionForm({...approachSectionForm, header_description: e.target.value})}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe your approach..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Text (Call to Action)</label>
               <input
                 type="text"
                 value={approachSectionForm.cta_button_text}
                 onChange={(e) => setApproachSectionForm({...approachSectionForm, cta_button_text: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Talk to a Specialist"
+
+
+
+
+
+
+
+
+
+
+
+                
               />
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <p><strong>Header Title:</strong> {aboutData?.approachSection?.header_title || 'N/A'}</p>
-            <p><strong>CTA Button:</strong> {aboutData?.approachSection?.cta_button_text || 'N/A'}</p>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Header Title:</span>
+              <p className="text-lg font-semibold text-gray-900">{aboutData?.approachSection?.header_title || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Header Description:</span>
+              <p className="text-sm text-gray-700">{aboutData?.approachSection?.header_description || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">CTA Button Text:</span>
+              <p className="text-sm text-gray-700">{aboutData?.approachSection?.cta_button_text || 'Not Set'}</p>
+            </div>
           </div>
         )}
 
@@ -1888,6 +2345,87 @@ const AboutUsAdmin = () => {
               </button>
               <button
                 onClick={() => { setShowApproachItemModal(false); setEditingApproachItem(null); }}
+                className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Core Value Modal */}
+      {showCoreValueModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">{editingCoreValue ? 'Edit Core Value' : 'Add Core Value'}</h3>
+              <button onClick={() => { setShowCoreValueModal(false); setEditingCoreValue(null); }} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={coreValueForm.title}
+                  onChange={(e) => setCoreValueForm({...coreValueForm, title: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={coreValueForm.description}
+                  onChange={(e) => setCoreValueForm({...coreValueForm, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon Type</label>
+                <select
+                  value={coreValueForm.icon_type}
+                  onChange={(e) => setCoreValueForm({...coreValueForm, icon_type: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="lightbulb">Lightbulb</option>
+                  <option value="shield">Shield</option>
+                  <option value="heart">Heart</option>
+                  <option value="check">Check</option>
+                  <option value="star">Star</option>
+                  <option value="lock">Lock</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Order Index</label>
+                <input
+                  type="number"
+                  value={coreValueForm.order_index}
+                  onChange={(e) => setCoreValueForm({...coreValueForm, order_index: parseInt(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={coreValueForm.is_visible === 1}
+                  onChange={(e) => setCoreValueForm({...coreValueForm, is_visible: e.target.checked ? 1 : 0})}
+                  className="w-4 h-4"
+                />
+                <label className="text-sm text-gray-700">Visible</label>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={editingCoreValue ? handleUpdateCoreValue : handleCreateCoreValue}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                {editingCoreValue ? 'Update' : 'Create'}
+              </button>
+              <button
+                onClick={() => { setShowCoreValueModal(false); setEditingCoreValue(null); }}
                 className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
               >
                 Cancel

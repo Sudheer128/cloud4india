@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getSolutionByName } from '../services/cmsApi'
 import { 
@@ -39,7 +39,7 @@ import {
   CodeBracketIcon
 } from '@heroicons/react/24/outline'
 import { useSolutionSections } from '../hooks/useSolutionSections'
-import { useSectionItems } from '../hooks/useSectionItems'
+import { useSolutionItems } from '../hooks/useSolutionItems'
 import { appThemeColors, getGradient, getTextColor, getHoverBorder } from '../utils/appThemeColors'
 
 // Rupee Icon - displays ₹ symbol using Unicode character
@@ -65,18 +65,20 @@ const RupeeIconSimple = ({ className }) => (
 );
 
 const UniversalSolutionPage = () => {
-  const { appName } = useParams();
+  const { solutionName } = useParams();
   const [solution, setSolution] = useState(null);
   const [solutionLoading, setSolutionLoading] = useState(true);
   const [solutionError, setSolutionError] = useState(null);
   const [solutionId, setSolutionId] = useState(null);
   const [activeSection, setActiveSection] = useState('overview');
   const { sections, loading, error } = useSolutionSections(solutionId);
+  const isScrollingRef = useRef(false);
+  const lastActiveSectionRef = useRef('overview');
 
   // Fetch solution by name to get the ID
   useEffect(() => {
     const fetchSolution = async () => {
-      if (!appName) {
+      if (!solutionName) {
         setSolutionLoading(false);
         return;
       }
@@ -84,7 +86,7 @@ const UniversalSolutionPage = () => {
       try {
         setSolutionLoading(true);
         setSolutionError(null);
-        const solutionData = await getSolutionByName(appName);
+        const solutionData = await getSolutionByName(solutionName);
         setSolution(solutionData);
         setSolutionId(solutionData.id);
       } catch (err) {
@@ -96,26 +98,13 @@ const UniversalSolutionPage = () => {
     };
 
     fetchSolution();
-  }, [appName]);
+  }, [solutionName]);
 
-  // Track active section on scroll
+  // Disable automatic scroll tracking to prevent flickering
+  // Active section only updates when clicking navigation items
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 130; // Offset for main navbar (64px) + sub navbar (65px) = ~130px
-      const sectionElements = document.querySelectorAll('[data-section-id]');
-      
-      for (let i = sectionElements.length - 1; i >= 0; i--) {
-        const section = sectionElements[i];
-        if (section.offsetTop <= scrollPosition) {
-          setActiveSection(section.getAttribute('data-section-id'));
-          break;
-        }
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial check
-    return () => window.removeEventListener('scroll', handleScroll);
+    // This effect is intentionally disabled to prevent scroll flickering
+    // The active section is updated manually in scrollToSection function
   }, [sections]);
 
   if (solutionLoading || loading) {
@@ -136,8 +125,8 @@ const UniversalSolutionPage = () => {
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Content</h1>
           <p className="text-gray-600 mb-4">{solutionError || error}</p>
-          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Marketplace
+          <Link to="/solutions" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Solutions
           </Link>
         </div>
       </div>
@@ -151,8 +140,8 @@ const UniversalSolutionPage = () => {
           <div className="text-gray-400 text-6xl mb-4">📄</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Solution Not Found</h1>
           <p className="text-gray-600 mb-4">The solution you're looking for doesn't exist.</p>
-          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Marketplace
+          <Link to="/solutions" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Solutions
           </Link>
         </div>
       </div>
@@ -166,8 +155,8 @@ const UniversalSolutionPage = () => {
           <div className="text-gray-400 text-6xl mb-4">📄</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">No Content Available</h1>
           <p className="text-gray-600 mb-4">This solution page doesn't have any content yet.</p>
-          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Marketplace
+          <Link to="/solutions" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
+            Return to Solutions
           </Link>
         </div>
       </div>
@@ -176,18 +165,19 @@ const UniversalSolutionPage = () => {
 
   // Helper function to get section by order
   const getSectionByOrder = (order) => {
+    if (!Array.isArray(sections)) return null;
     return sections.find(section => section.order_index === order);
   };
 
   // Check if media_banner exists at order_index 1
-  const hasMediaBanner = sections.some(s => s.section_type === 'media_banner' && s.order_index === 1 && s.is_visible !== 0);
+  const hasMediaBanner = Array.isArray(sections) && sections.some(s => s.section_type === 'media_banner' && s.order_index === 1 && s.is_visible !== 0);
   
   // Dynamic order offset: if media_banner exists at 1, all subsequent sections are shifted by 1
   const getOrderOffset = () => hasMediaBanner ? 1 : 0;
 
   // Generate navigation items from visible sections
   const getNavigationItems = () => {
-    if (!sections || sections.length === 0) return [];
+    if (!Array.isArray(sections) || sections.length === 0) return [];
     
     const navItems = [];
     const offset = getOrderOffset();
@@ -195,15 +185,15 @@ const UniversalSolutionPage = () => {
     // Map section types to readable names and IDs
     const sectionMapping = [
       { order: 0, id: 'overview', label: 'Overview', type: 'hero' },
-      { order: 1, id: 'media', label: 'Features', type: 'media_banner' },
-      { order: 1 + offset, id: 'benefits', label: 'Why Choose This?', type: 'benefits' },
-      { order: 2 + offset, id: 'segments', label: 'Perfect For', type: 'segments' },
-      { order: 3 + offset, id: 'technology', label: 'Real-World Applications', type: 'technology' },
+      { order: 1, id: 'media', label: 'Gallery', type: 'media_banner' },
+      { order: 1 + offset, id: 'benefits', label: 'Key Benefits', type: 'benefits' },
+      { order: 2 + offset, id: 'segments', label: 'Industry Segments', type: 'segments' },
+      { order: 4 + offset, id: 'technology', label: 'Technology Features', type: 'technology' },
       { order: 5 + offset, id: 'use-cases', label: 'Use Cases', type: 'use_cases' },
-      { order: 6 + offset, id: 'roi', label: 'Measurable Results', type: 'roi' },
-      { order: 7 + offset, id: 'implementation', label: 'Getting Started', type: 'implementation' },
-      { order: 8 + offset, id: 'resources', label: 'Resources & Docs', type: 'resources' },
-      { order: 9 + offset, id: 'get-started', label: 'Deploy Now', type: 'cta' }
+      { order: 6 + offset, id: 'roi', label: 'ROI & Value', type: 'roi' },
+      { order: 7 + offset, id: 'implementation', label: 'Implementation Timeline', type: 'implementation' },
+      { order: 8 + offset, id: 'resources', label: 'Resources & Support', type: 'resources' },
+      { order: 9 + offset, id: 'get-started', label: 'Get started', type: 'cta' }
     ];
     
     sectionMapping.forEach(mapping => {
@@ -211,7 +201,7 @@ const UniversalSolutionPage = () => {
       if (section && section.section_type === mapping.type && section.is_visible !== 0) {
         navItems.push({
           id: mapping.id,
-          label: section.title || mapping.label, // Use custom title if available
+          label: mapping.label, // Always use mapping label for consistent, shorter names
           order: mapping.order
         });
       }
@@ -220,29 +210,60 @@ const UniversalSolutionPage = () => {
     return navItems;
   };
 
-  const navigationItems = getNavigationItems();
+  const navigationItems = getNavigationItems() || [];
 
   // Scroll to section smoothly
   const scrollToSection = (sectionId) => {
     const element = document.querySelector(`[data-section-id="${sectionId}"]`);
     if (element) {
-      const offset = 130; // Account for main navbar (64px) + sub navbar (65px)
-      const elementPosition = element.offsetTop - offset;
+      // Set flag to prevent scroll tracking interference
+      isScrollingRef.current = true;
+      
+      // Update active section immediately
+      lastActiveSectionRef.current = sectionId;
+      setActiveSection(sectionId);
+      
+      // Calculate offset dynamically
+      // Main navbar: 64px (h-16) + Sub navbar with padding
+      const mainNavbar = document.querySelector('header');
+      const subNavbar = document.querySelector('.sticky.top-16');
+      
+      let offset = 64; // Main navbar default
+      if (mainNavbar) {
+        offset = mainNavbar.offsetHeight;
+      }
+      if (subNavbar) {
+        offset += subNavbar.offsetHeight;
+      }
+      
+      // Add small buffer for better visibility
+      offset += 10;
+      
+      // Get the actual bounding rect to avoid issues with negative margins
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const targetPosition = rect.top + scrollTop - offset;
+      
       window.scrollTo({
-        top: elementPosition,
+        top: targetPosition,
         behavior: 'smooth'
       });
+      
+      // Re-enable scroll tracking after animation completes
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 1000);
     }
   };
 
   // Component for dynamic benefit cards
   const DynamicBenefitCards = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No items found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No items found</div>;
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -282,7 +303,8 @@ const UniversalSolutionPage = () => {
           let featuresList = [];
           if (item.features) {
             try {
-              featuresList = JSON.parse(item.features);
+              const parsed = JSON.parse(item.features);
+              featuresList = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
               console.error('Error parsing features:', e);
               featuresList = [];
@@ -298,7 +320,7 @@ const UniversalSolutionPage = () => {
               <p className="text-gray-600 leading-relaxed mb-6 flex-grow">
                 {item.description}
               </p>
-              {featuresList.length > 0 && (
+              {Array.isArray(featuresList) && featuresList.length > 0 && (
                 <div className="text-left mt-auto">
                   <div className={`${textColorClass} text-sm font-medium mb-3`}>Key Features</div>
                   <div className="space-y-2">
@@ -320,12 +342,12 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic financial segments
   const DynamicFinancialSegments = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No items found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No items found</div>;
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -369,12 +391,12 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic ROI stats
   const DynamicROIStats = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No items found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No items found</div>;
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -407,35 +429,14 @@ const UniversalSolutionPage = () => {
     );
   };
 
-  // Component for dynamic HSBC success story metrics
-  // const DynamicHSBCMetrics = ({ sectionId }) => {
-  //   const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
-
-  //   if (loading) return <div>Loading...</div>;
-  //   if (error) return <div>Error loading items: {error}</div>;
-
-  //   if (!items || items.length === 0) return <div>No metrics found</div>;
-
-  //   return (
-  //     <div className="grid grid-cols-2 gap-6">
-  //       {items.map((item, index) => (
-  //         <div key={item.id} className="text-center">
-  //           <div className="text-3xl font-bold text-white mb-2">{item.value}</div>
-  //           <div className="text-blue-200 text-sm">{item.title}</div>
-  //         </div>
-  //       ))}
-  //     </div>
-  //   );
-  // };
-
   // Component for dynamic Advanced Technology Solutions
   const DynamicTechSolutions = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No content found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No content found</div>;
 
     const aiMlItem = items.find(item => item.order_index === 0);
     const analyticsItem = items.find(item => item.order_index === 1);
@@ -443,7 +444,8 @@ const UniversalSolutionPage = () => {
     let aiMlFeatures = [];
     if (aiMlItem && aiMlItem.features) {
       try {
-        aiMlFeatures = JSON.parse(aiMlItem.features);
+        const parsed = JSON.parse(aiMlItem.features);
+        aiMlFeatures = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
         console.error('Error parsing AI/ML features:', e);
         aiMlFeatures = [];
@@ -461,7 +463,7 @@ const UniversalSolutionPage = () => {
           </p>
 
           <div className="space-y-4 mb-8">
-            {aiMlFeatures.map((feature, index) => (
+            {Array.isArray(aiMlFeatures) && aiMlFeatures.map((feature, index) => (
               <div key={index} className="flex items-center">
                 <CheckCircleIcon className="h-6 w-6 text-green-500 mr-3" />
                 <span className="text-gray-700">{feature}</span>
@@ -494,12 +496,12 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Real-World Use Cases
   const DynamicUseCases = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No use cases found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No use cases found</div>;
 
     const colorClasses = [
       'hover:border-saree-teal',
@@ -538,7 +540,8 @@ const UniversalSolutionPage = () => {
           let featuresList = [];
           if (item.features) {
             try {
-              featuresList = JSON.parse(item.features);
+              const parsed = JSON.parse(item.features);
+              featuresList = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
               console.error('Error parsing features:', e);
               featuresList = [];
@@ -554,7 +557,7 @@ const UniversalSolutionPage = () => {
               <p className="text-gray-600 leading-relaxed mb-6 flex-grow">
                 {item.description}
               </p>
-              {featuresList.length > 0 && (
+              {Array.isArray(featuresList) && featuresList.length > 0 && (
                 <div className="text-left mt-auto">
                   <div className={`${textColorClass} text-sm font-medium mb-3`}>Key Features</div>
                   <div className="space-y-2">
@@ -576,12 +579,12 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Implementation Journey timeline
   const DynamicImplementationJourney = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No timeline phases found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No timeline phases found</div>;
 
     const colorClasses = [
       'from-saree-teal to-saree-teal-dark',
@@ -699,20 +702,21 @@ const UniversalSolutionPage = () => {
 
   // Component for dynamic Resources & Documentation
   const DynamicResourcesDocs = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(solutionId), sectionId);
+    const { items, loading, error } = useSolutionItems(parseInt(solutionId), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
-    if (!items || items.length === 0) return <div>No resources found</div>;
+    if (!Array.isArray(items) || items.length === 0) return <div>No resources found</div>;
 
     const featuredResource = items.find(item => item.order_index === 0);
-    const resourceCategories = items.filter(item => item.order_index > 0 && !item.title.toLowerCase().includes('community forum'));
+    const resourceCategories = Array.isArray(items) ? items.filter(item => item.order_index > 0 && !item.title.toLowerCase().includes('community forum')) : [];
 
     let featuredFeatures = [];
     if (featuredResource && featuredResource.features) {
       try {
-        featuredFeatures = JSON.parse(featuredResource.features);
+        const parsed = JSON.parse(featuredResource.features);
+        featuredFeatures = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
         console.error('Error parsing featured resource features:', e);
         featuredFeatures = [];
@@ -763,7 +767,7 @@ const UniversalSolutionPage = () => {
                     </div>
                     <h4 className="text-xl font-semibold text-gray-900 mb-4">What's Included</h4>
                     <div className="space-y-3 text-left">
-                      {featuredFeatures.map((feature, index) => (
+                      {Array.isArray(featuredFeatures) && featuredFeatures.map((feature, index) => (
                         <div key={index} className="flex items-center">
                           <CheckCircleIcon className="h-5 w-5 text-saree-teal mr-3" />
                           <span className="text-gray-700">{feature}</span>
@@ -781,7 +785,7 @@ const UniversalSolutionPage = () => {
         <div className="space-y-12">
           {/* Row 1: Two Large Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {resourceCategories.slice(0, 2).map((item, index) => {
+            {Array.isArray(resourceCategories) && resourceCategories.slice(0, 2).map((item, index) => {
               const gradients = [
                 'from-saree-lime-light to-saree-lime-light',
                 'from-saree-amber-light to-saree-amber-light'
@@ -831,7 +835,7 @@ const UniversalSolutionPage = () => {
 
           {/* Row 2: Two Large Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {resourceCategories.slice(2, 4).map((item, index) => {
+            {Array.isArray(resourceCategories) && resourceCategories.slice(2, 4).map((item, index) => {
               const gradients = [
                 'from-saree-coral-light to-saree-coral-light',
                 'from-saree-teal-light to-saree-teal-light'
@@ -884,24 +888,24 @@ const UniversalSolutionPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Secondary Navigation Bar - Sticky below main header */}
+    <div className="min-h-screen">
+      {/* Secondary Navigation Bar - Sticky, always visible on top layer */}
       {navigationItems.length > 0 && (
-        <div className="sticky top-16 z-40 py-4">
+        <div className="sticky top-16 left-0 right-0 z-[60] w-full py-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-md border border-gray-200">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-gray-200">
               <div className="flex items-center px-6">
-                {/* App Title */}
-                <div className="py-4 pr-8 font-semibold text-gray-900 text-base">
-                  {solution?.name || appName}
+                {/* Solution Title */}
+                <div className="py-4 pr-8 font-semibold text-gray-900 text-base whitespace-nowrap">
+                  {solution?.name || solutionName}
                 </div>
                 {/* Navigation Items */}
                 <nav className="flex items-center overflow-x-auto scrollbar-hide -mb-px">
-                  {navigationItems.map((item) => (
+                  {Array.isArray(navigationItems) && navigationItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => scrollToSection(item.id)}
-                      className={`px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                      className={`px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 border-l-0 border-r-0 border-t-0 focus:outline-none focus:ring-0 ${
                         activeSection === item.id
                           ? 'border-saree-teal text-saree-teal'
                           : 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
@@ -919,7 +923,7 @@ const UniversalSolutionPage = () => {
 
       {/* Hero Section */}
       {getSectionByOrder(0) && (
-        <section data-section-id="overview" className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
+        <section data-section-id="overview" className={`relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden ${navigationItems.length > 0 ? '-mt-32' : ''}`}>
 
           {/* Dot Grid Pattern Overlay */}
           <div 
@@ -939,20 +943,20 @@ const UniversalSolutionPage = () => {
             }}
           ></div>
           
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 ${navigationItems.length > 0 ? 'pt-14' : ''}`}>
             {/* Breadcrumb Navigation - Inside Hero */}
             <nav className="flex items-center text-sm mb-8">
               <Link 
-                to="/marketplace" 
+                to="/solutions" 
                 className="text-white/90 hover:text-white font-medium transition-colors"
               >
-                Marketplace
+                Solutions
               </Link>
               <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               <Link 
-                to={`/marketplace?category=${solution?.category || ''}`}
+                to={`/solutions?category=${solution?.category || ''}`}
                 className="text-white/90 hover:text-white font-medium transition-colors"
               >
                 {solution?.category || 'Category'}
@@ -960,7 +964,7 @@ const UniversalSolutionPage = () => {
               <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-white font-semibold">{solution?.name || appName}</span>
+              <span className="text-white font-semibold">{solution?.name || solutionName}</span>
             </nav>
 
             <div className="text-center">
@@ -1167,45 +1171,7 @@ const UniversalSolutionPage = () => {
         );
       })()}
 
-      {/* Success Story Section */}
-      {/* {getSectionByOrder(3) && (
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-8 md:p-12 lg:p-16">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div>
-                  <div className="inline-flex items-center px-4 py-2 bg-blue-500/20 rounded-full text-blue-300 text-sm font-semibold mb-6">
-                    <StarIcon className="w-4 h-4 mr-2" />
-                    Success Story
-                  </div>
-                  <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                    {getSectionByOrder(3).title}nt h
-                  </h2>
-                  <p className="text-xl text-blue-100 leading-relaxed mb-8">
-                    {getSectionByOrder(3).content}
-                  </p>
-                  <div className="flex items-center text-white">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4">
-                      <span className="text-lg font-bold">HS</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold">HSBC</div>
-                      <div className="text-blue-200 text-sm">Global Banking and Financial Services</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="relative">
-                  <div className="bg-white/10 rounded-2xl p-8 backdrop-blur-sm">
-                    <DynamicHSBCMetrics sectionId={getSectionByOrder(3).id} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )} */}
-
-      {/* Technology Solutions Section */}
+      {/* Technology Marketplaces Section */}
       {(() => {
         const offset = getOrderOffset();
         const techOrder = 4 + offset;
@@ -1229,7 +1195,7 @@ const UniversalSolutionPage = () => {
         );
       })()}
 
-      {/* Real-World Use Cases & Solutions */}
+      {/* Real-World Use Cases & Marketplaces */}
       {(() => {
         const offset = getOrderOffset();
         const useCasesOrder = 5 + offset;

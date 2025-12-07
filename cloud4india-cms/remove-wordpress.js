@@ -16,7 +16,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     // Delete section items for WordPress
     await new Promise((resolve, reject) => {
       db.run(
-        'DELETE FROM section_items WHERE section_id IN (SELECT id FROM solution_sections WHERE solution_id = 6)',
+        'DELETE FROM section_items WHERE section_id IN (SELECT id FROM marketplace_sections WHERE marketplace_id = 6)',
         function(err) {
           if (err) reject(err);
           else {
@@ -30,7 +30,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     // Delete sections for WordPress
     await new Promise((resolve, reject) => {
       db.run(
-        'DELETE FROM solution_sections WHERE solution_id = 6',
+        'DELETE FROM marketplace_sections WHERE marketplace_id = 6',
         function(err) {
           if (err) reject(err);
           else {
@@ -41,28 +41,28 @@ const db = new sqlite3.Database(dbPath, (err) => {
       );
     });
     
-    // Delete from main_solutions_sections
+    // Delete from main_marketplaces_sections
     await new Promise((resolve, reject) => {
       db.run(
-        'DELETE FROM main_solutions_sections WHERE solution_id = 6',
+        'DELETE FROM main_marketplaces_sections WHERE marketplace_id = 6',
         function(err) {
           if (err) reject(err);
           else {
-            console.log(`✅ Deleted ${this.changes} main solutions entry`);
+            console.log(`✅ Deleted ${this.changes} main marketplaces entry`);
             resolve();
           }
         }
       );
     });
     
-    // Delete WordPress solution
+    // Delete WordPress marketplace
     await new Promise((resolve, reject) => {
       db.run(
-        'DELETE FROM solutions WHERE id = 6',
+        'DELETE FROM marketplaces WHERE id = 6',
         function(err) {
           if (err) reject(err);
           else {
-            console.log(`✅ Deleted ${this.changes} solution\n`);
+            console.log(`✅ Deleted ${this.changes} marketplace\n`);
             resolve();
           }
         }
@@ -75,7 +75,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     // Verify
     const verify = await new Promise((resolve, reject) => {
       db.all(
-        'SELECT id, name FROM solutions ORDER BY id',
+        'SELECT id, name FROM marketplaces ORDER BY id',
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows);
@@ -83,7 +83,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       );
     });
     
-    console.log('Current solutions:');
+    console.log('Current marketplaces:');
     console.table(verify);
     
     db.close();

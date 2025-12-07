@@ -7,23 +7,9 @@ import {
   createWhyItem,
   updateWhyItem, 
   deleteWhyItem,
-  getAdminSolutions,
-  duplicateSolution,
-  toggleSolutionVisibility,
-  // New Product CMS API functions
-  getAdminProducts,
-  toggleProductVisibility,
-  duplicateProduct,
-  getAdminProductSections,
-  createProductSection,
-  updateProductSection,
-  deleteProductSection,
-  toggleProductSectionVisibility,
-  getAdminProductItems,
-  createProductItem,
-  updateProductItem,
-  deleteProductItem,
-  toggleProductItemVisibility,
+  getAdminMarketplaces,
+  duplicateMarketplace,
+  toggleMarketplaceVisibility,
   // Comprehensive Section API functions
   getComprehensiveSectionContent,
   updateComprehensiveSectionHeader,
@@ -96,31 +82,27 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 const AdminPanel = () => {
   const location = useLocation();
   const [homepageData, setHomepageData] = useState(null);
-  const [solutions, setSolutions] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [marketplaces, setMarketplaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState('home');
   const [activeTab, setActiveTab] = useState('hero');
   const [editingItem, setEditingItem] = useState(null);
-  const [editingSolution, setEditingSolution] = useState(null);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingMarketplace, setEditingMarketplace] = useState(null);
   const [comprehensiveSectionData, setComprehensiveSectionData] = useState(null);
   const [featureBanners, setFeatureBanners] = useState([]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [homepage, solutionsData, productsData, comprehensiveData, bannersData] = await Promise.all([
+      const [homepage, marketplacesData, comprehensiveData, bannersData] = await Promise.all([
         getHomepageContent(),
-        getAdminSolutions(),
-        getAdminProducts(),
+        getAdminMarketplaces(),
         getComprehensiveSectionContent(),
         getAllFeatureBanners()
       ]);
       setHomepageData(homepage);
-      setSolutions(solutionsData);
-      setProducts(productsData);
+      setMarketplaces(marketplacesData);
       setComprehensiveSectionData(comprehensiveData);
       setFeatureBanners(bannersData);
     } catch (err) {
@@ -135,10 +117,8 @@ const AdminPanel = () => {
     const updateSection = () => {
       // Use window.location.hash directly as React Router doesn't track hash changes automatically
       const hash = window.location.hash.slice(1);
-      if (hash === 'solutions') {
-        setActiveSection('solutions');
-      } else if (hash === 'products') {
-        setActiveSection('products');
+      if (hash === 'marketplaces') {
+        setActiveSection('marketplaces');
       } else if (hash === 'pricing') {
         setActiveSection('pricing');
       } else {
@@ -173,10 +153,8 @@ const AdminPanel = () => {
   // Update URL hash when section changes
   const updateActiveSection = (section) => {
     setActiveSection(section);
-    if (section === 'solutions') {
-      window.location.hash = 'solutions';
-    } else if (section === 'products') {
-      window.location.hash = 'products';
+    if (section === 'marketplaces') {
+      window.location.hash = 'marketplaces';
     } else if (section === 'pricing') {
       window.location.hash = 'pricing';
     } else {
@@ -307,175 +285,64 @@ const AdminPanel = () => {
     }
   };
 
-  // Enhanced Product Handlers for CMS
-  const handleToggleProductVisibility = async (id) => {
+  // Marketplaces Handlers for Home Page Management
+  const handleToggleMarketplaceVisibility = async (marketplace) => {
     try {
-      await toggleProductVisibility(id);
+      await toggleMarketplaceVisibility(marketplace.id);
       await fetchData();
-      alert('Product visibility toggled successfully!');
+      alert(`Marketplace ${marketplace.is_visible ? 'hidden' : 'shown'} successfully!`);
     } catch (err) {
-      alert('Error toggling product visibility: ' + err.message);
+      alert('Error toggling marketplace visibility: ' + err.message);
     }
   };
 
-  const handleDuplicateProduct = async (id, options = {}) => {
-    try {
-      const result = await duplicateProduct(id, options);
-      await fetchData();
-      alert(`Product duplicated successfully! Created ${result.sectionsDuplicated} sections with ${result.itemsDuplicated} items.`);
-    } catch (err) {
-      alert('Error duplicating product: ' + err.message);
-    }
+  // Marketplaces Handlers
+  const handleEditMarketplace = (marketplace) => {
+    setEditingMarketplace(marketplace);
+    setActiveSection('marketplace-editor');
   };
 
-  const handleCreateProductSection = async (productId, sectionData) => {
-    try {
-      await createProductSection(productId, sectionData);
-      await fetchData();
-      alert('Product section created successfully!');
-    } catch (err) {
-      alert('Error creating product section: ' + err.message);
-    }
-  };
-
-  const handleUpdateProductSection = async (productId, sectionId, sectionData) => {
-    try {
-      await updateProductSection(productId, sectionId, sectionData);
-      await fetchData();
-      alert('Product section updated successfully!');
-    } catch (err) {
-      alert('Error updating product section: ' + err.message);
-    }
-  };
-
-  const handleDeleteProductSection = async (productId, sectionId) => {
-    if (window.confirm('Are you sure you want to delete this product section?')) {
-      try {
-        await deleteProductSection(productId, sectionId);
-        await fetchData();
-        alert('Product section deleted successfully!');
-      } catch (err) {
-        alert('Error deleting product section: ' + err.message);
-      }
-    }
-  };
-
-  const handleToggleProductSectionVisibility = async (productId, sectionId) => {
-    try {
-      await toggleProductSectionVisibility(productId, sectionId);
-      await fetchData();
-      alert('Product section visibility toggled successfully!');
-    } catch (err) {
-      alert('Error toggling product section visibility: ' + err.message);
-    }
-  };
-
-  const handleCreateProductItem = async (productId, sectionId, itemData) => {
-    try {
-      await createProductItem(productId, sectionId, itemData);
-      await fetchData();
-      alert('Product item created successfully!');
-    } catch (err) {
-      alert('Error creating product item: ' + err.message);
-    }
-  };
-
-  const handleUpdateProductItem = async (productId, sectionId, itemId, itemData) => {
-    try {
-      await updateProductItem(productId, sectionId, itemId, itemData);
-      await fetchData();
-      alert('Product item updated successfully!');
-    } catch (err) {
-      alert('Error updating product item: ' + err.message);
-    }
-  };
-
-  const handleDeleteProductItem = async (productId, sectionId, itemId) => {
-    if (window.confirm('Are you sure you want to delete this product item?')) {
-      try {
-        await deleteProductItem(productId, sectionId, itemId);
-        await fetchData();
-        alert('Product item deleted successfully!');
-      } catch (err) {
-        alert('Error deleting product item: ' + err.message);
-      }
-    }
-  };
-
-  const handleToggleProductItemVisibility = async (productId, sectionId, itemId) => {
-    try {
-      await toggleProductItemVisibility(productId, sectionId, itemId);
-      await fetchData();
-      alert('Product item visibility toggled successfully!');
-    } catch (err) {
-      alert('Error toggling product item visibility: ' + err.message);
-    }
-  };
-
-  // Product Editor Handler
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
-    setActiveSection('product-editor');
-  };
-
-  // Solutions Handlers for Home Page Management
-  const handleToggleSolutionVisibility = async (solution) => {
-    try {
-      await toggleSolutionVisibility(solution.id);
-      await fetchData();
-      alert(`Solution ${solution.is_visible ? 'hidden' : 'shown'} successfully!`);
-    } catch (err) {
-      alert('Error toggling solution visibility: ' + err.message);
-    }
-  };
-
-  // Solutions Handlers
-  const handleEditSolution = (solution) => {
-    setEditingSolution(solution);
-    setActiveSection('solution-editor');
-  };
-
-  const handleDuplicateSolution = async (solution) => {
-    const newName = prompt('Enter new solution name:', `${solution.name} (Copy)`);
+  const handleDuplicateMarketplace = async (marketplace) => {
+    const newName = prompt('Enter new marketplace name:', `${marketplace.name} (Copy)`);
     if (!newName) return;
     
-    const newRoute = prompt('Enter new route:', `/marketplace/${toSlug(solution.name)}-copy`);
+    const newRoute = prompt('Enter new route:', `/marketplace/${toSlug(marketplace.name)}-copy`);
     if (!newRoute) return;
 
     try {
-      await duplicateSolution(solution.id, { newName, newRoute });
+      await duplicateMarketplace(marketplace.id, { newName, newRoute });
       await fetchData();
-      alert('Solution duplicated successfully!');
+      alert('Marketplace duplicated successfully!');
     } catch (err) {
-      alert('Error duplicating solution: ' + err.message);
+      alert('Error duplicating marketplace: ' + err.message);
     }
   };
 
-  const handleDeleteSolution = async (solutionOrId) => {
-    // Handle both solution object and ID
-    const solution = typeof solutionOrId === 'object' ? solutionOrId : solutions.find(s => s.id === solutionOrId);
+  const handleDeleteMarketplace = async (marketplaceOrId) => {
+    // Handle both marketplace object and ID
+    const marketplace = typeof marketplaceOrId === 'object' ? marketplaceOrId : marketplaces.find(s => s.id === marketplaceOrId);
     
-    if (!solution) {
-      alert('Solution not found!');
+    if (!marketplace) {
+      alert('Marketplace not found!');
       return;
     }
 
-    console.log('Attempting to delete solution:', solution);
+    console.log('Attempting to delete marketplace:', marketplace);
 
-    if (window.confirm(`Are you sure you want to delete "${solution.name}"? This will also delete all its sections.`)) {
+    if (window.confirm(`Are you sure you want to delete "${marketplace.name}"? This will also delete all its sections.`)) {
       try {
-        console.log('Calling deleteSolution API with ID:', solution.id);
-        const result = await deleteSolution(solution.id);
+        console.log('Calling deleteMarketplace API with ID:', marketplace.id);
+        const result = await deleteMarketplace(marketplace.id);
         console.log('Delete API result:', result);
         
         console.log('Refreshing data...');
         await fetchData();
         console.log('Data refreshed successfully');
         
-        alert('Solution deleted successfully!');
+        alert('Marketplace deleted successfully!');
       } catch (err) {
         console.error('Delete error:', err);
-        alert('Error deleting solution: ' + err.message);
+        alert('Error deleting marketplace: ' + err.message);
       }
     }
   };
@@ -534,23 +401,13 @@ const AdminPanel = () => {
           />
           )}
           
-          {activeSection === 'products' && (
-            <ProductsManagement 
-              products={products}
-              onEditProduct={handleEditProduct}
-              onDuplicateProduct={handleDuplicateProduct}
-              onDeleteProduct={handleDeleteProduct}
-              onToggleVisibility={handleToggleProductVisibility}
-            />
-          )}
-          
-          {activeSection === 'solutions' && (
-            <SolutionsManagement 
-              solutions={solutions}
-              onEditSolution={handleEditSolution}
-              onDuplicateSolution={handleDuplicateSolution}
-              onDeleteSolution={handleDeleteSolution}
-              onToggleVisibility={handleToggleSolutionVisibility}
+          {activeSection === 'marketplaces' && (
+            <MarketplacesManagement 
+              marketplaces={marketplaces}
+              onEditMarketplace={handleEditMarketplace}
+              onDuplicateMarketplace={handleDuplicateMarketplace}
+              onDeleteMarketplace={handleDeleteMarketplace}
+              onToggleVisibility={handleToggleMarketplaceVisibility}
             />
           )}
           
@@ -558,19 +415,13 @@ const AdminPanel = () => {
             <PricingAdmin />
           )}
           
-          {activeSection === 'solution-editor' && editingSolution && (
-            <SolutionEditor 
-              solution={editingSolution}
-              onBack={() => updateActiveSection('solutions')}
+          {activeSection === 'marketplace-editor' && editingMarketplace && (
+            <MarketplaceEditor 
+              marketplace={editingMarketplace}
+              onBack={() => updateActiveSection('marketplaces')}
             />
           )}
           
-          {activeSection === 'product-editor' && editingProduct && (
-            <ProductEditor 
-              product={editingProduct}
-              onBack={() => updateActiveSection('products')}
-            />
-          )}
     </div>
   );
 };
@@ -667,48 +518,44 @@ const HomePageManagement = ({
   );
 };
 
-// Products Management Component
-const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDeleteProduct, onToggleVisibility }) => {
+// Marketplaces Management Component
+const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMarketplace, onDeleteMarketplace, onToggleVisibility }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Products</h3>
-        <button className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors">
-          <PlusIcon className="w-5 h-5" />
-          <span>Add New Product</span>
-        </button>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Marketplace</h3>
       </div>
 
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
         <div className="hidden md:grid grid-cols-[1.5fr_2fr_1.5fr_auto] gap-4 px-6 py-3 text-xs font-semibold text-gray-600 bg-gray-50 border-b border-gray-200">
-          <div>Product</div>
+          <div>Marketplace</div>
           <div>Description</div>
           <div>Route</div>
           <div className="text-right">Actions</div>
         </div>
         <ul className="divide-y divide-gray-200">
-          {products.map((product) => (
-            <li key={product.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+          {marketplaces.map((marketplace) => (
+            <li key={marketplace.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
               <div className="md:grid md:grid-cols-[1.5fr_2fr_1.5fr_auto] md:gap-4 items-start">
                 <div className="flex items-start gap-2">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    product.category === 'Cloud Servers'
+                    marketplace.category === 'Industry'
                       ? 'bg-sky-100 text-sky-700'
-                      : product.category === 'Backup Services'
+                      : marketplace.category === 'Technology'
                       ? 'bg-purple-100 text-purple-700'
                       : 'bg-emerald-100 text-emerald-700'
                   }`}>
-                    {product.category}
+                    {marketplace.category}
                   </span>
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">{product.name}</div>
+                    <div className="text-sm font-semibold text-gray-900">{marketplace.name}</div>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 mt-2 md:mt-0">{product.description}</div>
-                <div className="text-xs text-gray-500 mt-2 md:mt-0">{product.route}</div>
+                <div className="text-sm text-gray-600 mt-2 md:mt-0">{marketplace.description}</div>
+                <div className="text-xs text-gray-500 mt-2 md:mt-0">{marketplace.route}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
-                    onClick={() => onEditProduct(product)}
+                    onClick={() => onEditMarketplace(marketplace)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
                     title="Edit Page Content"
                     aria-label="Edit Page Content"
@@ -716,7 +563,7 @@ const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDel
                     <PencilSquareIcon className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onDuplicateProduct(product)}
+                    onClick={() => onDuplicateMarketplace(marketplace)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-slate-700 text-white hover:bg-slate-800"
                     title="Duplicate"
                     aria-label="Duplicate"
@@ -724,16 +571,16 @@ const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDel
                     <DocumentDuplicateIcon className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onToggleVisibility(product)}
+                    onClick={() => onToggleVisibility(marketplace)}
                     className={`inline-flex items-center justify-center p-2 rounded-lg ${
-                      product.is_visible !== 0 
+                      marketplace.is_visible !== 0 
                         ? 'bg-orange-600 text-white hover:bg-orange-700' 
                         : 'bg-purple-600 text-white hover:bg-purple-700'
                     }`}
-                    title={product.is_visible !== 0 ? 'Hide Product' : 'Show Product'}
-                    aria-label={product.is_visible !== 0 ? 'Hide Product' : 'Show Product'}
+                    title={marketplace.is_visible !== 0 ? 'Hide Marketplace' : 'Show Marketplace'}
+                    aria-label={marketplace.is_visible !== 0 ? 'Hide Marketplace' : 'Show Marketplace'}
                   >
-                    {product.is_visible !== 0 ? (
+                    {marketplace.is_visible !== 0 ? (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                       </svg>
@@ -745,7 +592,7 @@ const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDel
                     )}
                   </button>
                   <button
-                    onClick={() => onDeleteProduct(product)}
+                    onClick={() => onDeleteMarketplace(marketplace)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
                     title="Delete"
                     aria-label="Delete"
@@ -758,462 +605,18 @@ const ProductsManagement = ({ products, onEditProduct, onDuplicateProduct, onDel
           ))}
         </ul>
       </div>
-      
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Product Page Management</h3>
-            <p className="mt-1 text-sm text-blue-700">
-              Click the <strong>Edit</strong> button (blue) to manage the complete content of each product page including hero sections, benefits, use cases, and more.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
 
-// Product Sections Editor Component
-const ProductSectionsEditor = ({
-  product,
-  productSections,
-  productItems,
-  loadingSections,
-  loadingItems,
-  onCreateSection,
-  onUpdateSection,
-  onDeleteSection,
-  onToggleSectionVisibility,
-  onCreateItem,
-  onUpdateItem,
-  onDeleteItem,
-  onToggleItemVisibility,
-  onLoadSections,
-  onLoadItems,
-  onClose,
-  setEditingItem
-}) => {
-  const [editingSection, setEditingSection] = useState(null);
-  const [expandedSections, setExpandedSections] = useState({});
 
-  useEffect(() => {
-    if (product && !productSections.length && !loadingSections) {
-      onLoadSections();
-    }
-  }, [product, productSections.length, loadingSections, onLoadSections]);
 
-  // Refresh items when productItems prop changes
-  useEffect(() => {
-    // This will trigger a re-render when productItems are updated
-  }, [productItems]);
+// Marketplaces Editor Component
+const MarketplacesEditor = () => null;
 
-  const toggleSectionExpansion = (sectionId) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }));
-    
-    // Load items when expanding
-    if (!expandedSections[sectionId]) {
-      onLoadItems(sectionId);
-    }
-  };
 
-  const getSectionItems = (sectionId) => {
-    const key = `${product.id}-${sectionId}`;
-    return productItems[key] || [];
-  };
-
-  const getItemTypeLabel = (itemType) => {
-    const labels = {
-      'feature_card': 'Feature Card',
-      'pricing_plan': 'Pricing Plan',
-      'spec_card': 'Specification Card',
-      'security_feature': 'Security Feature',
-      'support_feature': 'Support Feature',
-      'migration_step': 'Migration Step',
-      'use_case': 'Use Case'
-    };
-    return labels[itemType] || itemType;
-  };
-
-  return (
-    <Modal isOpen={true} onClose={onClose} title={`Edit Sections: ${product?.name}`}>
-      <div className="max-h-[80vh] overflow-y-auto">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{product?.name}</h3>
-              <p className="text-sm text-gray-600">Manage sections and content for this product</p>
-            </div>
-            <button
-              onClick={() => setEditingSection('new')}
-              className="inline-flex items-center gap-2 bg-gray-900 text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Section
-            </button>
-          </div>
-
-          {/* Sections List */}
-          {loadingSections ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="text-sm text-gray-600 mt-2">Loading sections...</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {productSections.map((section) => (
-                <div key={section.id} className="border border-gray-200 rounded-lg">
-                  {/* Section Header */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => toggleSectionExpansion(section.id)}
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <ChevronDoubleRightIcon 
-                          className={`w-4 h-4 transition-transform ${
-                            expandedSections[section.id] ? 'rotate-90' : ''
-                          }`} 
-                        />
-                      </button>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{section.title}</h4>
-                        <p className="text-sm text-gray-600">{section.section_type}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        section.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {section.is_visible ? 'Visible' : 'Hidden'}
-                      </span>
-                      <button
-                        onClick={() => setEditingSection(section.id)}
-                        className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
-                        title="Edit Section"
-                      >
-                        <PencilSquareIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onToggleSectionVisibility(product.id, section.id)}
-                        className={`p-1 rounded ${
-                          section.is_visible ? 'text-yellow-600 hover:bg-yellow-100' : 'text-green-600 hover:bg-green-100'
-                        }`}
-                        title={section.is_visible ? 'Hide Section' : 'Show Section'}
-                      >
-                        {section.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => onDeleteSection(product.id, section.id)}
-                        className="p-1 text-red-600 hover:text-red-900 hover:bg-red-100 rounded"
-                        title="Delete Section"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Section Items */}
-                  {expandedSections[section.id] && (
-                    <div className="p-4 border-t border-gray-200">
-                      <div className="flex justify-between items-center mb-3">
-                        <h5 className="font-medium text-gray-900">Section Items</h5>
-                        <button
-                          onClick={() => setEditingItem({ sectionId: section.id, type: 'new' })}
-                          className="inline-flex items-center gap-1 text-sm bg-gray-900 text-white px-2 py-1 rounded hover:bg-gray-800 transition-colors"
-                        >
-                          <PlusIcon className="w-3 h-3" />
-                          Add Item
-                        </button>
-                      </div>
-                      
-                      {loadingItems[`${product.id}-${section.id}`] ? (
-                        <div className="text-center py-4">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mx-auto"></div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {getSectionItems(section.id).map((item) => (
-                            <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded">
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <p className="font-medium text-gray-900">{item.title}</p>
-                                  <p className="text-sm text-gray-600">{getItemTypeLabel(item.item_type)}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  item.is_visible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {item.is_visible ? 'Visible' : 'Hidden'}
-                                </span>
-                                <button
-                                  onClick={() => setEditingItem({ sectionId: section.id, itemId: item.id, type: 'edit' })}
-                                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded"
-                                  title="Edit Item"
-                                >
-                                  <PencilSquareIcon className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    onToggleItemVisibility(product.id, section.id, item.id);
-                                    // Reload items for this section after toggle
-                                    setTimeout(() => {
-                                      onLoadItems(section.id);
-                                    }, 500);
-                                  }}
-                                  className={`p-1 rounded ${
-                                    item.is_visible ? 'text-yellow-600 hover:bg-yellow-100' : 'text-green-600 hover:bg-green-100'
-                                  }`}
-                                  title={item.is_visible ? 'Hide Item' : 'Show Item'}
-                                >
-                                  {item.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                                </button>
-                                <button
-                                  onClick={() => onDeleteItem(product.id, section.id, item.id)}
-                                  className="p-1 text-red-600 hover:text-red-900 hover:bg-red-100 rounded"
-                                  title="Delete Item"
-                                >
-                                  <TrashIcon className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                          {getSectionItems(section.id).length === 0 && (
-                            <p className="text-sm text-gray-500 text-center py-4">No items in this section</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {productSections.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No sections found for this product</p>
-                  <button
-                    onClick={() => setEditingSection('new')}
-                    className="mt-2 inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    Add First Section
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-// Product Item Editor Component
-const ProductItemEditor = ({
-  product,
-  section,
-  item,
-  itemType,
-  onCreateItem,
-  onUpdateItem,
-  onClose
-}) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    content: '',
-    item_type: itemType === 'new' ? 'feature_card' : item?.item_type || 'feature_card',
-    icon: item?.icon || 'CpuChipIcon',
-    order_index: 0,
-    is_visible: 1
-  });
-
-  useEffect(() => {
-    if (item) {
-      setFormData({
-        title: item.title || '',
-        description: item.description || '',
-        content: item.content || '',
-        item_type: item.item_type || 'feature_card',
-        icon: item.icon || 'CpuChipIcon',
-        order_index: item.order_index || 0,
-        is_visible: item.is_visible !== null ? item.is_visible : 1
-      });
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        content: '',
-        item_type: 'feature_card',
-        icon: 'CpuChipIcon',
-        order_index: 0,
-        is_visible: 1
-      });
-    }
-  }, [item, itemType]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (item) {
-      // Update existing item
-      onUpdateItem(product.id, section.id, item.id, formData);
-    } else {
-      // Create new item
-      onCreateItem(product.id, section.id, formData);
-    }
-    onClose();
-  };
-
-  const itemTypes = [
-    { value: 'feature_card', label: 'Feature Card' },
-    { value: 'pricing_plan', label: 'Pricing Plan' },
-    { value: 'spec_card', label: 'Specification Card' },
-    { value: 'security_feature', label: 'Security Feature' },
-    { value: 'support_feature', label: 'Support Feature' },
-    { value: 'migration_step', label: 'Migration Step' },
-    { value: 'use_case', label: 'Use Case' }
-  ];
-
-  const icons = [
-    'CpuChipIcon', 'ShieldCheckIcon', 'ClockIcon', 'CurrencyDollarIcon',
-    'ChartBarIcon', 'GlobeAltIcon', 'UsersIcon', 'ServerIcon',
-    'CircleStackIcon', 'CheckIcon', 'StarIcon', 'ArrowRightIcon'
-  ];
-
-  return (
-    <Modal isOpen={true} onClose={onClose} title={`${item ? 'Edit' : 'Add'} Item: ${section?.title}`}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Item Title
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter item title"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder="Enter item description"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Item Type
-            </label>
-            <select
-              value={formData.item_type}
-              onChange={(e) => setFormData({...formData, item_type: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {itemTypes.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Icon
-            </label>
-            <select
-              value={formData.icon}
-              onChange={(e) => setFormData({...formData, icon: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {icons.map(icon => (
-                <option key={icon} value={icon}>
-                  {icon}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Order Index
-            </label>
-            <input
-              type="number"
-              value={formData.order_index}
-              onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              min="0"
-            />
-          </div>
-        </div>
-
-        {/* Content (for complex items like pricing) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Additional Content (JSON format for complex data)
-          </label>
-          <textarea
-            value={formData.content}
-            onChange={(e) => setFormData({...formData, content: e.target.value})}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={4}
-            placeholder='{"price": "$99/month", "features": ["Feature 1", "Feature 2"]}'
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            For pricing plans, use JSON format with price, features, specifications, etc.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {item ? 'Update Item' : 'Create Item'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-// Solutions Editor Component
-const SolutionsEditor = () => null;
-
-// Product Editor Component
-const ProductEditor = ({ product, onBack }) => {
+// Marketplace Editor Component
+const MarketplaceEditor = ({ marketplace, onBack }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [cardData, setCardData] = useState({
     name: '',
@@ -1232,26 +635,26 @@ const ProductEditor = ({ product, onBack }) => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (product) {
+    if (marketplace) {
       setCardData({
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        color: product.color,
-        border_color: product.border_color,
-        route: product.route,
-        gradient_start: product.gradient_start || 'green',
-        gradient_end: product.gradient_end || 'orange'
+        name: marketplace.name,
+        description: marketplace.description,
+        category: marketplace.category,
+        color: marketplace.color,
+        border_color: marketplace.border_color,
+        route: marketplace.route,
+        gradient_start: marketplace.gradient_start || 'blue',
+        gradient_end: marketplace.gradient_end || 'blue-700'
       });
       loadSections();
     }
-  }, [product]);
+  }, [marketplace]);
 
   const loadSections = async () => {
     try {
       setLoading(true);
-      console.log(`Loading sections for product ID: ${product.id}`);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections`);
+      console.log(`Loading sections for marketplace ID: ${marketplace.id}`);
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -1271,7 +674,7 @@ const ProductEditor = ({ product, onBack }) => {
   const handleSaveCard = async () => {
     try {
       setSaving(true);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1280,12 +683,12 @@ const ProductEditor = ({ product, onBack }) => {
       });
       
       if (response.ok) {
-        alert('Product card updated successfully!');
+        alert('Marketplace card updated successfully!');
       } else {
-        throw new Error('Failed to update product');
+        throw new Error('Failed to update marketplace');
       }
     } catch (err) {
-      alert('Error updating product: ' + err.message);
+      alert('Error updating marketplace: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -1293,7 +696,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleCreateSection = async (sectionData) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1315,463 +718,7 @@ const ProductEditor = ({ product, onBack }) => {
 
   const handleUpdateSection = async (sectionId, sectionData) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sectionData),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        setEditingSection(null);
-        alert('Section updated successfully!');
-      } else {
-        throw new Error('Failed to update section');
-      }
-    } catch (err) {
-      alert('Error updating section: ' + err.message);
-    }
-  };
-
-  const handleDeleteSection = async (sectionId) => {
-    if (window.confirm('Are you sure you want to delete this section? This will also delete all items in this section.')) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          await loadSections();
-          alert('Section deleted successfully!');
-        } else {
-          throw new Error('Failed to delete section');
-        }
-      } catch (err) {
-        alert('Error deleting section: ' + err.message);
-      }
-    }
-  };
-
-  const handleToggleVisibility = async (sectionId, currentVisibility) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${sectionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_visible: !currentVisibility }),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        alert(`Section ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
-      } else {
-        throw new Error('Failed to toggle section visibility');
-      }
-    } catch (err) {
-      alert('Error toggling section visibility: ' + err.message);
-    }
-  };
-
-  const sectionTypes = [
-    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
-    { value: 'features', label: 'Key Features', description: 'Product features and capabilities' },
-    { value: 'pricing', label: 'Pricing Plans', description: 'Pricing tiers and cost information' },
-    { value: 'specifications', label: 'Technical Specifications', description: 'Detailed technical specifications and requirements' },
-    { value: 'security', label: 'Security Features', description: 'Security capabilities and compliance information' },
-    { value: 'support', label: 'Support & Documentation', description: 'Support options and documentation resources' },
-    { value: 'migration', label: 'Migration Guide', description: 'Migration process and guidelines' },
-    { value: 'use_cases', label: 'Use Cases', description: 'Real-world use cases and applications' },
-    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' }
-  ];
-
-  return (
-    <div>
-      <div className="flex items-center mb-6">
-        <button
-          onClick={onBack}
-          className="mr-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h3 className="text-xl font-semibold text-gray-900">Edit Product: {product.name}</h3>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6">
-        <nav className="flex space-x-8 border-b border-gray-200">
-          {[
-            { id: 'overview', label: 'Product Overview', description: 'Basic product information' },
-            { id: 'sections', label: 'Page Sections', description: 'Manage page content sections' },
-            { id: 'preview', label: 'Preview', description: 'Preview the product page' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              title={tab.description}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Product Overview Tab */}
-      {activeTab === 'overview' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold mb-6 flex items-center">
-            <CubeIcon className="h-5 w-5 mr-2 text-blue-600" />
-            Product Overview & Card Details
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
-              <input
-                type="text"
-                value={cardData.name}
-                onChange={(e) => setCardData({...cardData, name: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Basic Cloud Servers"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select
-                value={cardData.category}
-                onChange={(e) => setCardData({...cardData, category: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select Category</option>
-                <option value="Cloud Servers">Cloud Servers</option>
-                <option value="Backup Services">Backup Services</option>
-                <option value="Storage">Storage</option>
-                <option value="Database">Database</option>
-                <option value="Networking">Networking</option>
-                <option value="Security">Security</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={cardData.description}
-              onChange={(e) => setCardData({...cardData, description: e.target.value})}
-              rows={4}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Brief description of the product..."
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Route (URL Path)</label>
-              <input
-                type="text"
-                value={cardData.route}
-                onChange={(e) => setCardData({...cardData, route: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., /products/basic-cloud-servers"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Background Color</label>
-              <input
-                type="text"
-                value={cardData.color}
-                onChange={(e) => setCardData({...cardData, color: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., from-green-100 to-orange-50"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={handleSaveCard}
-              disabled={saving}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <CheckIcon className="w-4 h-4" />
-                  Save Product Details
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Page Sections Tab */}
-      {activeTab === 'sections' && (
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">Page Content Sections</h4>
-              <p className="text-sm text-gray-600 mt-1">Manage all sections of the product page</p>
-            </div>
-            <button
-              onClick={() => setEditingSection('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add New Section
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading sections...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sections.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <div className="text-gray-400 mb-4">
-                    <DocumentTextIcon className="w-12 h-12 mx-auto" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sections yet</h3>
-                  <p className="text-gray-600 mb-4">Get started by creating your first product section.</p>
-                  <button
-                    onClick={() => setEditingSection('new')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    Create First Section
-                  </button>
-                </div>
-              ) : (
-                sections.map((section) => (
-                  <div key={section.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            sectionTypes.find(t => t.value === section.section_type)?.value === 'hero' 
-                              ? 'bg-purple-100 text-purple-700'
-                              : sectionTypes.find(t => t.value === section.section_type)?.value === 'features'
-                              ? 'bg-green-100 text-green-700'
-                              : sectionTypes.find(t => t.value === section.section_type)?.value === 'pricing'
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
-                          </span>
-                          <span className="text-xs text-gray-500">Order: {section.display_order}</span>
-                        </div>
-                        <h3 className="font-semibold text-gray-900">{section.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Created: {new Date(section.created_at).toLocaleDateString()} • 
-                          Updated: {new Date(section.updated_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={() => setEditingSection(section)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Edit Section"
-                        >
-                          <PencilSquareIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setManagingItems(section)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                          title="Manage Items"
-                        >
-                          <ListBulletIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleVisibility(section.id, section.is_visible)}
-                          className={`p-2 rounded-lg ${
-                            section.is_visible 
-                              ? 'text-orange-600 hover:bg-orange-50' 
-                              : 'text-gray-400 hover:bg-gray-50'
-                          }`}
-                          title={section.is_visible ? 'Hide Section' : 'Show Section'}
-                        >
-                          {section.is_visible ? <EyeIcon className="w-4 h-4" /> : <EyeSlashIcon className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSection(section.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="Delete Section"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Preview Tab */}
-      {activeTab === 'preview' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold mb-4">Product Page Preview</h4>
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
-            <p className="text-gray-600">Preview functionality will be available soon.</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Visit <code className="bg-gray-200 px-2 py-1 rounded">localhost:3001{cardData.route}</code> to see the live page.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Section Editor Modal */}
-      {editingSection && (
-        <SectionEditor
-          section={editingSection === 'new' ? null : editingSection}
-          sectionTypes={sectionTypes}
-          onSave={editingSection === 'new' ? handleCreateSection : (data) => handleUpdateSection(editingSection.id, data)}
-          onCancel={() => setEditingSection(null)}
-          isProduct={true}
-        />
-      )}
-
-      {/* Items Manager Modal */}
-      {managingItems && (
-        <SectionItemsManager
-          section={managingItems}
-          productId={product.id}
-          onClose={() => setManagingItems(null)}
-          isProduct={true}
-        />
-      )}
-    </div>
-  );
-};
-
-// Solution Editor Component
-const SolutionEditor = ({ solution, onBack }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [cardData, setCardData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    color: '',
-    border_color: '',
-    route: '',
-    gradient_start: '',
-    gradient_end: ''
-  });
-  const [sections, setSections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingSection, setEditingSection] = useState(null);
-  const [managingItems, setManagingItems] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (solution) {
-      setCardData({
-        name: solution.name,
-        description: solution.description,
-        category: solution.category,
-        color: solution.color,
-        border_color: solution.border_color,
-        route: solution.route,
-        gradient_start: solution.gradient_start || 'blue',
-        gradient_end: solution.gradient_end || 'blue-700'
-      });
-      loadSections();
-    }
-  }, [solution]);
-
-  const loadSections = async () => {
-    try {
-      setLoading(true);
-      console.log(`Loading sections for solution ID: ${solution.id}`);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const sectionsData = await response.json();
-      console.log(`Loaded ${sectionsData.length} sections:`, sectionsData);
-      setSections(sectionsData);
-    } catch (err) {
-      console.error('Error loading sections:', err);
-      setSections([]); // Ensure sections is always an array
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveCard = async () => {
-    try {
-      setSaving(true);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cardData),
-      });
-      
-      if (response.ok) {
-        alert('Solution card updated successfully!');
-      } else {
-        throw new Error('Failed to update solution');
-      }
-    } catch (err) {
-      alert('Error updating solution: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCreateSection = async (sectionData) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sectionData),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        setEditingSection(null);
-        alert('Section created successfully!');
-      } else {
-        throw new Error('Failed to create section');
-      }
-    } catch (err) {
-      alert('Error creating section: ' + err.message);
-    }
-  };
-
-  const handleUpdateSection = async (sectionId, sectionData) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1794,7 +741,7 @@ const SolutionEditor = ({ solution, onBack }) => {
   const handleDeleteSection = async (sectionId) => {
     if (window.confirm('Are you sure you want to delete this section?')) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
           method: 'DELETE',
         });
         
@@ -1812,7 +759,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
   const handleToggleVisibility = async (sectionId, currentVisibility) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${sectionId}`, {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1835,18 +782,12 @@ const SolutionEditor = ({ solution, onBack }) => {
     { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons' },
     { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions' },
     { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets' },
-    { value: 'success_story', label: 'Success Stories', description: 'Customer testimonials and case studies' },
     { value: 'technology', label: 'Technology Features', description: 'Technical capabilities and innovations' },
-    { value: 'use_cases', label: 'Use Cases & Solutions', description: 'Real-world applications and scenarios' },
+    { value: 'use_cases', label: 'Use Cases & Marketplaces', description: 'Real-world applications and scenarios' },
     { value: 'roi', label: 'ROI & Value', description: 'Return on investment and business value' },
     { value: 'implementation', label: 'Implementation Timeline', description: 'Step-by-step implementation process' },
     { value: 'resources', label: 'Resources & Support', description: 'Documentation, training, and support materials' },
-    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' },
-    { value: 'stats', label: 'Statistics & Metrics', description: 'Key performance indicators and metrics' },
-    { value: 'comparison', label: 'Comparison Table', description: 'Feature comparisons and competitive analysis' },
-    { value: 'faq', label: 'FAQ Section', description: 'Frequently asked questions' },
-    { value: 'testimonials', label: 'Client Testimonials', description: 'Customer feedback and reviews' },
-    { value: 'pricing', label: 'Pricing Information', description: 'Pricing tiers and cost information' }
+    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms' }
   ];
 
   return (
@@ -1860,16 +801,16 @@ const SolutionEditor = ({ solution, onBack }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h3 className="text-xl font-semibold text-gray-900">Edit Solution: {solution.name}</h3>
+        <h3 className="text-xl font-semibold text-gray-900">Edit Marketplace: {marketplace.name}</h3>
       </div>
 
       {/* Tabs */}
       <div className="mb-6">
         <nav className="flex space-x-8 border-b border-gray-200">
           {[
-            { id: 'overview', label: 'Solution Overview', description: 'Basic solution information' },
+            { id: 'overview', label: 'Marketplace Overview', description: 'Basic marketplace information' },
             { id: 'sections', label: 'Page Sections', description: 'Manage page content sections' },
-            { id: 'preview', label: 'Preview', description: 'Preview the solution page' }
+            { id: 'preview', label: 'Preview', description: 'Preview the marketplace page' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1887,17 +828,17 @@ const SolutionEditor = ({ solution, onBack }) => {
         </nav>
       </div>
 
-      {/* Solution Overview Tab */}
+      {/* Marketplace Overview Tab */}
       {activeTab === 'overview' && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <h4 className="text-lg font-semibold mb-6 flex items-center">
             <CubeIcon className="h-5 w-5 mr-2 text-blue-600" />
-            Solution Overview & Card Details
+            Marketplace Overview & Card Details
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Solution Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Marketplace Name</label>
               <input
                 type="text"
                 value={cardData.name}
@@ -1930,10 +871,10 @@ const SolutionEditor = ({ solution, onBack }) => {
               onChange={(e) => setCardData({...cardData, description: e.target.value})}
               rows={3}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Brief description for the solution card..."
+              placeholder="Brief description for the marketplace card..."
               required
             />
-            <p className="text-xs text-gray-500 mt-1">This appears on the solutions overview page</p>
+            <p className="text-xs text-gray-500 mt-1">This appears on the marketplaces overview page</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -2018,7 +959,7 @@ const SolutionEditor = ({ solution, onBack }) => {
 
           <div className="flex justify-between items-center pt-4 border-t border-gray-200">
             <div className="text-sm text-gray-600">
-              <p>🎨 <strong>Perfect Colors:</strong> Only your 4 beautiful colors are available. New solutions will randomly get one of these colors!</p>
+              <p>🎨 <strong>Perfect Colors:</strong> Only your 4 beautiful colors are available. New marketplaces will randomly get one of these colors!</p>
             </div>
             <button
               onClick={handleSaveCard}
@@ -2047,7 +988,7 @@ const SolutionEditor = ({ solution, onBack }) => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h4 className="text-lg font-semibold text-gray-900">Page Content Sections</h4>
-              <p className="text-sm text-gray-600 mt-1">Manage all sections of the solution page</p>
+              <p className="text-sm text-gray-600 mt-1">Manage all sections of the marketplace page</p>
             </div>
             <button
               onClick={() => setEditingSection('new')}
@@ -2141,7 +1082,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                     <DocumentTextIcon className="h-8 w-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No sections created yet</h3>
-                  <p className="text-gray-500 mb-4">Start building your solution page by adding content sections.</p>
+                  <p className="text-gray-500 mb-4">Start building your marketplace page by adding content sections.</p>
                   <button
                     onClick={() => setEditingSection('new')}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -2168,7 +1109,7 @@ const SolutionEditor = ({ solution, onBack }) => {
           {managingItems && (
             <SectionItemsManager
               section={sections.find(s => s.id === managingItems)}
-              solutionId={solution.id}
+              marketplaceId={marketplace.id}
               onCancel={() => setManagingItems(null)}
             />
           )}
@@ -2180,8 +1121,8 @@ const SolutionEditor = ({ solution, onBack }) => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h4 className="text-lg font-semibold text-gray-900">Solution Page Preview</h4>
-              <p className="text-sm text-gray-600 mt-1">Preview how your solution page will look</p>
+              <h4 className="text-lg font-semibold text-gray-900">Marketplace Page Preview</h4>
+              <p className="text-sm text-gray-600 mt-1">Preview how your marketplace page will look</p>
             </div>
             <div className="flex space-x-3">
               <a
@@ -2208,9 +1149,9 @@ const SolutionEditor = ({ solution, onBack }) => {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Solution Overview Card */}
+              {/* Marketplace Overview Card */}
               <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-blue-500">
-                <h5 className="text-lg font-semibold text-gray-900 mb-2">Solution Overview</h5>
+                <h5 className="text-lg font-semibold text-gray-900 mb-2">Marketplace Overview</h5>
                 <div className={`bg-gradient-to-br ${cardData.color} border ${cardData.border_color} rounded-xl p-4 max-w-md`}>
                   <div className="mb-3">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${
@@ -2226,7 +1167,7 @@ const SolutionEditor = ({ solution, onBack }) => {
                     <p className="text-gray-600 text-sm">{cardData.description}</p>
                   </div>
                   <div className="text-blue-600 font-medium text-sm">
-                    View solution →
+                    View marketplace →
                   </div>
                 </div>
               </div>
@@ -2418,7 +1359,7 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
                 {selectedSectionType.value === 'benefits' && (
                   <div>
                     <p><strong>Title:</strong> Key Benefits</p>
-                    <p><strong>Content:</strong> &lt;ul&gt;&lt;li&gt;Enhanced Security&lt;/li&gt;&lt;li&gt;Scalable Solutions&lt;/li&gt;&lt;/ul&gt;</p>
+                    <p><strong>Content:</strong> &lt;ul&gt;&lt;li&gt;Enhanced Security&lt;/li&gt;&lt;li&gt;Scalable Marketplaces&lt;/li&gt;&lt;/ul&gt;</p>
                   </div>
                 )}
                 {selectedSectionType.value === 'use_cases' && (
@@ -2452,7 +1393,7 @@ const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) 
   );
 };
 
-// Existing Editor Components (HeroEditor, WhyItemsEditor, ProductsEditor)
+// Existing Editor Components (HeroEditor, WhyItemsEditor)
 // ... (keeping the existing components from the previous AdminPanel)
 
 // Hero Editor Component
@@ -2461,9 +1402,7 @@ const HeroEditor = ({ hero, onUpdate }) => {
     title: '',
     description: '',
     primary_button_text: '',
-    primary_button_link: '',
-    secondary_button_text: '',
-    secondary_button_link: ''
+    secondary_button_text: ''
   });
   useEffect(() => {
     if (hero) {
@@ -2471,9 +1410,7 @@ const HeroEditor = ({ hero, onUpdate }) => {
         title: hero.title || '',
         description: hero.description || '',
         primary_button_text: hero.primary_button_text || '',
-        primary_button_link: hero.primary_button_link || '',
-        secondary_button_text: hero.secondary_button_text || '',
-        secondary_button_link: hero.secondary_button_link || ''
+        secondary_button_text: hero.secondary_button_text || ''
       });
     }
   }, [hero]);
@@ -2523,33 +1460,11 @@ const HeroEditor = ({ hero, onUpdate }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Button Link</label>
-            <input
-              type="text"
-              value={formData.primary_button_link}
-              onChange={(e) => setFormData({...formData, primary_button_link: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Button Text</label>
             <input
               type="text"
               value={formData.secondary_button_text}
               onChange={(e) => setFormData({...formData, secondary_button_text: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Button Link</label>
-            <input
-              type="text"
-              value={formData.secondary_button_link}
-              onChange={(e) => setFormData({...formData, secondary_button_link: e.target.value})}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -2693,8 +1608,8 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description <span className="text-red-500">*</span>
-                </label>
+                    Description <span className="text-red-500">*</span>
+                  </label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({...formData, content: e.target.value})}
@@ -2745,14 +1660,12 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
 };
 
 // Section Items Manager Component
-const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose, isProduct = false }) => {
+const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const entityId = isProduct ? productId : solutionId;
-  const entityType = isProduct ? 'products' : 'solutions';
   const closeHandler = onClose || onCancel;
 
   useEffect(() => {
@@ -2764,12 +1677,10 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
   const loadItems = async () => {
     try {
       setLoading(true);
-      const apiPath = isProduct 
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${entityId}/sections/${section.id}/items`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${entityId}/sections/${section.id}/items`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`;
       
       console.log(`Loading items from: ${apiPath}`);
-      console.log(`Entity ID: ${entityId}, Section ID: ${section.id}, Is Product: ${isProduct}`);
+      console.log(`Marketplace ID: ${marketplaceId}, Section ID: ${section.id}`);
       
       const response = await fetch(apiPath);
       
@@ -2782,9 +1693,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
       setItems(itemsData);
     } catch (err) {
       console.error('Error loading section items:', err);
-      console.error('API Path:', isProduct 
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products/${entityId}/sections/${section.id}/items`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${entityId}/sections/${section.id}/items`);
+      console.error('API Path:', `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`);
       setItems([]);
     } finally {
       setLoading(false);
@@ -2794,7 +1703,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
   const handleCreateItem = async (itemData) => {
     try {
       setSaving(true);
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`;
       const response = await fetch(apiPath, {
         method: 'POST',
         headers: {
@@ -2820,7 +1729,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
   const handleUpdateItem = async (itemId, itemData) => {
     try {
       setSaving(true);
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'PUT',
         headers: {
@@ -2849,7 +1758,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
     }
 
     try {
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/${entityType}/${entityId}/sections/${section.id}/items/${itemId}`;
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items/${itemId}`;
       const response = await fetch(apiPath, {
         method: 'DELETE',
       });
@@ -2865,21 +1774,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
     }
   };
 
-  const itemTypes = isProduct ? [
-    { value: 'feature_card', label: 'Feature Card' },
-    { value: 'pricing_plan', label: 'Pricing Plan' },
-    { value: 'spec_card', label: 'Specification Card' },
-    { value: 'security_feature', label: 'Security Feature' },
-    { value: 'support_feature', label: 'Support Feature' },
-    { value: 'migration_step', label: 'Migration Step' },
-    { value: 'use_case', label: 'Use Case' },
-    { value: 'badge', label: 'Badge' },
-    { value: 'title', label: 'Title' },
-    { value: 'description', label: 'Description' },
-    { value: 'cta_primary', label: 'Primary CTA' },
-    { value: 'cta_secondary', label: 'Secondary CTA' },
-    { value: 'image', label: 'Image' }
-  ] : [
+  const itemTypes = [
     { value: 'benefit', label: 'Benefit Card' },
     { value: 'feature', label: 'Feature' },
     { value: 'stat', label: 'Statistic' },
@@ -2940,9 +1835,9 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
                       <div className="flex-1">
                         <div className="flex items-center mb-3">
                           <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
-                            // Product item types
-                            item.item_type === 'feature_card' ? 'bg-green-100 text-green-700' :
-                            item.item_type === 'pricing_plan' ? 'bg-blue-100 text-blue-700' :
+                            // Marketplace item types
+                            item.item_type === 'benefit' ? 'bg-green-100 text-green-700' :
+                            item.item_type === 'feature' ? 'bg-blue-100 text-blue-700' :
                             item.item_type === 'spec_card' ? 'bg-purple-100 text-purple-700' :
                             item.item_type === 'security_feature' ? 'bg-red-100 text-red-700' :
                             item.item_type === 'support_feature' ? 'bg-yellow-100 text-yellow-700' :
@@ -2953,7 +1848,7 @@ const SectionItemsManager = ({ section, solutionId, productId, onCancel, onClose
                             item.item_type === 'cta_primary' ? 'bg-green-100 text-green-700' :
                             item.item_type === 'cta_secondary' ? 'bg-orange-100 text-orange-700' :
                             item.item_type === 'image' ? 'bg-cyan-100 text-cyan-700' :
-                            // Solution item types
+                            // Marketplace item types
                             item.item_type === 'benefit' ? 'bg-green-100 text-green-700' :
                             item.item_type === 'feature' ? 'bg-blue-100 text-blue-700' :
                             item.item_type === 'stat' ? 'bg-purple-100 text-purple-700' :
@@ -3618,11 +2513,6 @@ const FeatureBannersEditor = ({
       subtitle: formData.get('subtitle'),
       cta_text: formData.get('cta_text'),
       cta_link: formData.get('cta_link'),
-      gradient_start: formData.get('gradient_start'),
-      gradient_mid: formData.get('gradient_mid'),
-      gradient_end: formData.get('gradient_end'),
-      accent_gradient_start: formData.get('accent_gradient_start'),
-      accent_gradient_end: formData.get('accent_gradient_end'),
       order_index: parseInt(formData.get('order_index')) || banners.length + 1,
       is_visible: formData.get('is_visible') === 'on' ? 1 : 0
     };
@@ -3640,11 +2530,6 @@ const FeatureBannersEditor = ({
       subtitle: formData.get('subtitle'),
       cta_text: formData.get('cta_text'),
       cta_link: formData.get('cta_link'),
-      gradient_start: formData.get('gradient_start'),
-      gradient_mid: formData.get('gradient_mid'),
-      gradient_end: formData.get('gradient_end'),
-      accent_gradient_start: formData.get('accent_gradient_start'),
-      accent_gradient_end: formData.get('accent_gradient_end'),
       order_index: parseInt(formData.get('order_index')) || banner.order_index,
       is_visible: formData.get('is_visible') === 'on' ? 1 : 0
     };
@@ -3725,65 +2610,6 @@ const FeatureBannersEditor = ({
                   defaultValue="#"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Start</label>
-                <select
-                  name="gradient_start"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {gradientOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Mid</label>
-                <select
-                  name="gradient_mid"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {gradientOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gradient End</label>
-                <select
-                  name="gradient_end"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {gradientOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient Start</label>
-                <select
-                  name="accent_gradient_start"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {gradientOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient End</label>
-                <select
-                  name="accent_gradient_end"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {gradientOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
               </div>
             </div>
             <div className="flex items-center">
@@ -3869,70 +2695,6 @@ const FeatureBannersEditor = ({
                       defaultValue={banner.ctaLink}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Start</label>
-                    <select
-                      name="gradient_start"
-                      defaultValue={banner.gradient_start}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {gradientOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient Mid</label>
-                    <select
-                      name="gradient_mid"
-                      defaultValue={banner.gradient_mid}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {gradientOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gradient End</label>
-                    <select
-                      name="gradient_end"
-                      defaultValue={banner.gradient_end}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {gradientOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient Start</label>
-                    <select
-                      name="accent_gradient_start"
-                      defaultValue={banner.accent_gradient_start}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {gradientOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Accent Gradient End</label>
-                    <select
-                      name="accent_gradient_end"
-                      defaultValue={banner.accent_gradient_end}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {gradientOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
                 <div className="flex items-center">

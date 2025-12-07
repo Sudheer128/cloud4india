@@ -438,7 +438,7 @@ function initSmoothScrolling() {
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll(`
         .feature-card,
-        .solution-item,
+        .marketplace-item,
         .product-item,
         .training-item,
         .next-step-item,

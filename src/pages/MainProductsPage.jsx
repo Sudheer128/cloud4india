@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { toSlug } from '../utils/slugUtils';
 import { 
   ServerIcon, 
   CpuChipIcon, 
@@ -14,6 +15,9 @@ import {
   BoltIcon,
   CheckIcon,
   StarIcon,
+  BanknotesIcon,
+  ShoppingBagIcon,
+  HeartIcon,
   MagnifyingGlassIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
@@ -29,7 +33,7 @@ const MainProductsPage = () => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const filterMenuRef = useRef(null);
   
-  // Use sections from mainPageData instead of products
+  // Use sections from mainPageData (main_products_sections) - these are the card entries
   const products = mainPageData?.sections || [];
   const loading = heroLoading;
   const error = null;
@@ -93,7 +97,7 @@ const MainProductsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-saree-teal-light via-white to-saree-lime-light flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner />
-          <p className="text-gray-700 mt-4">Loading our innovative solutions...</p>
+          <p className="text-gray-700 mt-4">Loading our innovative products...</p>
         </div>
       </div>
     );
@@ -138,17 +142,17 @@ const MainProductsPage = () => {
             {/* Badge */}
             <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300 cursor-pointer">
               <CloudIcon className="w-5 h-5 mr-2" />
-              {mainPageData?.hero?.subtitle || 'Enterprise Cloud Solutions - Made in India'}
+              {mainPageData?.hero?.subtitle || 'Cloud Services - Made in India'}
             </div>
 
             {/* Main Heading with Glow Effect */}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-white drop-shadow-2xl">
-              {mainPageData?.hero?.title || 'Cloud Products'}
+              {mainPageData?.hero?.title || 'Our Products'}
             </h1>
 
             {/* Description */}
             <p className="text-base md:text-lg text-white/90 leading-relaxed mb-8 max-w-3xl mx-auto drop-shadow-lg">
-              {mainPageData?.hero?.description || 'Accelerate your digital transformation with our cutting-edge cloud infrastructure. Built for scale, optimized for performance, designed for the future.'}
+              {mainPageData?.hero?.description || 'Discover our comprehensive suite of cloud computing services designed to power your business transformation. From basic cloud servers to specialized computing Apps, we have everything you need to scale your operations.'}
             </p>
 
             {/* CTA Buttons */}
@@ -279,20 +283,36 @@ const MainProductsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
             {visibleProducts && visibleProducts.length > 0 ? (
               visibleProducts.map((product, index) => {
-                // Map product to section format for ProductCard
-                // Use section data if available, otherwise fall back to product data
+                // Product is already from main_products_sections, so it has the card data
+                // Parse features if it's a JSON string
+                let features = [];
+                if (product.features) {
+                  try {
+                    if (typeof product.features === 'string') {
+                      features = JSON.parse(product.features);
+                    } else if (Array.isArray(product.features)) {
+                      features = product.features;
+                    }
+                  } catch (e) {
+                    features = [];
+                  }
+                }
+                
+                // Get route from linked product if available
+                const route = product.product_route || product.route || toSlug(product.title || product.name);
+                
                 const section = {
                   id: product.id,
                   product_id: product.product_id || product.id,
-                  product_route: product.product_route || product.route,
-                  title: product.title || product.name,
-                  description: product.description,
+                  title: product.title || product.product_name || product.name,
+                  description: product.description || product.product_description || '',
                   category: product.category,
-                  popular_tag: product.popular_tag || 'Most Popular',
-                  features: product.features || [],
-                  price: product.price || '₹2,999',
-                  price_period: product.price_period || '/month',
-                  free_trial_tag: product.free_trial_tag || 'Free Trial',
+                  route: route,
+                  popular_tag: product.popular_tag || null,
+                  features: features,
+                  price: product.price || null,
+                  price_period: product.price_period || null,
+                  free_trial_tag: product.free_trial_tag || null,
                   button_text: product.button_text || 'Explore Product'
                 };
                 return (
@@ -336,6 +356,9 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
   // Icon mapping for different product types
   const getProductIcon = (title) => {
     const titleLower = title.toLowerCase();
+    if (titleLower.includes('financial')) return BanknotesIcon;
+    if (titleLower.includes('retail')) return ShoppingBagIcon;
+    if (titleLower.includes('healthcare') || titleLower.includes('health')) return HeartIcon;
     if (titleLower.includes('server') || titleLower.includes('compute')) return ServerIcon;
     if (titleLower.includes('cpu') || titleLower.includes('intensive')) return CpuChipIcon;
     if (titleLower.includes('memory') || titleLower.includes('storage')) return CircleStackIcon;
@@ -473,28 +496,11 @@ const ProductCard = ({ section, index, isHovered, onHover }) => {
             </div>
           )}
 
-          {/* Pricing - Clean version */}
-          {section.price && section.price.trim() && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-2xl font-bold text-gray-900">{section.price}</span>
-                  {section.price_period && section.price_period.trim() && (
-                    <span className="text-gray-600 text-sm ml-1">{section.price_period}</span>
-                  )}
-                </div>
-                {section.free_trial_tag && section.free_trial_tag.trim() && (
-                  <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold">
-                    {section.free_trial_tag}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Pricing section removed - not needed for product cards */}
 
           {/* Action Button - Balanced design */}
           <Link 
-            to={`/products/${section.product_route || section.product_id}`}
+            to={`/products/${section.route || toSlug(section.title || 'product')}`}
             className={`
               group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
               ${isHovered 

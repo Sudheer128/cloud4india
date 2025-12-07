@@ -57,7 +57,7 @@ const allSectionItems = {
     {
       item_type: 'segment',
       title: 'Banking',
-      description: 'Complete digital transformation for retail and commercial banking with core banking systems, regulatory compliance, and customer experience solutions.',
+      description: 'Complete digital transformation for retail and commercial banking with core banking systems, regulatory compliance, and customer experience Apps.',
       icon: 'CurrencyDollarIcon',
       features: '["Core Banking Systems", "Digital Transformation", "Regulatory Compliance", "Mobile Banking", "API Integration", "Real-time Processing", "Fraud Detection"]',
       value: '500+',
@@ -66,7 +66,7 @@ const allSectionItems = {
     {
       item_type: 'segment',
       title: 'Capital Markets',
-      description: 'Trading platforms, risk management, and real-time market data solutions.',
+      description: 'Trading platforms, risk management, and real-time market data Apps.',
       icon: 'ChartPieIcon',
       features: '["Trading Platforms", "Risk Management", "Market Data"]',
       value: '200+',
@@ -84,9 +84,9 @@ const allSectionItems = {
     {
       item_type: 'segment',
       title: 'Payments',
-      description: 'Payment processing, digital wallets, and cross-border transaction solutions with fraud detection and compliance.',
+      description: 'Payment processing, digital wallets, and cross-border transaction Apps with fraud detection and compliance.',
       icon: 'CogIcon',
-      features: '["Payment Processing", "Digital Wallets", "Cross-border Solutions"]',
+      features: '["Payment Processing", "Digital Wallets", "Cross-border Apps"]',
       value: '150+',
       label: 'Providers'
     }
@@ -122,24 +122,24 @@ const allSectionItems = {
 };
 
 db.serialize(() => {
-  db.get("SELECT id FROM solutions WHERE name LIKE '%Financial Services%'", (err, row) => {
+  db.get("SELECT id FROM marketplaces WHERE name LIKE '%Financial Services%'", (err, row) => {
     if (err) {
-      console.error(`❌ Error finding Financial Services solution: ${err.message}`);
+      console.error(`❌ Error finding Financial Services marketplace: ${err.message}`);
       db.close();
       return;
     }
 
     if (!row) {
-      console.error('❌ Financial Services solution not found in the database. Please ensure it exists.');
+      console.error('❌ Financial Services marketplace not found in the database. Please ensure it exists.');
       db.close();
       return;
     }
 
-    const solutionId = row.id;
-    console.log(`✅ Found Financial Services solution with ID: ${solutionId}`);
+    const marketplaceId = row.id;
+    console.log(`✅ Found Financial Services marketplace with ID: ${marketplaceId}`);
 
-    // Get all sections for this solution
-    db.all("SELECT id, section_type FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC", [solutionId], (err, sections) => {
+    // Get all sections for this marketplace
+    db.all("SELECT id, section_type FROM marketplace_sections WHERE marketplace_id = ? ORDER BY order_index ASC", [marketplaceId], (err, sections) => {
       if (err) {
         console.error(`❌ Error getting sections: ${err.message}`);
         db.close();

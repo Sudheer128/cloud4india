@@ -14,7 +14,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   // Product data
   const productData = {
     name: 'Microsoft 365 Licenses',
-    description: 'Comprehensive Microsoft 365 licensing solutions for businesses of all sizes. Choose from Business Basic, Standard, Premium plans with or without Teams.',
+    description: 'Comprehensive Microsoft 365 licensing Apps for businesses of all sizes. Choose from Business Basic, Standard, Premium plans with or without Teams.',
     category: 'Software Licenses',
     color: '#0078D4',
     border_color: '#005A9E',
@@ -109,7 +109,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 // Step 4: Create specifications section
                 db.run(`
                   INSERT INTO product_sections (product_id, title, description, section_type, order_index, is_visible, created_at, updated_at)
-                  VALUES (?, 'Technical Specifications', 'Comprehensive technical specifications and system requirements for Microsoft 365 business solutions', 'specifications', 3, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                  VALUES (?, 'Technical Specifications', 'Comprehensive technical specifications and system requirements for Microsoft 365 business Apps', 'specifications', 3, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 `, [productId], function(err) {
                   if (err) {
                     console.error('❌ Error creating specifications section:', err.message);

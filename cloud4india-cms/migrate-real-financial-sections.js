@@ -26,7 +26,7 @@ const realFinancialServicesSections = [
   {
     section_type: 'segments',
     title: 'Serving Every Financial Segment',
-    content: 'From traditional banking to modern fintech, we provide specialized solutions tailored to your industry\'s unique requirements.',
+    content: 'From traditional banking to modern fintech, we provide specialized Apps tailored to your industry\'s unique requirements.',
   },
   {
     section_type: 'success_story',
@@ -35,12 +35,12 @@ const realFinancialServicesSections = [
   },
   {
     section_type: 'technology',
-    title: 'Advanced Technology Solutions',
+    title: 'Advanced Technology Apps',
     content: 'Leverage cutting-edge technologies designed specifically for financial services to drive innovation and competitive advantage.',
   },
   {
     section_type: 'use_cases',
-    title: 'Real-World Use Cases & Solutions',
+    title: 'Real-World Use Cases & Apps',
     content: 'Discover how leading financial institutions are leveraging Cloud4India to solve complex business challenges and drive innovation.',
   },
   {
@@ -66,24 +66,24 @@ const realFinancialServicesSections = [
 ];
 
 db.serialize(() => {
-  db.get("SELECT id FROM solutions WHERE name LIKE '%Financial%'", (err, row) => {
+  db.get("SELECT id FROM marketplaces WHERE name LIKE '%Financial%'", (err, row) => {
     if (err) {
-      console.error(`❌ Error finding Financial Services solution: ${err.message}`);
+      console.error(`❌ Error finding Financial Services marketplace: ${err.message}`);
       db.close();
       return;
     }
 
     if (!row) {
-      console.error('❌ Financial Services solution not found in the database. Please ensure it exists.');
+      console.error('❌ Financial Services marketplace not found in the database. Please ensure it exists.');
       db.close();
       return;
     }
 
-    const solutionId = row.id;
-    console.log(`✅ Found Financial Services solution with ID: ${solutionId}`);
+    const marketplaceId = row.id;
+    console.log(`✅ Found Financial Services marketplace with ID: ${marketplaceId}`);
 
-    // First, delete all existing sections for this solution
-    db.run("DELETE FROM solution_sections WHERE solution_id = ?", [solutionId], function(err) {
+    // First, delete all existing sections for this marketplace
+    db.run("DELETE FROM marketplace_sections WHERE marketplace_id = ?", [marketplaceId], function(err) {
       if (err) {
         console.error(`❌ Error deleting existing sections: ${err.message}`);
         db.close();
@@ -94,10 +94,10 @@ db.serialize(() => {
 
       // Now insert the real sections
       console.log(`🚀 Inserting ${realFinancialServicesSections.length} real sections for Financial Services...`);
-      const stmt = db.prepare(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`);
+      const stmt = db.prepare(`INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`);
 
       realFinancialServicesSections.forEach((section, index) => {
-        stmt.run(solutionId, section.section_type, section.title, section.content, index, function(err) {
+        stmt.run(marketplaceId, section.section_type, section.title, section.content, index, function(err) {
           if (err) {
             console.error(`❌ Error inserting section ${index + 1}: ${err.message}`);
           } else {

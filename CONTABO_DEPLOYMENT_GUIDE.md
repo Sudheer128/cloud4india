@@ -114,7 +114,7 @@ Your application includes comprehensive database migrations that will run automa
 - Financial Services sections and content
 - HSBC success story metrics
 - Implementation journey timeline
-- Technology solutions content
+- Technology Apps content
 - Use cases and real-world examples
 - Resource documentation
 - All section items and configurations

@@ -104,13 +104,13 @@ db.serialize(() => {
   db.run(`INSERT OR IGNORE INTO pricing_hero (id, title, description) VALUES (
     1,
     'Cloud Server Pricing for Startups, SMEs and Enterprises',
-    'Experience the perfect balance of performance and affordability with Cloud4India''s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud solutions while optimizing cloud cost savings. Whether you''re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'
+    'Experience the perfect balance of performance and affordability with Cloud4India''s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud Apps while optimizing cloud cost savings. Whether you''re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'
   )`);
 
   // Insert categories
   const categories = [
     { name: 'Compute', slug: 'compute', icon: 'CpuChipIcon', description: 'Virtual machines and computing resources' },
-    { name: 'Storage', slug: 'storage', icon: 'CircleStackIcon', description: 'Scalable storage solutions' },
+    { name: 'Storage', slug: 'storage', icon: 'CircleStackIcon', description: 'Scalable storage Apps' },
     { name: 'Networking', slug: 'networking', icon: 'CloudIcon', description: 'Network infrastructure and connectivity' },
     { name: 'Databases', slug: 'databases', icon: 'ServerIcon', description: 'Managed database services' },
     { name: 'Security', slug: 'security', icon: 'ShieldCheckIcon', description: 'Security and compliance tools' },
@@ -124,7 +124,7 @@ db.serialize(() => {
 
   // Insert compute subcategories
   const computeSubcategories = [
-    { name: 'Shared CPU', slug: 'shared-cpu', description: 'Enjoy a reliable and cost-effective hosting solution with a wide range of Shared CPU Plans.', header_color: 'green-100' },
+    { name: 'Shared CPU', slug: 'shared-cpu', description: 'Enjoy a reliable and cost-effective hosting App with a wide range of Shared CPU Plans.', header_color: 'green-100' },
     { name: 'Dedicated CPU', slug: 'dedicated-cpu', description: 'Experience exceptional performance and unleash the full power of your applications with Dedicated CPU Plans.', header_color: 'green-200' },
     { name: 'High Memory', slug: 'high-memory', description: 'Lightning-fast performance with High Memory Plans. Optimize your workloads with dedicated resources and massive RAM.', header_color: 'green-300' },
     { name: 'Kubernetes', slug: 'kubernetes', description: 'Effortlessly manage your containerized apps, simplify your deployment process today.', header_color: 'orange-100' }

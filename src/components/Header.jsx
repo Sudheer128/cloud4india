@@ -1,27 +1,38 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
-import PricingDropdown from './PricingDropdown'
 import AppsDropdown from './AppsDropdown'
+import ProductsDropdown from './ProductsDropdown'
+import SolutionsDropdown from './SolutionsDropdown'
 
 const Header = () => {
   const [activeDropdown, setActiveDropdown] = useState(null)
-  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false)
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false)
+  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false)
+  const [isSolutionsDropdownOpen, setIsSolutionsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  const handleProductsClick = (e) => {
-    e.preventDefault()
-    setIsProductsDropdownOpen(!isProductsDropdownOpen)
-    setIsAppsDropdownOpen(false)
-    setActiveDropdown(activeDropdown === 'products' ? null : 'products')
-  }
 
   const handleAppsClick = (e) => {
     e.preventDefault()
     setIsAppsDropdownOpen(!isAppsDropdownOpen)
     setIsProductsDropdownOpen(false)
     setActiveDropdown(activeDropdown === 'apps' ? null : 'apps')
+  }
+
+  const handleProductsClick = (e) => {
+    e.preventDefault()
+    setIsProductsDropdownOpen(!isProductsDropdownOpen)
+    setIsAppsDropdownOpen(false)
+    setIsSolutionsDropdownOpen(false)
+    setActiveDropdown(activeDropdown === 'products' ? null : 'products')
+  }
+
+  const handleSolutionsClick = (e) => {
+    e.preventDefault()
+    setIsSolutionsDropdownOpen(!isSolutionsDropdownOpen)
+    setIsAppsDropdownOpen(false)
+    setIsProductsDropdownOpen(false)
+    setActiveDropdown(activeDropdown === 'solutions' ? null : 'solutions')
   }
 
   return (
@@ -56,6 +67,18 @@ const Header = () => {
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
                 <button
+                  data-apps-link
+                  onClick={handleAppsClick}
+                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
+                    isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                  }`}
+                >
+                  Marketplace
+                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
+                    isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                  }`}></span>
+                </button>
+                <button
                   data-products-link
                   onClick={handleProductsClick}
                   className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
@@ -68,15 +91,15 @@ const Header = () => {
                   }`}></span>
                 </button>
                 <button
-                  data-apps-link
-                  onClick={handleAppsClick}
+                  data-solutions-link
+                  onClick={handleSolutionsClick}
                   className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
-                    isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                    isSolutionsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
                   }`}
                 >
-                  Marketplace
+                  Solutions
                   <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
-                    isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                    isSolutionsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}></span>
                 </button>
                 <Link to="/pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
@@ -142,6 +165,22 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={(e) => {
+                    handleAppsClick(e)
+                  }}
+                  className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  <span>Marketplace</span>
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isAppsDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isAppsDropdownOpen && (
+                  <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
+                    <p className="text-xs text-gray-500 py-2">Tap Marketplace in desktop view to see categories</p>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
                     handleProductsClick(e)
                   }}
                   className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
@@ -158,16 +197,16 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={(e) => {
-                    handleAppsClick(e)
+                    handleSolutionsClick(e)
                   }}
                   className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
                 >
-                  <span>Marketplace</span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isAppsDropdownOpen ? 'rotate-180' : ''}`} />
+                  <span>Solutions</span>
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isSolutionsDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isAppsDropdownOpen && (
+                {isSolutionsDropdownOpen && (
                   <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
-                    <p className="text-xs text-gray-500 py-2">Tap Marketplace in desktop view to see categories</p>
+                    <p className="text-xs text-gray-500 py-2">Tap Solutions in desktop view to see categories</p>
                   </div>
                 )}
               </div>
@@ -201,8 +240,17 @@ const Header = () => {
         )}
       </header>
       
+      {/* Apps Dropdown */}
+      <AppsDropdown 
+        isOpen={isAppsDropdownOpen} 
+        onClose={() => {
+          setIsAppsDropdownOpen(false)
+          setActiveDropdown(null)
+        }} 
+      />
+      
       {/* Products Dropdown */}
-      <PricingDropdown 
+      <ProductsDropdown 
         isOpen={isProductsDropdownOpen} 
         onClose={() => {
           setIsProductsDropdownOpen(false)
@@ -210,11 +258,11 @@ const Header = () => {
         }} 
       />
       
-      {/* Apps Dropdown */}
-      <AppsDropdown 
-        isOpen={isAppsDropdownOpen} 
+      {/* Solutions Dropdown */}
+      <SolutionsDropdown 
+        isOpen={isSolutionsDropdownOpen} 
         onClose={() => {
-          setIsAppsDropdownOpen(false)
+          setIsSolutionsDropdownOpen(false)
           setActiveDropdown(null)
         }} 
       />

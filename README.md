@@ -31,7 +31,7 @@ Based on analysis of https://aws.amazon.com/, this clone includes:
 ### **Content Sections** (Exact Order)
 1. **Agentic AI** - Feature highlights with branded cards
 2. **Why Cloud4India?** - 5 feature cards with exact AWS text structure
-3. **Solutions** - 8-item grid with industry/technology categorization
+3. **Apps** - 8-item grid with industry/technology categorization
 4. **Products** - 8-item grid with colored category badges
 5. **Training** - 3-card certification section
 6. **Infrastructure** - India-specific regional information
@@ -152,7 +152,7 @@ Demo/
 - ✅ **Text hierarchy**: H1, H2, H3 tags matching importance
 - ✅ **Link structure**: All navigation paths preserved
 - ✅ **Button styles**: Identical primary/secondary button design
-- ✅ **Card layouts**: Product and solution cards pixel-perfect
+- ✅ **Card layouts**: Product and Apps cards pixel-perfect
 
 ### **Responsive Behavior**
 - ✅ **Breakpoints**: Same mobile/tablet/desktop breaks as AWS
