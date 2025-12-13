@@ -129,7 +129,7 @@ const FeatureBannersSection = () => {
         }`}
       >
         <div className={`relative ${borderRadiusClass} overflow-hidden shadow-2xl ${
-          isCenter ? 'h-[500px] cursor-default' : 'h-[420px] cursor-pointer'
+          isCenter ? 'h-[500px] cursor-default' : 'h-[420px]'
         }`}>
           {/* Gradient Background */}
           <div className={`relative h-full bg-gradient-to-br ${banner.gradient} transition-all duration-700`}>

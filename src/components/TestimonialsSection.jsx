@@ -18,43 +18,7 @@ const TestimonialsSection = () => {
         })
       } catch (error) {
         console.error('Error fetching About Us testimonials content:', error)
-        // Fallback to default content
-        setContent({
-          section: {
-            header_title: 'Hear from Our Satisfied Customers',
-            header_description: 'See what our clients say about working with Cloud 4 India'
-          },
-          testimonials: [
-            [
-              {
-                quote: 'A reliable company to host cloud servers and have good expertise and command over remote access tools.',
-                company: 'Cevious Technologies',
-                author: ''
-              },
-              {
-                quote: "As the Head of IT at Trustline Securities Ltd., I highly recommend Cloud 4 India Private Limited for their exceptional email services. For over 15 years, we've relied on their 99.99% uptime and outstanding support, critical to our operations.\n\nWhat sets them apart is their personalised approach — promptly addressing challenges and making us feel valued as customers. Cloud 4 India is more than a service provider; they are a trusted partner in our success.",
-                company: '',
-                author: 'Rohit Kumar – Head – IT – Trustline Securities Ltd.'
-              }
-            ],
-            [
-              {
-                quote: 'I have received 99.95% uptime on my Smart Dedicated server and have been satisfied with the support services received from Cloud 4 India. They have been cost effective and the gold processors are best in performance.',
-                company: 'Furacle Pvt Ltd',
-                author: ''
-              },
-              {
-                quote: 'We use cloud servers from Cloud 4 India and we provide ERP services to various customers over their platform. They have provided us 100% uptime in past 2 years.',
-                company: 'Abhinav IT Solution',
-                author: ''
-              }
-            ]
-          ],
-          ratings: [
-            { platform: 'Google', rating_value: '4.7/5', platform_icon: 'G' },
-            { platform: 'Trustpilot', rating_value: '4.7/5', platform_icon: 'star' }
-          ]
-        })
+        setContent(null)
       } finally {
         setLoading(false)
       }
@@ -131,7 +95,7 @@ const TestimonialsSection = () => {
             {testimonials[currentPage].map((testimonial, index) => (
               <div 
                 key={testimonial.id || index} 
-                className="bg-gray-50 text-gray-900 rounded-2xl p-8 border-l-4 border-saree-teal shadow-lg hover:shadow-2xl hover:bg-white hover:border-l-8 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+                className="bg-gray-50 text-gray-900 rounded-2xl p-8 border-l-4 border-saree-teal shadow-lg hover:shadow-2xl hover:bg-white hover:border-l-8 hover:-translate-y-1 transition-all duration-300 group"
               >
                 <div className="mb-6">
                   <svg className="w-10 h-10 text-saree-teal/50 group-hover:text-saree-teal group-hover:scale-110 transition-all duration-300" fill="currentColor" viewBox="0 0 24 24">
@@ -200,7 +164,7 @@ const TestimonialsSection = () => {
             </p>
             <div className="flex justify-center items-center gap-8 flex-wrap">
               {ratings.map((rating, index) => (
-                <div key={rating.id || index} className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-2xl hover:border-saree-amber hover:bg-saree-amber-light hover:scale-110 transition-all duration-300 cursor-pointer group">
+                <div key={rating.id || index} className="flex items-center gap-3 bg-white px-8 py-4 rounded-xl border-2 border-gray-200 shadow-lg hover:shadow-2xl hover:border-saree-amber hover:bg-saree-amber-light hover:scale-110 transition-all duration-300 group">
                   {rating.platform_icon === 'G' ? (
                     <div className="w-12 h-12 bg-saree-amber rounded-full flex items-center justify-center group-hover:bg-saree-amber-dark transition-colors duration-300">
                       <span className="text-white font-bold text-xl">{rating.platform_icon}</span>

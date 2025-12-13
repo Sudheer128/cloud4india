@@ -12,18 +12,7 @@ const AboutHeroSection = () => {
         setContent(data.hero)
       } catch (error) {
         console.error('Error fetching About Us hero content:', error)
-        // Fallback to default content if API fails
-        setContent({
-          badge_text: 'About Cloud 4 India',
-          title: 'The Power of',
-          highlighted_text: 'Next-generation',
-          title_after: 'Control',
-          description: 'From small businesses to large enterprises, and from individual webmasters to online entrepreneurs, Cloud 4 India has been the trusted partner for cost-effective managed IT Apps. We specialise in empowering your online presence with reliable, tailored services designed to meet your unique needs.',
-          button_text: 'Explore Our Services',
-          image_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop',
-          stat_value: '14+',
-          stat_label: 'Years Experience'
-        })
+        setContent(null)
       } finally {
         setLoading(false)
       }
@@ -103,17 +92,18 @@ const AboutHeroSection = () => {
         </div>
         
         {/* Right Image */}
+        {content.image_url && (
         <div className="relative">
           <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30">
             <img 
-              src={content.image_url || 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop'} 
+                src={content.image_url} 
               alt="Team collaboration" 
               className="w-full h-auto object-cover"
             />
           </div>
           {/* Floating stats card */}
           {(content.stat_value || content.stat_label) && (
-            <div className="absolute -bottom-6 -right-6 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl p-6 border-2 border-white/30 hover:border-white/50 hover:bg-white/20 hover:scale-105 transition-all duration-300 cursor-pointer">
+            <div className="absolute -bottom-6 -right-6 bg-white/10 backdrop-blur-md rounded-xl shadow-2xl p-6 border-2 border-white/30 hover:border-white/50 hover:bg-white/20 hover:scale-105 transition-all duration-300">
               <div className="flex items-center gap-4">
                 <div className="bg-white rounded-full w-12 h-12 flex items-center justify-center group-hover:bg-white/90 transition-colors duration-300">
                   <svg className="w-6 h-6 text-saree-teal" fill="currentColor" viewBox="0 0 20 20">
@@ -132,6 +122,7 @@ const AboutHeroSection = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Bottom Wave */}

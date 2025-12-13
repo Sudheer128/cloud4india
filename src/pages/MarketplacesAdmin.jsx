@@ -2021,7 +2021,8 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel }) => {
     { value: 'technology', label: 'Technology' },
     { value: 'segment', label: 'Segment' },
     { value: 'step', label: 'Step' },
-    { value: 'resource', label: 'Resource' }
+    { value: 'resource', label: 'Resource' },
+    { value: 'media_item', label: 'Media Item' }
   ];
 
   return (
@@ -2147,6 +2148,7 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel }) => {
               onUpdate={handleUpdateItem}
               onCancel={() => setEditingItem(null)}
               saving={saving}
+              section={section}
             />
           )}
         </div>
@@ -2156,7 +2158,7 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel }) => {
 };
 
 // Section Item Editor Component
-const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, saving }) => {
+const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, saving, section }) => {
   const [formData, setFormData] = useState({
     item_type: '',
     title: '',
@@ -2165,9 +2167,11 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
     value: '',
     label: '',
     order_index: 0,
-    features: ''
+    features: '',
+    content: ''
   });
   const [featuresList, setFeaturesList] = useState([]);
+  const [contentJSON, setContentJSON] = useState({});
 
   useEffect(() => {
     if (item) {
@@ -2179,7 +2183,8 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         value: item.value || '',
         label: item.label || '',
         order_index: item.order_index || 0,
-        features: item.features || ''
+        features: item.features || '',
+        content: item.content || ''
       });
       
       // Parse features from JSON
@@ -2194,6 +2199,19 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         console.error('Error parsing features:', e);
         setFeaturesList([]);
       }
+      
+      // Parse content JSON for media items
+      if (item.item_type === 'media_item' && item.content) {
+        try {
+          const parsedContent = JSON.parse(item.content);
+          setContentJSON(parsedContent);
+        } catch (e) {
+          console.error('Error parsing content:', e);
+          setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
+        }
+      } else if (item.item_type === 'media_item' && !item.content) {
+        setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
+      }
     } else {
       setFormData({
         item_type: '',
@@ -2203,18 +2221,28 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         value: '',
         label: '',
         order_index: 0,
-        features: ''
+        features: '',
+        content: ''
       });
       setFeaturesList([]);
+      setContentJSON({});
     }
   }, [item]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Build final formData with content JSON for media items
+    let finalFormData = { ...formData };
+    
+    if (formData.item_type === 'media_item') {
+      finalFormData.content = JSON.stringify(contentJSON);
+    }
+    
     if (item) {
-      onUpdate(item.id, formData);
+      onUpdate(item.id, finalFormData);
     } else {
-      onCreate(formData);
+      onCreate(finalFormData);
     }
   };
 
@@ -2277,7 +2305,13 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
               <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
               <select
                 value={formData.item_type}
-                onChange={(e) => setFormData({...formData, item_type: e.target.value})}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  setFormData({...formData, item_type: newType});
+                  if (newType === 'media_item' && !contentJSON.media_type) {
+                    setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
+                  }
+                }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
@@ -2303,6 +2337,156 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
             </div>
           </div>
 
+          {/* Media Item Form */}
+          {formData.item_type === 'media_item' ? (
+            <>
+              <div className="bg-purple-50 p-3 rounded-lg mb-4">
+                <p className="text-xs text-purple-900">
+                  <strong>Media Item</strong> - Add photos or videos to the gallery carousel
+                </p>
+          </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., GPU Dashboard Overview"
+                />
+                <p className="text-xs text-gray-500 mt-1">Shown as overlay on the media (optional)</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Brief description shown below title"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Media Type *</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="media_type"
+                      value="image"
+                      checked={contentJSON.media_type === 'image'}
+                      onChange={(e) => setContentJSON({...contentJSON, media_type: e.target.value, media_source: 'upload', media_url: ''})}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">📷 Photo</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="media_type"
+                      value="video"
+                      checked={contentJSON.media_type === 'video'}
+                      onChange={(e) => setContentJSON({...contentJSON, media_type: e.target.value, media_source: 'youtube', media_url: ''})}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">🎥 Video</span>
+                  </label>
+                </div>
+              </div>
+              
+              {contentJSON.media_type === 'video' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Video Source *</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="video_source"
+                        value="youtube"
+                        checked={contentJSON.media_source === 'youtube'}
+                        onChange={(e) => setContentJSON({...contentJSON, media_source: e.target.value, media_url: ''})}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">YouTube URL</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="video_source"
+                        value="upload"
+                        checked={contentJSON.media_source === 'upload'}
+                        onChange={(e) => setContentJSON({...contentJSON, media_source: e.target.value, media_url: ''})}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Upload Video File</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+              
+              {contentJSON.media_source === 'youtube' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
+                  <input
+                    type="url"
+                    value={contentJSON.media_url || ''}
+                    onChange={(e) => setContentJSON({...contentJSON, media_url: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload {contentJSON.media_type === 'video' ? 'Video' : 'Photo'} *
+                  </label>
+                  <input
+                    type="file"
+                    accept={contentJSON.media_type === 'video' ? 'video/*' : 'image/*'}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+                        const formDataObj = new FormData();
+                        const isVideo = contentJSON.media_type === 'video';
+                        formDataObj.append(isVideo ? 'video' : 'image', file);
+                        
+                        const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image';
+                        fetch(`${baseUrl}${endpoint}`, {
+                          method: 'POST',
+                          body: formDataObj
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data.filePath) {
+                            setContentJSON({...contentJSON, media_url: data.filePath, media_source: 'upload'});
+                            alert('Media uploaded successfully!');
+                          } else {
+                            alert('Upload failed: ' + (data.error || 'Unknown error'));
+                          }
+                        })
+                        .catch(err => {
+                          console.error('Upload error:', err);
+                          alert('Upload failed: ' + err.message);
+                        });
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {contentJSON.media_url && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                      <p className="text-xs text-green-900">✓ {contentJSON.media_type === 'video' ? 'Video' : 'Photo'} uploaded: {contentJSON.media_url}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
             <input
@@ -2326,6 +2510,8 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
               required
             />
           </div>
+            </>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>

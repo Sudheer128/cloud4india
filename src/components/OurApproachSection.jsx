@@ -15,20 +15,7 @@ const OurApproachSection = () => {
         })
       } catch (error) {
         console.error('Error fetching About Us approach content:', error)
-        // Fallback to default content
-        setContent({
-          section: {
-            header_title: 'Our Approach',
-            header_description: 'At Cloud 4 India, we are committed to providing secure, reliable, and customised data centre Apps designed to empower your business growth.',
-            cta_button_text: 'Talk to a Specialist'
-          },
-          items: [
-            { title: 'TIER 4 DATA CENTRES', description: 'Optimized for speed, security, and resilience', icon_type: 'database' },
-            { title: '99.99% UPTIME', description: 'Ensuring uninterrupted business operations', icon_type: 'clock' },
-            { title: 'HYPERCONVERGED INFRASTRUCTURE', description: 'Seamless integration and resource optimization', icon_type: 'sun' },
-            { title: '24/7 SUPPORT', description: 'Dedicated experts, always ready to assist', icon_type: 'phone' }
-          ]
-        })
+        setContent(null)
       } finally {
         setLoading(false)
       }
@@ -105,16 +92,9 @@ const OurApproachSection = () => {
         {/* Header */}
         <div className="text-center mb-16">
           {section.header_title && (
-            <div className="mb-6">
-              <div className="inline-block bg-saree-teal/10 rounded-full px-6 py-2 mb-4">
-                <span className="text-saree-teal font-semibold text-sm uppercase tracking-wider">
-                  Our Commitment
-                </span>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
                 {section.header_title}
               </h2>
-            </div>
           )}
           {section.header_description && (
             <p className="text-lg text-gray-700 max-w-4xl mx-auto leading-relaxed">
@@ -145,7 +125,7 @@ const OurApproachSection = () => {
               return (
                 <div 
                   key={approach.id || index}
-                  className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center border-2 border-gray-200 ${color.cardBg} ${color.border} cursor-pointer group`}
+                  className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center border-2 border-gray-200 ${color.cardBg} ${color.border} group`}
                 >
                   <div className={`bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 ${color.iconBg} transition-all duration-300`}>
                     {renderIcon(approach.icon_type)}
@@ -165,12 +145,24 @@ const OurApproachSection = () => {
         {/* CTA Button */}
         {section.cta_button_text && (
           <div className="text-center">
-            <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-full font-semibold text-base transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              {section.cta_button_text}
-            </button>
+            {section.cta_button_url ? (
+              <a
+                href={section.cta_button_url}
+                className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-full font-semibold text-base transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {section.cta_button_text}
+              </a>
+            ) : (
+              <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-full font-semibold text-base transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {section.cta_button_text}
+              </button>
+            )}
           </div>
         )}
       </div>

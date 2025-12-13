@@ -148,7 +148,7 @@ const ChooseImageSection = () => {
             return (
               <div
                 key={item.id}
-                className={`relative bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 group ${
+                className={`relative bg-white rounded-xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group ${
                   isSelected
                     ? 'border-saree-teal shadow-lg ring-4 ring-saree-teal-light bg-saree-teal-light/20'
                     : 'border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/10'

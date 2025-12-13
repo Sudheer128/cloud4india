@@ -9,10 +9,20 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 4002;
 
+// Global error handlers to prevent silent crashes
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
+  console.error(error.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Create upload directories if they don't exist
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -46,13 +56,13 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter for images
+// File filter for images (includes SVG for icons)
 const imageFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, JPG, and PNG images are allowed.'), false);
+    cb(new Error('Invalid file type. Only JPEG, JPG, PNG, and SVG images are allowed.'), false);
   }
 };
 
@@ -85,6 +95,52 @@ const uploadVideo = multer({
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));
+
+// ===== FILE UPLOAD ENDPOINTS =====
+
+// Upload image endpoint
+app.post('/api/upload/image', uploadImage.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+    
+    // Return the file path relative to server
+    const filePath = `/uploads/images/${req.file.filename}`;
+    res.json({ 
+      success: true,
+      filePath: filePath,
+      filename: req.file.filename,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ error: 'Failed to upload image: ' + error.message });
+  }
+});
+
+// Upload video endpoint
+app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No video file uploaded' });
+    }
+    
+    // Return the file path relative to server
+    const filePath = `/uploads/videos/${req.file.filename}`;
+    res.json({ 
+      success: true,
+      filePath: filePath,
+      filename: req.file.filename,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Error uploading video:', error);
+    res.status(500).json({ error: 'Failed to upload video: ' + error.message });
+  }
+});
+
+// ===== END FILE UPLOAD ENDPOINTS =====
 
 // Initialize SQLite database
 const dbPath = process.env.DB_PATH || './cms.db';
@@ -281,7 +337,20 @@ const addSectionItemsVisibilityColumn = () => {
       } else {
         console.log(`   ✅ Added column is_visible to section_items`);
       }
-      resolve();
+      
+      // Add content column to section_items table (for media items)
+      db.run("ALTER TABLE section_items ADD COLUMN content TEXT;", (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column content already exists in section_items`);
+          } else {
+            console.log(`   ⚠️  Error adding column content to section_items: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column content to section_items`);
+        }
+        resolve();
+      });
     });
   });
 };
@@ -457,7 +526,7 @@ db.serialize(() => {
     price TEXT,
     price_period TEXT,
     free_trial_tag TEXT,
-    button_text TEXT DEFAULT 'Explore Solution',
+    button_text TEXT DEFAULT 'Explore Product',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (solution_id) REFERENCES solutions (id) ON DELETE SET NULL
@@ -487,7 +556,25 @@ db.serialize(() => {
     order_index INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating product_categories table:', err);
+    } else {
+      // Insert default categories if table is empty
+      db.get('SELECT COUNT(*) as count FROM product_categories', (err, row) => {
+        if (!err && row.count === 0) {
+          db.run(`INSERT INTO product_categories (name, order_index) VALUES 
+            ('Compute', 0),
+            ('Storage', 1),
+            ('Network', 2),
+            ('Database', 3),
+            ('Security', 4),
+            ('Analytics', 5)`);
+          console.log('✓ Default product categories initialized');
+        }
+      });
+    }
+  });
 
   // Product sections table
   db.run(`CREATE TABLE IF NOT EXISTS product_sections (
@@ -1301,31 +1388,86 @@ app.get('/api/homepage', (req, res) => {
       }
       homepageData.whyItems = whyItems;
       
+      // Get homepage sections config
+      db.all('SELECT * FROM homepage_sections_config ORDER BY id ASC', (err, sectionsConfig) => {
+        if (err) {
+          // If table doesn't exist yet, continue without it
+          homepageData.sectionsConfig = null;
       res.json(homepageData);
+          return;
+        }
+        
+        // Convert array to object keyed by section_name
+        const configsObj = {};
+        sectionsConfig.forEach(config => {
+          configsObj[config.section_name] = config;
+        });
+        homepageData.sectionsConfig = configsObj;
+        
+        res.json(homepageData);
+      });
     });
   });
 });
 
 // Update hero section
 app.put('/api/hero', (req, res) => {
-  const { title, description, primary_button_text, primary_button_link, secondary_button_text, secondary_button_link } = req.body;
+  const { title, description, primary_button_text, primary_button_link } = req.body;
   
   db.run(`UPDATE hero_section SET 
     title = ?, 
     description = ?, 
     primary_button_text = ?, 
     primary_button_link = ?, 
-    secondary_button_text = ?, 
-    secondary_button_link = ?,
+    secondary_button_text = '', 
+    secondary_button_link = '',
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`, 
-    [title, description, primary_button_text, primary_button_link, secondary_button_text, secondary_button_link], 
+    [title, description, primary_button_text, primary_button_link], 
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       res.json({ message: 'Hero section updated successfully', changes: this.changes });
+    });
+});
+
+// Update homepage section configuration
+app.put('/api/homepage/sections/:sectionName', (req, res) => {
+  const { sectionName } = req.params;
+  const { heading, description, button_text, filter_text, search_placeholder } = req.body;
+  
+  db.run(`
+    UPDATE homepage_sections_config SET 
+      heading = ?, 
+      description = ?, 
+      button_text = ?, 
+      filter_text = ?,
+      search_placeholder = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE section_name = ?
+  `, [heading, description, button_text, filter_text, search_placeholder, sectionName], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      // Config doesn't exist, create it
+      db.run(`
+        INSERT INTO homepage_sections_config (section_name, heading, description, button_text, filter_text, search_placeholder)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [sectionName, heading, description, button_text, filter_text, search_placeholder], function(insertErr) {
+        if (insertErr) {
+          res.status(500).json({ error: insertErr.message });
+          return;
+        }
+        res.json({ message: 'Section configuration created successfully' });
+      });
+    } else {
+      res.json({ message: 'Section configuration updated successfully', changes: this.changes });
+    }
     });
 });
 
@@ -1512,42 +1654,30 @@ function createMainMarketplaceSection(marketplaceId, marketplaceName, marketplac
 
 // Helper function to create main solutions section (similar to marketplaces)
 function createMainSolutionSection(solutionId, solutionName, solutionDescription, solutionCategory, callback) {
-  // Check if section already exists
-  db.get('SELECT id FROM main_solutions_sections WHERE solution_id = ?', [solutionId], (err, existing) => {
-    if (err) {
-      console.error('Error checking existing solution section:', err.message);
-      callback(); // Continue even if this fails
-      return;
-    }
-    
-    if (existing) {
-      console.log(`⏭️  Main solutions section already exists for: ${solutionName}`);
-      callback();
-      return;
-    }
-    
-    // Get the next order index for main solutions sections
+  // Get the next order index for main solutions sections first
     db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
       if (err) {
-        console.error('Error getting max order for main solutions sections:', err.message);
+      console.error('[createMainSolutionSection] Error getting max order:', err.message);
         callback(); // Continue even if this fails
         return;
       }
       
       const nextOrder = (result.max_order || 0) + 1;
       
-      // Insert new main page section
+    // Use INSERT OR IGNORE to prevent duplicates (requires unique constraint on solution_id)
+    // If a duplicate is attempted, it will be silently ignored
       db.run(`
-        INSERT INTO main_solutions_sections (solution_id, title, description, category, is_visible, order_index, button_text) 
+      INSERT OR IGNORE INTO main_solutions_sections (solution_id, title, description, category, is_visible, order_index, button_text) 
         VALUES (?, ?, ?, ?, 1, ?, 'Explore Solution')
       `, [solutionId, solutionName, solutionDescription, solutionCategory || null, nextOrder], function(err) {
         if (err) {
-          console.error('Error creating main solutions section:', err.message);
+        console.error('[createMainSolutionSection] Error creating main solutions section:', err.message);
+      } else if (this.changes > 0) {
+        console.log(`✅ Created main solutions section for: ${solutionName} (ID: ${solutionId})`);
         } else {
-          console.log(`✅ Created main solutions section for: ${solutionName}`);
+        console.log(`⏭️  Main solutions section already exists for: ${solutionName} (ID: ${solutionId})`);
         }
         callback(); // Always call callback to continue
-      });
     });
   });
 }
@@ -2615,10 +2745,10 @@ app.get('/api/products/with-cards', (req, res) => {
 });
 
 // Get product categories in order
+// Get all product categories
 app.get('/api/products/categories', (req, res) => {
   db.all('SELECT * FROM product_categories ORDER BY order_index ASC', (err, categories) => {
     if (err) {
-      // If table doesn't exist yet, return empty array (frontend will handle fallback)
       if (err.message.includes('no such table')) {
         console.log('product_categories table does not exist yet, returning empty array');
         return res.json([]);
@@ -2626,9 +2756,72 @@ app.get('/api/products/categories', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    // If no categories exist, return empty array (frontend will handle fallback)
     res.json(categories || []);
   });
+});
+
+// Add new product category
+app.post('/api/products/categories', (req, res) => {
+  const { name } = req.body;
+  
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Category name is required' });
+  }
+  
+  // Get max order_index
+  db.get('SELECT MAX(order_index) as max_order FROM product_categories', (err, row) => {
+    const nextOrder = (row?.max_order || -1) + 1;
+    
+    db.run(
+      'INSERT INTO product_categories (name, order_index) VALUES (?, ?)',
+      [name.trim(), nextOrder],
+      function(err) {
+        if (err) {
+          if (err.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ error: 'Category already exists' });
+          }
+          return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Category created', id: this.lastID, order_index: nextOrder });
+      }
+    );
+  });
+});
+
+// Delete product category
+app.delete('/api/products/categories/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('DELETE FROM product_categories WHERE id = ?', [id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json({ message: 'Category deleted', changes: this.changes });
+  });
+});
+
+// Rename product category
+app.put('/api/products/categories/:id', (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Category name is required' });
+  }
+  
+  db.run(
+    'UPDATE product_categories SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [name.trim(), id],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint')) {
+          return res.status(400).json({ error: 'Category name already exists' });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ message: 'Category updated', changes: this.changes });
+    }
+  );
 });
 
 // Get single product
@@ -2795,8 +2988,8 @@ function createMainProductSection(productId, productName, productDescription, ca
     
     // Insert new main page section
     db.run(`
-      INSERT INTO main_products_sections (product_id, title, description, is_visible, order_index) 
-      VALUES (?, ?, ?, 1, ?)
+      INSERT INTO main_products_sections (product_id, title, description, is_visible, order_index, button_text) 
+      VALUES (?, ?, ?, 1, ?, 'Explore Product')
     `, [productId, productName, productDescription, nextOrder], function(err) {
       if (err) {
         console.error('Error creating main products section:', err.message);
@@ -2841,10 +3034,16 @@ app.post('/api/products', (req, res) => {
           res.status(500).json({ error: err.message });
           return;
         }
+        
+        const newProductId = this.lastID;
+        
+        // Auto-create corresponding entry in main_products_sections to keep them interlinked
+        createMainProductSection(newProductId, name, description, () => {
         res.json({ 
           message: 'Product created successfully', 
-          id: this.lastID,
+            id: newProductId,
           changes: this.changes
+          });
         });
       });
   });
@@ -3021,8 +3220,13 @@ app.delete('/api/products/:id', (req, res) => {
     // Then delete all sections for this product
     db.run(`DELETE FROM product_sections WHERE product_id = ?`, [id], (err) => {
       if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+        console.error('Error deleting product sections:', err.message);
+      }
+      
+      // Also delete from main_products_sections
+      db.run(`DELETE FROM main_products_sections WHERE product_id = ?`, [id], (err) => {
+        if (err) {
+          console.error('Error deleting main_products_sections entry:', err.message);
       }
       
       // Finally delete the product
@@ -3032,6 +3236,7 @@ app.delete('/api/products/:id', (req, res) => {
           return;
         }
         res.json({ message: 'Product deleted successfully', changes: this.changes });
+        });
       });
     });
   });
@@ -3260,18 +3465,16 @@ app.post('/api/products/:id/duplicate', (req, res) => {
               let sectionsCompleted = 0;
               
               sections.forEach((section) => {
-                // Check if content column exists by trying a simpler insert first, or use NULL for content
-                // SQLite allows inserting NULL into non-existent columns in some cases, but it's safer to check
-                // For now, we'll insert without content if the column doesn't exist
-                db.run(`INSERT INTO product_sections (product_id, section_type, title, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-                  [newProductId, section.section_type, section.title || '', section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
+                // Include ALL fields including content and description
+                db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                  [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
                   function(err) {
                     if (err) {
                       // If error is about content column, try without it
-                      if (err.message.includes('content')) {
-                        console.log('   ⚠️  content column not found, trying without it...');
-                        db.run(`INSERT INTO product_sections (product_id, section_type, title, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-                          [newProductId, section.section_type, section.title || '', section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
+                      if (err.message.includes('no such column')) {
+                        console.log('   ⚠️  Some column not found, trying basic insert...');
+                        db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                          [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
                           function(err2) {
                             if (err2) {
                               console.error('Error duplicating section (retry):', err2.message);
@@ -3417,7 +3620,7 @@ app.post('/api/products/:id/sections', (req, res) => {
 // Update section
 app.put('/api/products/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content, description, is_visible, media_type, media_source, media_url } = req.body;
+  const { section_type, title, content, description, is_visible, order_index, media_type, media_source, media_url } = req.body;
   
   // First, get the existing section to check for file cleanup
   db.get('SELECT * FROM product_sections WHERE id = ? AND product_id = ?', [sectionId, id], (err, existingSection) => {
@@ -3510,6 +3713,10 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
     if (is_visible !== undefined) {
       updateFields.push('is_visible = ?');
       values.push(is_visible);
+    }
+    if (order_index !== undefined) {
+      updateFields.push('order_index = ?');
+      values.push(order_index);
     }
     // Update media fields if provided or if section_type is media_banner
     if (media_type !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
@@ -3618,8 +3825,26 @@ app.get('/api/products/:id/sections/:sectionId/items', (req, res) => {
 // Create new section item
 app.post('/api/products/:id/sections/:sectionId/items', (req, res) => {
   const { sectionId } = req.params;
-  const { item_type, title, description, icon, value, label, features, is_visible } = req.body;
+  const { item_type, title, description, content, icon, value, label, features, is_visible, order_index } = req.body;
   
+  // Use provided order_index if available, otherwise get next order
+  if (order_index !== undefined) {
+    const visibility = is_visible !== undefined ? is_visible : 1;
+    
+    db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [sectionId, item_type, title, description, content || null, icon, value, label, features, order_index, visibility], 
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ 
+          message: 'Section item created successfully', 
+          id: this.lastID,
+          changes: this.changes 
+        });
+      });
+  } else {
   // Get next order index
   db.get('SELECT MAX(order_index) as max_order FROM product_items WHERE section_id = ?', [sectionId], (err, result) => {
     if (err) {
@@ -3631,7 +3856,7 @@ app.post('/api/products/:id/sections/:sectionId/items', (req, res) => {
     const visibility = is_visible !== undefined ? is_visible : 1;
     
     db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [sectionId, item_type, title, description, null, icon, value, label, features, nextOrder, visibility], 
+        [sectionId, item_type, title, description, content || null, icon, value, label, features, nextOrder, visibility], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -3644,12 +3869,13 @@ app.post('/api/products/:id/sections/:sectionId/items', (req, res) => {
         });
       });
   });
+  }
 });
 
 // Update section item
 app.put('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
-  const { item_type, title, description, content, icon, value, label, features, is_visible } = req.body;
+  const { item_type, title, description, content, icon, value, label, features, is_visible, order_index } = req.body;
   
   // Build dynamic query based on provided fields
   let updateFields = [];
@@ -3690,6 +3916,10 @@ app.put('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
   if (is_visible !== undefined) {
     updateFields.push('is_visible = ?');
     values.push(is_visible);
+  }
+  if (order_index !== undefined) {
+    updateFields.push('order_index = ?');
+    values.push(order_index);
   }
   
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -3762,6 +3992,7 @@ app.get('/api/main-products', (req, res) => {
           COALESCE(mps.button_text, 'Explore Product') as button_text
         FROM main_products_sections mps
         LEFT JOIN products p ON mps.product_id = p.id
+        WHERE (mps.product_id IS NULL AND mps.id IS NOT NULL) OR (mps.product_id IS NOT NULL AND p.id IS NOT NULL)
         ORDER BY mps.order_index ASC
       `
       : `
@@ -3884,6 +4115,7 @@ app.get('/api/main-products/sections/all', (req, res) => {
       COALESCE(mps.category, p.category) as category
     FROM main_products_sections mps
     LEFT JOIN products p ON mps.product_id = p.id
+    WHERE (mps.product_id IS NULL AND mps.id IS NOT NULL) OR (mps.product_id IS NOT NULL AND p.id IS NOT NULL)
     ORDER BY mps.order_index ASC
   `, (err, sections) => {
     if (err) {
@@ -4183,10 +4415,10 @@ app.get('/api/pricing/hero', (req, res) => {
 // Update pricing hero section
 app.put('/api/pricing/hero/:id', (req, res) => {
   const { id } = req.params;
-  const { title, description } = req.body;
+  const { title, description, redirect_url } = req.body;
   
-  db.run('UPDATE pricing_hero SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [title, description, id], function(err) {
+  db.run('UPDATE pricing_hero SET title = ?, description = ?, redirect_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [title, description, redirect_url, id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -4347,6 +4579,65 @@ app.get('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
     });
 });
 
+// Create pricing_page_config table
+db.run(`CREATE TABLE IF NOT EXISTS pricing_page_config (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  main_heading TEXT NOT NULL DEFAULT 'Affordable Cloud Server Pricing and Plans in India',
+  compute_section_heading TEXT NOT NULL DEFAULT 'Compute Offering',
+  compute_section_description TEXT NOT NULL DEFAULT 'Choose a plan based on the amount of CPU, memory, and storage required for your project. The cost will adjust according to the resources you select.',
+  compute_tab_basic_label TEXT NOT NULL DEFAULT 'Basic Compute Plans',
+  compute_tab_cpu_intensive_label TEXT NOT NULL DEFAULT 'CPU Intensive',
+  compute_tab_memory_intensive_label TEXT NOT NULL DEFAULT 'Memory Intensive',
+  compute_table_header_name TEXT NOT NULL DEFAULT 'Name',
+  compute_table_header_vcpu TEXT NOT NULL DEFAULT 'vCPU',
+  compute_table_header_memory TEXT NOT NULL DEFAULT 'Memory RAM',
+  compute_table_header_hourly TEXT NOT NULL DEFAULT 'Price Hourly',
+  compute_table_header_monthly TEXT NOT NULL DEFAULT 'Price Monthly',
+  compute_table_header_quarterly TEXT NOT NULL DEFAULT 'Price Quarterly',
+  compute_table_header_yearly TEXT NOT NULL DEFAULT 'Price Yearly',
+  disk_section_heading TEXT NOT NULL DEFAULT 'Disk Offering',
+  disk_section_description TEXT NOT NULL DEFAULT 'Choose the disk storage size that best fits your requirements. All storage options use high-performance NVMe technology.',
+  disk_table_header_name TEXT NOT NULL DEFAULT 'Name',
+  disk_table_header_type TEXT NOT NULL DEFAULT 'Storage Type',
+  disk_table_header_size TEXT NOT NULL DEFAULT 'Size',
+  storage_section_heading TEXT NOT NULL DEFAULT 'Storage Pricing and Plans',
+  storage_section_description TEXT NOT NULL DEFAULT 'Choose from our flexible storage options designed to meet your specific needs and budget requirements.',
+  storage_table_header_type TEXT NOT NULL DEFAULT 'Storage Type',
+  storage_table_header_description TEXT NOT NULL DEFAULT 'Description',
+  storage_table_header_price TEXT NOT NULL DEFAULT 'Price',
+  storage_table_header_action TEXT NOT NULL DEFAULT 'Action',
+  service_table_header_service TEXT NOT NULL DEFAULT 'Service',
+  service_table_header_type TEXT NOT NULL DEFAULT 'Type',
+  service_table_header_features TEXT NOT NULL DEFAULT 'Features',
+  service_table_header_bandwidth TEXT NOT NULL DEFAULT 'Bandwidth',
+  service_table_header_discount TEXT NOT NULL DEFAULT 'Discount',
+  service_table_header_price TEXT NOT NULL DEFAULT 'Price',
+  service_table_header_action TEXT NOT NULL DEFAULT 'Action',
+  faq_section_heading TEXT NOT NULL DEFAULT 'Have Any Questions?',
+  faq_section_subheading TEXT NOT NULL DEFAULT 'Don''t Worry, We''ve Got Answers!',
+  button_get_started TEXT NOT NULL DEFAULT 'Get Started',
+  button_contact_sales TEXT NOT NULL DEFAULT 'Contact Sales',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`, (err) => {
+  if (err && !err.message.includes('already exists')) {
+    console.error('Error creating pricing_page_config table:', err.message);
+  } else if (!err) {
+    console.log('✅ Created pricing_page_config table');
+    
+    // Insert default config if it doesn't exist
+    db.get('SELECT COUNT(*) as count FROM pricing_page_config', (err, row) => {
+      if (!err && row && row.count === 0) {
+        db.run(`INSERT INTO pricing_page_config (id) VALUES (1)`, (err) => {
+          if (!err) {
+            console.log('✅ Inserted default pricing page configuration');
+          }
+        });
+      }
+    });
+  }
+});
+
 // Create compute_plans and disk_offerings tables if they don't exist
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS compute_plans (
@@ -4490,7 +4781,7 @@ app.get('/api/pricing/compute-plans', (req, res) => {
 
 // Create compute plan
 app.post('/api/pricing/compute-plans', (req, res) => {
-  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index } = req.body;
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
   
   db.get('SELECT MAX(order_index) as max_order FROM compute_plans WHERE plan_type = ?', [plan_type], (err, result) => {
     if (err) {
@@ -4500,9 +4791,9 @@ app.post('/api/pricing/compute-plans', (req, res) => {
     
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
     
-    db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [plan_type, name, vcpu, memory, monthly_price, hourly_price, nextOrder],
+    db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -4516,13 +4807,13 @@ app.post('/api/pricing/compute-plans', (req, res) => {
 // Update compute plan
 app.put('/api/pricing/compute-plans/:id', (req, res) => {
   const { id } = req.params;
-  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index } = req.body;
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
   
   db.run(`UPDATE compute_plans SET
           plan_type = ?, name = ?, vcpu = ?, memory = ?, monthly_price = ?, hourly_price = ?,
-          order_index = ?, updated_at = CURRENT_TIMESTAMP
+          quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
-    [plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index || 0, id],
+    [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -4558,7 +4849,7 @@ app.get('/api/pricing/disk-offerings', (req, res) => {
 
 // Create disk offering
 app.post('/api/pricing/disk-offerings', (req, res) => {
-  const { name, storage_type, size, monthly_price, hourly_price, order_index } = req.body;
+  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
   
   db.get('SELECT MAX(order_index) as max_order FROM disk_offerings', (err, result) => {
     if (err) {
@@ -4568,9 +4859,9 @@ app.post('/api/pricing/disk-offerings', (req, res) => {
     
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
     
-    db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, order_index)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, storage_type, size, monthly_price, hourly_price, nextOrder],
+    db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -4584,13 +4875,13 @@ app.post('/api/pricing/disk-offerings', (req, res) => {
 // Update disk offering
 app.put('/api/pricing/disk-offerings/:id', (req, res) => {
   const { id } = req.params;
-  const { name, storage_type, size, monthly_price, hourly_price, order_index } = req.body;
+  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
   
   db.run(`UPDATE disk_offerings SET
           name = ?, storage_type = ?, size = ?, monthly_price = ?, hourly_price = ?,
-          order_index = ?, updated_at = CURRENT_TIMESTAMP
+          quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
-    [name, storage_type, size, monthly_price, hourly_price, order_index || 0, id],
+    [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -4633,6 +4924,105 @@ app.get('/api/pricing/faqs', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+// Get pricing page configuration
+app.get('/api/pricing/page-config', (req, res) => {
+  db.get('SELECT * FROM pricing_page_config WHERE id = 1', (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(row || {});
+  });
+});
+
+// Update pricing page configuration
+app.put('/api/pricing/page-config', (req, res) => {
+  const config = req.body;
+  
+  db.run(`UPDATE pricing_page_config SET 
+    main_heading = ?,
+    compute_section_heading = ?,
+    compute_section_description = ?,
+    compute_tab_basic_label = ?,
+    compute_tab_cpu_intensive_label = ?,
+    compute_tab_memory_intensive_label = ?,
+    compute_table_header_name = ?,
+    compute_table_header_vcpu = ?,
+    compute_table_header_memory = ?,
+    compute_table_header_hourly = ?,
+    compute_table_header_monthly = ?,
+    compute_table_header_quarterly = ?,
+    compute_table_header_yearly = ?,
+    disk_section_heading = ?,
+    disk_section_description = ?,
+    disk_table_header_name = ?,
+    disk_table_header_type = ?,
+    disk_table_header_size = ?,
+    storage_section_heading = ?,
+    storage_section_description = ?,
+    storage_table_header_type = ?,
+    storage_table_header_description = ?,
+    storage_table_header_price = ?,
+    storage_table_header_action = ?,
+    service_table_header_service = ?,
+    service_table_header_type = ?,
+    service_table_header_features = ?,
+    service_table_header_bandwidth = ?,
+    service_table_header_discount = ?,
+    service_table_header_price = ?,
+    service_table_header_action = ?,
+    faq_section_heading = ?,
+    faq_section_subheading = ?,
+    button_get_started = ?,
+    button_contact_sales = ?,
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`,
+    [
+      config.main_heading,
+      config.compute_section_heading,
+      config.compute_section_description,
+      config.compute_tab_basic_label,
+      config.compute_tab_cpu_intensive_label,
+      config.compute_tab_memory_intensive_label,
+      config.compute_table_header_name,
+      config.compute_table_header_vcpu,
+      config.compute_table_header_memory,
+      config.compute_table_header_hourly,
+      config.compute_table_header_monthly,
+      config.compute_table_header_quarterly,
+      config.compute_table_header_yearly,
+      config.disk_section_heading,
+      config.disk_section_description,
+      config.disk_table_header_name,
+      config.disk_table_header_type,
+      config.disk_table_header_size,
+      config.storage_section_heading,
+      config.storage_section_description,
+      config.storage_table_header_type,
+      config.storage_table_header_description,
+      config.storage_table_header_price,
+      config.storage_table_header_action,
+      config.service_table_header_service,
+      config.service_table_header_type,
+      config.service_table_header_features,
+      config.service_table_header_bandwidth,
+      config.service_table_header_discount,
+      config.service_table_header_price,
+      config.service_table_header_action,
+      config.faq_section_heading,
+      config.faq_section_subheading,
+      config.button_get_started,
+      config.button_contact_sales
+    ],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Pricing page configuration updated successfully', changes: this.changes });
+    });
 });
 
 // Create pricing plan
@@ -4801,6 +5191,7 @@ app.get('/api/main-marketplaces', (req, res) => {
           COALESCE(mss.button_text, 'Explore Marketplace') as button_text
         FROM main_marketplaces_sections mss
         LEFT JOIN marketplaces s ON mss.marketplace_id = s.id
+        WHERE (mss.marketplace_id IS NULL AND mss.id IS NOT NULL) OR (mss.marketplace_id IS NOT NULL AND s.id IS NOT NULL)
         ORDER BY mss.order_index ASC
       `
       : `
@@ -5029,7 +5420,7 @@ function addAboutUsSectionColumns() {
     { name: 'about_story_section', columns: ['is_visible INTEGER DEFAULT 1'] },
     { name: 'about_legacy_section', columns: ['is_visible INTEGER DEFAULT 1'] },
     { name: 'about_testimonials_section', columns: ['is_visible INTEGER DEFAULT 1'] },
-    { name: 'about_approach_section', columns: ['is_visible INTEGER DEFAULT 1'] },
+    { name: 'about_approach_section', columns: ['is_visible INTEGER DEFAULT 1', 'cta_button_url TEXT'] },
     { name: 'about_mission_vision_section', columns: ['is_visible INTEGER DEFAULT 1'] },
     { name: 'about_core_values_section', columns: ['is_visible INTEGER DEFAULT 1'] }
   ];
@@ -5147,6 +5538,7 @@ app.get('/api/main-marketplaces/sections/all', (req, res) => {
       COALESCE(mss.button_text, 'Explore Marketplace') as button_text
     FROM main_marketplaces_sections mss
     LEFT JOIN marketplaces s ON mss.marketplace_id = s.id
+    WHERE (mss.marketplace_id IS NULL AND mss.id IS NOT NULL) OR (mss.marketplace_id IS NOT NULL AND s.id IS NOT NULL)
     ORDER BY mss.order_index ASC
   `, (err, sections) => {
     if (err) {
@@ -5747,15 +6139,7 @@ app.get('/api/about', (req, res) => {
         }
         aboutData.legacy = legacy || {};
         
-        // Get milestones
-        db.all('SELECT * FROM about_legacy_milestones WHERE is_visible = 1 ORDER BY order_index ASC', (err, milestones) => {
-          if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-          }
-          aboutData.legacy.milestones = milestones || [];
-          
-          // Get stats
+        // Get stats
           db.all('SELECT * FROM about_legacy_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
             if (err) {
               res.status(500).json({ error: err.message });
@@ -5983,66 +6367,6 @@ app.put('/api/about/legacy', (req, res) => {
     });
 });
 
-// Milestones CRUD
-app.get('/api/about/milestones', (req, res) => {
-  const { all } = req.query;
-  const query = all === 'true' 
-    ? 'SELECT * FROM about_legacy_milestones ORDER BY order_index ASC'
-    : 'SELECT * FROM about_legacy_milestones WHERE is_visible = 1 ORDER BY order_index ASC';
-  db.all(query, (err, milestones) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(milestones || []);
-  });
-});
-
-app.post('/api/about/milestones', (req, res) => {
-  const { year, title, description, order_index, is_visible } = req.body;
-  db.run(`INSERT INTO about_legacy_milestones (year, title, description, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
-    [year, title, description, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id: this.lastID, message: 'Milestone created successfully' });
-    });
-});
-
-app.put('/api/about/milestones/:id', (req, res) => {
-  const { id } = req.params;
-  const { year, title, description, order_index, is_visible } = req.body;
-  db.run(`UPDATE about_legacy_milestones SET 
-    year = COALESCE(?, year),
-    title = COALESCE(?, title),
-    description = COALESCE(?, description),
-    order_index = COALESCE(?, order_index),
-    is_visible = COALESCE(?, is_visible),
-    updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`,
-    [year, title, description, order_index, is_visible, id],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Milestone updated successfully', changes: this.changes });
-    });
-});
-
-app.delete('/api/about/milestones/:id', (req, res) => {
-  const { id } = req.params;
-  db.run('DELETE FROM about_legacy_milestones WHERE id = ?', [id], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({ message: 'Milestone deleted successfully', changes: this.changes });
-  });
-});
-
 // Stats CRUD
 app.get('/api/about/stats', (req, res) => {
   const { all } = req.query;
@@ -6255,22 +6579,23 @@ app.delete('/api/about/ratings/:id', (req, res) => {
 
 // Approach Section Header
 app.put('/api/about/approach-section', (req, res) => {
-  const { header_title, header_description, cta_button_text } = req.body;
+  const { header_title, header_description, cta_button_text, cta_button_url } = req.body;
   db.run(`UPDATE about_approach_section SET 
     header_title = COALESCE(?, header_title),
     header_description = COALESCE(?, header_description),
     cta_button_text = COALESCE(?, cta_button_text),
+    cta_button_url = COALESCE(?, cta_button_url),
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`,
-    [header_title, header_description, cta_button_text],
+    [header_title, header_description, cta_button_text, cta_button_url],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
-        db.run(`INSERT INTO about_approach_section (id, header_title, header_description, cta_button_text) VALUES (1, ?, ?, ?)`,
-          [header_title || 'Our Approach', header_description, cta_button_text || 'Talk to a Specialist'],
+        db.run(`INSERT INTO about_approach_section (id, header_title, header_description, cta_button_text, cta_button_url) VALUES (1, ?, ?, ?, ?)`,
+          [header_title || 'Our Approach', header_description, cta_button_text || 'Talk to a Specialist', cta_button_url || ''],
           function(err) {
             if (err) {
               res.status(500).json({ error: err.message });
@@ -6345,29 +6670,6 @@ app.delete('/api/about/approach-items/:id', (req, res) => {
 });
 
 // Toggle visibility endpoints
-app.put('/api/about/milestones/:id/toggle-visibility', (req, res) => {
-  const { id } = req.params;
-  db.get('SELECT is_visible FROM about_legacy_milestones WHERE id = ?', [id], (err, milestone) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (!milestone) {
-      res.status(404).json({ error: 'Milestone not found' });
-      return;
-    }
-    const newVisibility = milestone.is_visible === 1 ? 0 : 1;
-    db.run('UPDATE about_legacy_milestones SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
-        }
-        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
-      });
-  });
-});
-
 app.put('/api/about/stats/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
   db.get('SELECT is_visible FROM about_legacy_stats WHERE id = ?', [id], (err, stat) => {
@@ -6765,16 +7067,60 @@ app.put('/api/about/core-values/:id/toggle-visibility', (req, res) => {
   });
 });
 
-// Cleanup orphaned main_marketplaces_sections entries (where marketplace doesn't exist or is not visible)
+// Cleanup orphaned main_marketplaces_sections entries (where marketplace doesn't exist)
+// Only removes entries where marketplace_id references a marketplace that was deleted
 function cleanupOrphanedMainMarketplacesSections() {
   db.run(`
     DELETE FROM main_marketplaces_sections 
-    WHERE marketplace_id NOT IN (SELECT id FROM marketplaces WHERE is_visible = 1)
+    WHERE marketplace_id IS NOT NULL 
+    AND marketplace_id NOT IN (SELECT id FROM marketplaces)
   `, function(err) {
     if (err) {
       console.error('Error cleaning up orphaned main_marketplaces_sections:', err.message);
     } else if (this.changes > 0) {
-      console.log(`🧹 Cleaned up ${this.changes} orphaned main_marketplaces_sections entries`);
+      console.log(`🧹 Cleaned up ${this.changes} orphaned main_marketplaces_sections entries (deleted marketplaces only)`);
+    }
+    
+    // Also clean up NULL marketplace_id entries (these are truly orphaned)
+    db.run(`
+      DELETE FROM main_marketplaces_sections 
+      WHERE marketplace_id IS NULL
+    `, function(err2) {
+      if (!err2 && this.changes > 0) {
+        console.log(`🧹 Cleaned up ${this.changes} entries with NULL marketplace_id`);
+      }
+    });
+  });
+}
+
+// Cleanup orphaned main_solutions_sections entries (where solution doesn't exist)
+// Only removes entries where solution_id references a solution that was deleted
+function cleanupOrphanedMainSolutionsSections() {
+  db.run(`
+    DELETE FROM main_solutions_sections 
+    WHERE solution_id IS NOT NULL 
+    AND solution_id NOT IN (SELECT id FROM solutions)
+  `, function(err) {
+    if (err) {
+      console.error('Error cleaning up orphaned main_solutions_sections:', err.message);
+    } else if (this.changes > 0) {
+      console.log(`🧹 Cleaned up ${this.changes} orphaned main_solutions_sections entries (deleted solutions only)`);
+    }
+  });
+}
+
+// Cleanup orphaned main_products_sections entries (where product doesn't exist)
+// Only removes entries where product_id references a product that was deleted
+function cleanupOrphanedMainProductsSections() {
+  db.run(`
+    DELETE FROM main_products_sections 
+    WHERE product_id IS NOT NULL 
+    AND product_id NOT IN (SELECT id FROM products)
+  `, function(err) {
+    if (err) {
+      console.error('Error cleaning up orphaned main_products_sections:', err.message);
+    } else if (this.changes > 0) {
+      console.log(`🧹 Cleaned up ${this.changes} orphaned main_products_sections entries (deleted products only)`);
     }
   });
 }
@@ -6820,6 +7166,11 @@ app.get('/api/solutions/categories', (req, res) => {
 
 // Get single solution
 app.get('/api/solutions/:id', (req, res) => {
+  // Set no-cache headers to prevent browser caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   const { id } = req.params;
   db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, solution) => {
     if (err) {
@@ -6931,8 +7282,13 @@ app.delete('/api/solutions/:id', (req, res) => {
     
     db.run(`DELETE FROM solution_sections WHERE solution_id = ?`, [id], (err) => {
       if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+        console.error('Error deleting solution sections:', err.message);
+      }
+      
+      // Also delete from main_solutions_sections
+      db.run(`DELETE FROM main_solutions_sections WHERE solution_id = ?`, [id], (err) => {
+        if (err) {
+          console.error('Error deleting main_solutions_sections entry:', err.message);
       }
       
       db.run(`DELETE FROM solutions WHERE id = ?`, [id], function(err) {
@@ -6941,6 +7297,7 @@ app.delete('/api/solutions/:id', (req, res) => {
           return;
         }
         res.json({ message: 'Solution deleted successfully', changes: this.changes });
+        });
       });
     });
   });
@@ -6977,23 +7334,46 @@ app.put('/api/solutions/:id/toggle-visibility', (req, res) => {
 });
 
 // Duplicate solution
-app.post('/api/solutions/:id/duplicate', (req, res) => {
-  const { id } = req.params;
-  const { newName, newRoute, name } = req.body;
+app.post('/api/solutions/:id/duplicate', async (req, res) => {
+  console.log('[DUPLICATE] ========== ENDPOINT HIT ==========');
+  console.log('[DUPLICATE] Request params:', req.params);
+  console.log('[DUPLICATE] Request body:', req.body);
   
-  db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, originalSolution) => {
+  // Set a longer timeout for this operation
+  req.setTimeout(300000); // 5 minutes
+  res.setTimeout(300000);
+  
+  try {
+    const { id } = req.params;
+    const { newName, newRoute, name } = req.body;
+    
+    console.log(`[DUPLICATE] Starting duplication for solution ID: ${id}`);
+    console.log(`[DUPLICATE] Request body:`, { newName, newRoute, name });
+    
+    db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, originalSolution) => {
     if (err) {
-      res.status(500).json({ error: err.message });
+      console.error('[DUPLICATE] Error fetching solution:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
       return;
     }
     if (!originalSolution) {
-      res.status(404).json({ error: 'Solution not found' });
+      console.error('[DUPLICATE] Solution not found:', id);
+      if (!res.headersSent) {
+        res.status(404).json({ error: 'Solution not found' });
+      }
       return;
     }
     
+    console.log(`[DUPLICATE] Found solution: ${originalSolution.name}`);
+    
     db.get('SELECT MAX(order_index) as max_order FROM solutions', (err, result) => {
       if (err) {
-        res.status(500).json({ error: err.message });
+        console.error('[DUPLICATE] Error getting max order:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: err.message });
+        }
         return;
       }
       
@@ -7001,59 +7381,100 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
       const duplicateName = newName || name || `${originalSolution.name} (Copy)`;
       const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      console.log(`[DUPLICATE] Creating new solution with name: ${duplicateName}, order: ${nextOrder}`);
+      
       db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
         [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end, originalSolution.enable_single_page, originalSolution.redirect_url], 
         function(err) {
           if (err) {
-            res.status(500).json({ error: err.message });
+            console.error('[DUPLICATE] Error inserting new solution:', err);
+            if (!res.headersSent) {
+              res.status(500).json({ error: err.message });
+            }
             return;
           }
           
           const newSolutionId = this.lastID;
-          const correctRoute = `/solutions/${newSolutionId}`;
+          
+          // Generate slug-based route from the solution name
+          const slug = duplicateName.toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')           // Replace spaces with hyphens
+            .replace(/[^a-z0-9-]/g, '')     // Remove special characters
+            .replace(/--+/g, '-')           // Replace multiple hyphens with single
+            .replace(/^-+|-+$/g, '');       // Trim hyphens from start/end
+          
+          const correctRoute = `/solutions/${slug}`;
+          
+          console.log(`[DUPLICATE] New solution created with ID: ${newSolutionId}`);
+          console.log(`[DUPLICATE] Generated route: ${correctRoute} from name: ${duplicateName}`);
           
           db.run(`UPDATE solutions SET route = ? WHERE id = ?`, [correctRoute, newSolutionId], (updateErr) => {
             if (updateErr) {
-              console.error('Error updating route:', updateErr.message);
+              console.error('[DUPLICATE] Error updating route:', updateErr.message);
+            } else {
+              console.log(`[DUPLICATE] Route updated successfully to: ${correctRoute}`);
             }
+            
+            console.log(`[DUPLICATE] Fetching sections for original solution ${id}`);
             
             // Duplicate all sections
             db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
               if (err) {
-                console.error('Error fetching sections:', err.message);
-                res.json({ 
-                  message: 'Solution duplicated successfully (sections could not be duplicated)', 
-                  id: newSolutionId
-                });
+                console.error('[DUPLICATE] Error fetching sections:', err.message);
+                if (!res.headersSent) {
+                  res.json({ 
+                    message: 'Solution duplicated successfully (sections could not be duplicated)', 
+                    id: newSolutionId
+                  });
+                }
                 return;
               }
               
+              console.log(`[DUPLICATE] Found ${sections.length} sections to duplicate`);
+              
               if (sections.length === 0) {
-                res.json({ 
-                  message: 'Solution duplicated successfully', 
-                  id: newSolutionId
-                });
+                if (!res.headersSent) {
+                  res.json({ 
+                    message: 'Solution duplicated successfully', 
+                    id: newSolutionId
+                  });
+                }
                 return;
               }
               
               const sectionIdMap = new Map();
               let completed = 0;
               const total = sections.length;
+              let hasError = false;
               
-              sections.forEach((section) => {
-                db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`, 
-                  [newSolutionId, section.section_type, section.title, section.content, section.order_index], 
+              sections.forEach((section, index) => {
+                console.log(`[DUPLICATE] Duplicating section ${index + 1}/${total}: ${section.section_type}`);
+                
+                db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+                  [newSolutionId, section.section_type, section.title || null, section.description || null, section.content || null, section.order_index || 0, section.is_visible !== undefined ? section.is_visible : 1, section.media_type || null, section.media_source || null, section.media_url || null], 
                   function(err) {
                     if (err) {
-                      console.error('Error duplicating section:', err.message);
+                      console.error('[DUPLICATE] Error duplicating section:', err.message);
+                      console.error('[DUPLICATE] Section data:', JSON.stringify(section, null, 2));
+                      hasError = true;
                     } else {
                       sectionIdMap.set(section.id, this.lastID);
+                      console.log(`[DUPLICATE] Section duplicated: ${section.id} -> ${this.lastID}`);
                     }
                     
                     completed++;
                     if (completed === total) {
+                      console.log(`[DUPLICATE] All ${total} sections processed, now duplicating items...`);
                       // Duplicate section items
-                      duplicateSolutionItems(id, sectionIdMap, newSolutionId, res);
+                      try {
+                        duplicateSolutionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution, res);
+                      } catch (itemErr) {
+                        console.error('[DUPLICATE] Error in duplicateSolutionItems:', itemErr);
+                        if (!res.headersSent) {
+                          res.status(500).json({ error: itemErr.message || 'Error duplicating items' });
+                        }
+                      }
                     }
                   });
               });
@@ -7062,75 +7483,173 @@ app.post('/api/solutions/:id/duplicate', (req, res) => {
         });
     });
   });
+  } catch (error) {
+    console.error('[DUPLICATE] Unhandled error:', error);
+    console.error('[DUPLICATE] Error stack:', error.stack);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
 });
 
 // Helper function to duplicate solution items
-function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId, res) {
-  const originalSectionIds = Array.from(sectionIdMap.keys());
-  if (originalSectionIds.length === 0) {
-    res.json({ 
-      message: 'Solution duplicated successfully', 
-      id: newSolutionId
-    });
-    return;
-  }
-  
-  const placeholders = originalSectionIds.map(() => '?').join(',');
-  
-  db.all(`SELECT * FROM solution_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
-    if (err) {
-      console.error('Error fetching solution items:', err.message);
-      res.json({ 
-        message: 'Solution duplicated successfully (items could not be duplicated)', 
-        id: newSolutionId
-      });
-      return;
-    }
+function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId, duplicateName, originalSolution, res) {
+  try {
+    // Prevent multiple responses
+    let responseSent = false;
+    let responseTimeout = null;
     
-    if (items.length === 0) {
-      res.json({ 
-        message: 'Solution duplicated successfully', 
-        id: newSolutionId
-      });
-      return;
-    }
+    const sendResponse = (data) => {
+      if (responseTimeout) {
+        clearTimeout(responseTimeout);
+        responseTimeout = null;
+      }
+      if (!responseSent && !res.headersSent) {
+        responseSent = true;
+        console.log('[DUPLICATE] Sending final response:', data);
+        res.json(data);
+      } else {
+        console.log('[DUPLICATE] Response already sent, skipping duplicate response');
+      }
+    };
     
-    let completed = 0;
-    const total = items.length;
+    // Safety timeout - send response after 30 seconds if nothing else does
+    responseTimeout = setTimeout(() => {
+      if (!responseSent && !res.headersSent) {
+        console.log('[DUPLICATE] Timeout reached, sending response anyway');
+        sendResponse({ 
+          message: 'Solution duplication completed (timeout)', 
+          id: newSolutionId
+        });
+      }
+    }, 30000);
     
-    items.forEach((item) => {
-      const newSectionId = sectionIdMap.get(item.section_id);
-      if (!newSectionId) {
-        completed++;
-        if (completed === total) {
-          res.json({ 
+    console.log(`[DUPLICATE] Starting item duplication for solution ${newSolutionId}`);
+    console.log(`[DUPLICATE] Section ID map size: ${sectionIdMap.size}`);
+    
+    const originalSectionIds = Array.from(sectionIdMap.keys());
+    if (originalSectionIds.length === 0) {
+      console.log('[DUPLICATE] No sections to duplicate items from');
+      try {
+        createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
+          sendResponse({ 
             message: 'Solution duplicated successfully', 
+            id: newSolutionId
+          });
+        });
+      } catch (err) {
+        console.error('[DUPLICATE] Error creating main solution section:', err);
+        sendResponse({ 
+          message: 'Solution duplicated (main section creation failed)', 
+          id: newSolutionId
+        });
+      }
+      return;
+    }
+    
+    const placeholders = originalSectionIds.map(() => '?').join(',');
+    console.log(`[DUPLICATE] Querying items for ${originalSectionIds.length} sections`);
+    
+    db.all(`SELECT * FROM solution_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
+      if (err) {
+        console.error('[DUPLICATE] Error fetching solution items:', err.message);
+        sendResponse({ 
+          message: 'Solution duplicated successfully (items could not be duplicated)', 
+          id: newSolutionId
+        });
+        return;
+      }
+    
+      console.log(`[DUPLICATE] Found ${items.length} items to duplicate`);
+      
+      if (items.length === 0) {
+        console.log('[DUPLICATE] No items to duplicate');
+        try {
+          createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
+            sendResponse({ 
+              message: 'Solution duplicated successfully', 
+              id: newSolutionId
+            });
+          });
+        } catch (err) {
+          console.error('[DUPLICATE] Error creating main solution section:', err);
+          sendResponse({ 
+            message: 'Solution duplicated (main section creation failed)', 
             id: newSolutionId
           });
         }
         return;
       }
       
-      db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [newSectionId, item.item_type, item.title, item.description, item.icon, item.value, item.label, item.features, item.order_index], 
-        function(err) {
-          if (err) {
-            console.error('Error duplicating item:', err.message);
-          }
-          
+      let completed = 0;
+      const total = items.length;
+      
+      items.forEach((item, index) => {
+        const newSectionId = sectionIdMap.get(item.section_id);
+        if (!newSectionId) {
+          console.log(`[DUPLICATE] Warning: No new section ID found for original section ${item.section_id}`);
           completed++;
           if (completed === total) {
-            // Create main solutions section for duplicated solution
-            createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
-              res.json({ 
-                message: 'Solution duplicated successfully', 
+            try {
+              createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
+                sendResponse({ 
+                  message: 'Solution duplicated successfully', 
+                  id: newSolutionId
+                });
+              });
+            } catch (err) {
+              console.error('[DUPLICATE] Error creating main solution section:', err);
+              sendResponse({ 
+                message: 'Solution duplicated (main section creation failed)', 
                 id: newSolutionId
               });
-            });
+            }
           }
-        });
+          return;
+        }
+        
+        console.log(`[DUPLICATE] Duplicating item ${index + 1}/${total}: ${item.item_type || 'unknown'}`);
+        
+        db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, order_index, content, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+          [newSectionId, item.item_type || null, item.title || null, item.description || null, item.icon || null, item.value || null, item.label || null, item.features || null, item.order_index || 0, item.content || null, item.is_visible !== undefined ? item.is_visible : 1], 
+          function(err) {
+            if (err) {
+              console.error('[DUPLICATE] Error duplicating item:', err.message);
+              console.error('[DUPLICATE] Item data:', JSON.stringify(item, null, 2));
+            } else {
+              console.log(`[DUPLICATE] Item ${index + 1} duplicated successfully`);
+            }
+            
+            completed++;
+            if (completed === total) {
+              console.log(`[DUPLICATE] All ${total} items processed, creating main section...`);
+              // Create main solutions section for duplicated solution
+              try {
+                createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
+                  console.log(`[DUPLICATE] Solution ${newSolutionId} duplicated successfully!`);
+                  sendResponse({ 
+                    message: 'Solution duplicated successfully', 
+                    id: newSolutionId
+                  });
+                });
+              } catch (err) {
+                console.error('[DUPLICATE] Error creating main solution section:', err);
+                sendResponse({ 
+                  message: 'Solution duplicated (main section creation failed)', 
+                  id: newSolutionId
+                });
+              }
+            }
+          });
+      });
     });
-  });
+  } catch (error) {
+    console.error('[DUPLICATE] Error in duplicateSolutionItems:', error);
+    console.error('[DUPLICATE] Error stack:', error.stack);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || 'Error duplicating items' });
+    }
+  }
 }
 
 // Endpoint to sync existing solutions to main_solutions_sections
@@ -7207,6 +7726,7 @@ app.get('/api/main-solutions', (req, res) => {
           COALESCE(mss.category, s.category) as category
         FROM main_solutions_sections mss
         LEFT JOIN solutions s ON mss.solution_id = s.id
+        WHERE (mss.solution_id IS NULL AND mss.id IS NOT NULL) OR (mss.solution_id IS NOT NULL AND s.id IS NOT NULL)
         ORDER BY mss.order_index ASC
       `
       : `
@@ -7217,7 +7737,7 @@ app.get('/api/main-solutions', (req, res) => {
           COALESCE(mss.category, s.category) as category
         FROM main_solutions_sections mss
         LEFT JOIN solutions s ON mss.solution_id = s.id
-        WHERE mss.is_visible = 1 AND (s.is_visible = 1 OR s.id IS NULL)
+        WHERE mss.is_visible = 1 AND (mss.solution_id IS NULL OR s.is_visible = 1)
         ORDER BY mss.order_index ASC
       `;
     
@@ -7639,6 +8159,11 @@ app.post('/api/main-solutions/sections', (req, res) => {
 
 // Get all sections for a solution
 app.get('/api/solutions/:id/sections', (req, res) => {
+  // Set no-cache headers to prevent browser caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   const { id } = req.params;
   db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
     if (err) {
@@ -7667,6 +8192,11 @@ app.get('/api/solutions/:id/sections/:sectionId', (req, res) => {
 
 // Get solution by route
 app.get('/api/solutions/by-route/:route', (req, res) => {
+  // Set no-cache headers to prevent browser caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   let { route } = req.params;
   // Handle both full route (/solutions/startups-cloud) and slug (startups-cloud)
   if (!route.startsWith('/')) {
@@ -7687,6 +8217,11 @@ app.get('/api/solutions/by-route/:route', (req, res) => {
 
 // Get solution sections by route
 app.get('/api/solutions/by-route/:route/sections', (req, res) => {
+  // Set no-cache headers to prevent browser caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   let { route } = req.params;
   // Handle both full route (/solutions/startups-cloud) and slug (startups-cloud)
   if (!route.startsWith('/')) {
@@ -7722,7 +8257,38 @@ app.get('/api/solutions/by-route/:route/sections', (req, res) => {
 // Create new solution section
 app.post('/api/solutions/:id/sections', (req, res) => {
   const { id } = req.params;
-  const { section_type, title, content } = req.body;
+  const { section_type, title, description, content, media_type, media_source, media_url } = req.body;
+  
+  // Validate media fields if section_type is media_banner
+  let finalMediaUrl = null;
+  
+  if (section_type === 'media_banner') {
+    if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
+      return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
+    }
+    
+    if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
+      return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+    }
+    
+    if (!media_url) {
+      return res.status(400).json({ error: 'media_url is required for media_banner sections' });
+    }
+    
+    // Validate YouTube URL if source is youtube
+    if (media_source === 'youtube') {
+      const youtubeValidation = validateYouTubeUrl(media_url);
+      if (!youtubeValidation.valid) {
+        return res.status(400).json({ error: youtubeValidation.error });
+      }
+      // Use the normalized embed URL
+      finalMediaUrl = youtubeValidation.embedUrl;
+    } else {
+      finalMediaUrl = media_url;
+    }
+  } else {
+    finalMediaUrl = media_url || null;
+  }
   
   // Get the next order index
   db.get(`
@@ -7737,8 +8303,8 @@ app.post('/api/solutions/:id/sections', (req, res) => {
     
     const finalOrderIndex = (result.max_order || -1) + 1;
     
-    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`, 
-      [id, section_type, title, content, finalOrderIndex], 
+    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, media_type, media_source, media_url, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`, 
+      [id, section_type, title, description, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -7756,7 +8322,7 @@ app.post('/api/solutions/:id/sections', (req, res) => {
 // Update solution section
 app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content, order_index, is_visible } = req.body;
+  const { section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url } = req.body;
   
   // Build dynamic query based on provided fields
   let updateFields = [];
@@ -7770,6 +8336,10 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
     updateFields.push('title = ?');
     values.push(title);
   }
+  if (description !== undefined) {
+    updateFields.push('description = ?');
+    values.push(description);
+  }
   if (content !== undefined) {
     updateFields.push('content = ?');
     values.push(content);
@@ -7782,17 +8352,45 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
     updateFields.push('is_visible = ?');
     values.push(is_visible);
   }
+  if (media_type !== undefined) {
+    updateFields.push('media_type = ?');
+    values.push(media_type);
+  }
+  if (media_source !== undefined) {
+    updateFields.push('media_source = ?');
+    values.push(media_source);
+  }
+  if (media_url !== undefined) {
+    updateFields.push('media_url = ?');
+    values.push(media_url);
+  }
   
+  // Always update updated_at
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
+  
+  // Check if there are any fields to update
+  if (updateFields.length === 1) {
+    // Only updated_at, which means no actual fields were provided
+    res.status(400).json({ error: 'No fields provided to update' });
+    return;
+  }
+  
   values.push(sectionId, id);
   
   const query = `UPDATE solution_sections SET ${updateFields.join(', ')} WHERE id = ? AND solution_id = ?`;
   
   db.run(query, values, function(err) {
     if (err) {
+      console.error('Error updating solution section:', err);
       res.status(500).json({ error: err.message });
       return;
     }
+    
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Section not found or no changes made' });
+      return;
+    }
+    
     res.json({ message: 'Section updated successfully', changes: this.changes });
   });
 });
@@ -7814,6 +8412,11 @@ app.delete('/api/solutions/:id/sections/:sectionId', (req, res) => {
 
 // Get all items for a specific solution section
 app.get('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
+  // Set no-cache headers to prevent browser caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   const { sectionId } = req.params;
   db.all('SELECT * FROM solution_items WHERE section_id = ? ORDER BY order_index ASC', [sectionId], (err, items) => {
     if (err) {
@@ -7827,7 +8430,7 @@ app.get('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
 // Create new solution section item
 app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
   const { id, sectionId } = req.params;
-  const { item_type, title, description, icon, value, label, features } = req.body;
+  const { item_type, title, description, icon, value, label, features, content } = req.body;
   
   // Get the next order index
   db.get(`
@@ -7843,8 +8446,8 @@ app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
     const finalOrderIndex = (result.max_order || -1) + 1;
     const featuresJson = features ? JSON.stringify(features) : null;
     
-    db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [sectionId, item_type, title, description, icon, value, label, featuresJson, finalOrderIndex], 
+    db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`, 
+      [sectionId, item_type, title, description, icon, value, label, featuresJson, content, finalOrderIndex], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -7862,7 +8465,7 @@ app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
 // Update solution section item
 app.put('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { id, sectionId, itemId } = req.params;
-  const { item_type, title, description, icon, value, label, features } = req.body;
+  const { item_type, title, description, icon, value, label, features, content, is_visible, order_index } = req.body;
   
   // Build dynamic query
   let updateFields = [];
@@ -7895,6 +8498,18 @@ app.put('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
   if (features !== undefined) {
     updateFields.push('features = ?');
     values.push(features ? JSON.stringify(features) : null);
+  }
+  if (content !== undefined) {
+    updateFields.push('content = ?');
+    values.push(content);
+  }
+  if (is_visible !== undefined) {
+    updateFields.push('is_visible = ?');
+    values.push(is_visible);
+  }
+  if (order_index !== undefined) {
+    updateFields.push('order_index = ?');
+    values.push(order_index);
   }
   
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -7932,6 +8547,8 @@ app.listen(PORT, async () => {
   // Cleanup orphaned entries on server start
   setTimeout(() => {
     cleanupOrphanedMainMarketplacesSections();
+    cleanupOrphanedMainSolutionsSections();
+    cleanupOrphanedMainProductsSections();
   }, 3000);
   console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
   console.log(`💰 Pricing API available at http://localhost:${PORT}/api/pricing`);

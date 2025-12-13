@@ -12,22 +12,7 @@ const OurStorySection = () => {
         setContent(data.story)
       } catch (error) {
         console.error('Error fetching About Us story content:', error)
-        // Fallback to default content
-        setContent({
-          header_title: 'Our Story',
-          header_description: 'A journey of innovation, trust, and excellence spanning over a decade',
-          founding_year: '2010',
-          story_items: JSON.stringify([
-            'Founded in 2010, Cloud 4 India was established to address the growing demand for secure, reliable data centres and managed IT services.',
-            'Over the past 14 years, we have become a trusted partner for organisations and webmasters, delivering dependable cloud and managed hosting Apps at competitive prices.',
-            'With a commitment to innovation and customer satisfaction, we offer comprehensive managed IT services, catering to businesses of all sizes — from ambitious startups to established enterprises.'
-          ]),
-          image_url: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=600&fit=crop',
-          badge_value: '24H',
-          badge_label: 'Support',
-          top_badge_value: '1M+',
-          top_badge_label: 'Happy Customers'
-        })
+        setContent(null)
       } finally {
         setLoading(false)
       }
@@ -100,7 +85,7 @@ const OurStorySection = () => {
                 return (
                 <div 
                   key={index}
-                  className={`bg-white p-8 rounded-2xl border-l-4 ${borderColor} shadow-lg hover:shadow-2xl hover:border-l-8 hover:-translate-x-2 transition-all duration-300 cursor-pointer`}
+                  className={`bg-white p-8 rounded-2xl border-l-4 ${borderColor} shadow-lg hover:shadow-2xl hover:border-l-8 hover:-translate-x-2 transition-all duration-300`}
                 >
                   <p className="text-gray-700 leading-relaxed">
                     {item}
@@ -112,12 +97,13 @@ const OurStorySection = () => {
           </div>
           
           {/* Right Side - Visual */}
+          {content.image_url && (
           <div className="relative">
             <div className="relative">
               {/* Main image */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
                 <img 
-                  src={content.image_url || 'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=600&fit=crop'} 
+                    src={content.image_url} 
                   alt="Professional at work" 
                   className="w-full h-auto object-cover"
                 />
@@ -125,7 +111,7 @@ const OurStorySection = () => {
               
               {/* Floating badge */}
               {(content.badge_value || content.badge_label) && (
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-6 border-2 border-gray-200 hover:border-saree-lime hover:bg-saree-lime-light hover:scale-110 transition-all duration-300 cursor-pointer">
+                <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-6 border-2 border-gray-200 hover:border-saree-lime hover:bg-saree-lime-light hover:scale-110 transition-all duration-300">
                   <div className="flex flex-col items-center">
                     <div className="bg-saree-lime rounded-full w-16 h-16 flex items-center justify-center mb-2 shadow-lg hover:bg-saree-lime-dark transition-colors duration-300">
                       <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -144,7 +130,7 @@ const OurStorySection = () => {
               
               {/* Top accent */}
               {(content.top_badge_value || content.top_badge_label) && (
-                <div className="absolute -top-6 -right-6 bg-saree-teal rounded-xl shadow-xl p-4 border-2 border-saree-teal hover:bg-saree-teal-dark hover:scale-110 transition-all duration-300 cursor-pointer group">
+                <div className="absolute -top-6 -right-6 bg-saree-teal rounded-xl shadow-xl p-4 border-2 border-saree-teal hover:bg-saree-teal-dark hover:scale-110 transition-all duration-300 group">
                   <div className="flex items-center gap-2">
                     <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -160,6 +146,7 @@ const OurStorySection = () => {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
     </section>

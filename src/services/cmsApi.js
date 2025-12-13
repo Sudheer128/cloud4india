@@ -478,48 +478,6 @@ export const updateAboutLegacy = async (data) => {
   }
 };
 
-// Milestones CRUD
-export const getAboutMilestones = async (includeHidden = false) => {
-  try {
-    const url = includeHidden ? '/about/milestones?all=true' : '/about/milestones';
-    const response = await cmsApi.get(url);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching milestones:', error);
-    throw error;
-  }
-};
-
-export const createAboutMilestone = async (data) => {
-  try {
-    const response = await cmsApi.post('/about/milestones', data);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating milestone:', error);
-    throw error;
-  }
-};
-
-export const updateAboutMilestone = async (id, data) => {
-  try {
-    const response = await cmsApi.put(`/about/milestones/${id}`, data);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating milestone:', error);
-    throw error;
-  }
-};
-
-export const deleteAboutMilestone = async (id) => {
-  try {
-    const response = await cmsApi.delete(`/about/milestones/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error deleting milestone:', error);
-    throw error;
-  }
-};
-
 // Stats CRUD
 export const getAboutStats = async (includeHidden = false) => {
   try {
@@ -711,16 +669,6 @@ export const deleteAboutApproachItem = async (id) => {
 };
 
 // Toggle visibility
-export const toggleAboutMilestoneVisibility = async (id) => {
-  try {
-    const response = await cmsApi.put(`/about/milestones/${id}/toggle-visibility`);
-    return response.data;
-  } catch (error) {
-    console.error('Error toggling milestone visibility:', error);
-    throw error;
-  }
-};
-
 export const toggleAboutStatVisibility = async (id) => {
   try {
     const response = await cmsApi.put(`/about/stats/${id}/toggle-visibility`);
@@ -1252,6 +1200,40 @@ export const createMainSolutionsSection = async (sectionData) => {
 };
 
 /**
+ * Get single solution by ID
+ * @param {number} id - Solution ID
+ * @returns {Promise<Object>} Solution data
+ */
+export const getSolution = async (id) => {
+  try {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/solutions/${id}?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching solution:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single solution by route slug
+ * @param {string} route - Solution route
+ * @returns {Promise<Object>} Solution data
+ */
+export const getSolutionByRoute = async (route) => {
+  try {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/solutions/by-route/${route}?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching solution by route:', error);
+    throw error;
+  }
+};
+
+/**
  * Get solution by name/slug
  * @param {string} name - Solution name or slug
  * @returns {Promise<Object>} Solution data
@@ -1324,10 +1306,29 @@ export const getSolutionByName = async (name) => {
  */
 export const getSolutionSections = async (solutionId) => {
   try {
-    const response = await cmsApi.get(`/solutions/${solutionId}/sections`);
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/solutions/${solutionId}/sections?t=${timestamp}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching solution sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get solution sections by route
+ * @param {string} route - Solution route
+ * @returns {Promise<Array>} Array of sections
+ */
+export const getSolutionSectionsByRoute = async (route) => {
+  try {
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/solutions/by-route/${route}/sections?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching solution sections by route:', error);
     throw error;
   }
 };
@@ -1340,7 +1341,9 @@ export const getSolutionSections = async (solutionId) => {
  */
 export const getSolutionItems = async (solutionId, sectionId) => {
   try {
-    const response = await cmsApi.get(`/solutions/${solutionId}/sections/${sectionId}/items`);
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/solutions/${solutionId}/sections/${sectionId}/items?t=${timestamp}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching solution items:', error);

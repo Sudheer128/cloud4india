@@ -346,3 +346,44 @@ export const usePricingFAQs = () => {
     refetch: fetchData
   };
 };
+
+/**
+ * Custom hook to fetch pricing page configuration
+ */
+export const usePricingPageConfig = () => {
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`${API_BASE_URL}/api/pricing/page-config`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      setConfig(result);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching pricing page config:', err);
+      setConfig(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return {
+    config,
+    loading,
+    error,
+    refetch: fetchData
+  };
+};

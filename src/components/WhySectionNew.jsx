@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
-import { useWhyItems } from '../hooks/useCMS'
+import { useWhyItems, useHomepageContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 
 const WhySectionNew = () => {
   const [expandedItem, setExpandedItem] = useState(null)
   const { data: whyItems, loading, error, refetch } = useWhyItems()
+  const { data: homepageData } = useHomepageContent()
 
   const toggleExpanded = (id) => {
     setExpandedItem(expandedItem === id ? null : id)
@@ -27,12 +28,11 @@ const WhySectionNew = () => {
           
           {/* Left Side - Why Cloud4India */}
           <div>
-            <h2 className="text-4xl font-light text-gray-900 mb-8">Why Cloud4India?</h2>
+            <h2 className="text-4xl font-light text-gray-900 mb-8">
+              {homepageData?.sectionsConfig?.why?.heading || 'Why Cloud4India?'}
+            </h2>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Cloud4India is India's most comprehensive and broadly adopted cloud platform. 
-              Millions of customers—including the fastest-growing startups, largest enterprises, 
-              and leading government agencies—use Cloud4India to be more agile, lower costs, 
-              and innovate faster.
+              {homepageData?.sectionsConfig?.why?.description || 'Cloud4India is India\'s most comprehensive and broadly adopted cloud platform. Millions of customers—including the fastest-growing startups, largest enterprises, and leading government agencies—use Cloud4India to be more agile, lower costs, and innovate faster.'}
             </p>
           </div>
 

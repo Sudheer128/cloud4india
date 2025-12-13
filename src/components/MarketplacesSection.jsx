@@ -1,19 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { useMainMarketplacesContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 import { toSlug } from '../utils/slugUtils'
+import { getMarketplaceCategories } from '../services/cmsApi'
 
 const MarketplacesSection = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [categories, setCategories] = useState(['all'])
   const { data: mainPageData, loading, error, refetch } = useMainMarketplacesContent()
   
   // Use sections from mainPageData instead of marketplaces
   const marketplaces = mainPageData?.sections || []
 
-  const categories = ['all', 'Frameworks', 'Content Management Systems', 'Databases', 'Developer Tools', 'Media', 'E Commerce', 'Business Applications', 'Monitoring Applications']
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getMarketplaceCategories()
+        // Map categories to array format: ['all', ...category names]
+        const categoryNames = categoriesData.map(cat => cat.name)
+        setCategories(['all', ...categoryNames])
+      } catch (err) {
+        console.error('Error fetching marketplace categories:', err)
+        // Fallback to extracting from marketplaces if API fails
+        const uniqueCategories = new Set()
+        marketplaces.forEach(marketplace => {
+          if (marketplace.category && marketplace.category.trim()) {
+            uniqueCategories.add(marketplace.category)
+          }
+        })
+        setCategories(['all', ...Array.from(uniqueCategories).sort()])
+      }
+    }
+    fetchCategories()
+  }, [marketplaces])
 
   const filteredMarketplaces = marketplaces?.filter(marketplace => {
     const marketplaceName = marketplace.title || marketplace.name || '';

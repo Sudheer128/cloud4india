@@ -12,8 +12,10 @@ import AdminPanel from './pages/AdminPanel'
 import MarketplacesAdmin from './pages/MarketplacesAdmin'
 import MarketplacesMainAdmin from './pages/MarketplacesMainAdmin'
 import ProductsAdmin from './pages/ProductsAdmin'
+import ProductsAdminNew from './pages/ProductsAdminNew'
 import ProductsMainAdmin from './pages/ProductsMainAdmin'
 import SolutionsAdmin from './pages/SolutionsAdmin'
+import SolutionsAdminNew from './pages/SolutionsAdminNew'
 import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
 import AboutUsAdmin from './pages/AboutUsAdmin'
 import PricingAdmin from './pages/PricingAdmin'
@@ -56,8 +58,10 @@ function AppContent() {
             <Route path="marketplace" element={<MarketplacesAdmin />} />
             <Route path="marketplace-main" element={<MarketplacesMainAdmin />} />
             <Route path="products" element={<ProductsAdmin />} />
+            <Route path="products-new/:productId" element={<ProductsAdminNew />} />
             <Route path="products-main" element={<ProductsMainAdmin />} />
             <Route path="solutions" element={<SolutionsAdmin />} />
+            <Route path="solutions-new/:solutionId" element={<SolutionsAdminNew />} />
             <Route path="solutions-main" element={<SolutionsMainAdmin />} />
             <Route path="pricing" element={<PricingAdmin />} />
             <Route path="about-us" element={<AboutUsAdmin />} />

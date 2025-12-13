@@ -15,11 +15,6 @@ import {
   updateAboutHero,
   updateAboutStory,
   updateAboutLegacy,
-  getAboutMilestones,
-  createAboutMilestone,
-  updateAboutMilestone,
-  deleteAboutMilestone,
-  toggleAboutMilestoneVisibility,
   getAboutStats,
   createAboutStat,
   updateAboutStat,
@@ -101,13 +96,9 @@ const AboutUsAdmin = () => {
     header_description: ''
   });
   const [legacyVisible, setLegacyVisible] = useState(true);
-  const [milestones, setMilestones] = useState([]);
   const [stats, setStats] = useState([]);
-  const [editingMilestone, setEditingMilestone] = useState(null);
   const [editingStat, setEditingStat] = useState(null);
-  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showStatModal, setShowStatModal] = useState(false);
-  const [milestoneForm, setMilestoneForm] = useState({ year: '', title: '', description: '', order_index: 0, is_visible: 1 });
   const [statForm, setStatForm] = useState({ label: '', value: '', order_index: 0, is_visible: 1 });
 
   // Testimonials Section
@@ -131,7 +122,8 @@ const AboutUsAdmin = () => {
   const [approachSectionForm, setApproachSectionForm] = useState({
     header_title: '',
     header_description: '',
-    cta_button_text: ''
+    cta_button_text: '',
+    cta_button_url: ''
   });
   const [approachSectionVisible, setApproachSectionVisible] = useState(true);
   const [approachItems, setApproachItems] = useState([]);
@@ -142,6 +134,8 @@ const AboutUsAdmin = () => {
   // Mission & Vision Section
   const [editingMissionVision, setEditingMissionVision] = useState(false);
   const [missionVisionForm, setMissionVisionForm] = useState({
+    header_title: '',
+    header_description: '',
     mission_title: '',
     mission_description: '',
     vision_title: '',
@@ -238,7 +232,8 @@ const AboutUsAdmin = () => {
         setApproachSectionForm({
           header_title: data.approachSection.header_title || '',
           header_description: data.approachSection.header_description || '',
-          cta_button_text: data.approachSection.cta_button_text || ''
+          cta_button_text: data.approachSection.cta_button_text || '',
+          cta_button_url: data.approachSection.cta_button_url || ''
         });
         setApproachSectionVisible(data.approachSection.is_visible !== 0);
       }
@@ -246,6 +241,8 @@ const AboutUsAdmin = () => {
       // Initialize mission & vision form
       if (data.missionVision) {
         setMissionVisionForm({
+          header_title: data.missionVision.header_title || '',
+          header_description: data.missionVision.header_description || '',
           mission_title: data.missionVision.mission_title || '',
           mission_description: data.missionVision.mission_description || '',
           vision_title: data.missionVision.vision_title || '',
@@ -263,10 +260,7 @@ const AboutUsAdmin = () => {
         setCoreValuesSectionVisible(data.coreValuesSection.is_visible !== 0);
       }
 
-      // Fetch milestones and stats
-      const milestonesData = await getAboutMilestones(true);
-      setMilestones(milestonesData || []);
-
+      // Fetch stats
       const statsData = await getAboutStats(true);
       setStats(statsData || []);
 
@@ -377,65 +371,6 @@ const AboutUsAdmin = () => {
     } catch (err) {
       alert('Error toggling legacy visibility: ' + err.message);
     }
-  };
-
-  // Milestone Handlers
-  const handleCreateMilestone = async () => {
-    try {
-      await createAboutMilestone(milestoneForm);
-      await fetchAboutUsContent();
-      setShowMilestoneModal(false);
-      setMilestoneForm({ year: '', title: '', description: '', order_index: milestones.length, is_visible: 1 });
-      alert('Milestone created successfully!');
-    } catch (err) {
-      alert('Error creating milestone: ' + err.message);
-    }
-  };
-
-  const handleUpdateMilestone = async () => {
-    try {
-      await updateAboutMilestone(editingMilestone, milestoneForm);
-      await fetchAboutUsContent();
-      setEditingMilestone(null);
-      setShowMilestoneModal(false);
-      setMilestoneForm({ year: '', title: '', description: '', order_index: 0, is_visible: 1 });
-      alert('Milestone updated successfully!');
-    } catch (err) {
-      alert('Error updating milestone: ' + err.message);
-    }
-  };
-
-  const handleDeleteMilestone = async (id) => {
-    if (window.confirm('Are you sure you want to delete this milestone?')) {
-      try {
-        await deleteAboutMilestone(id);
-        await fetchAboutUsContent();
-        alert('Milestone deleted successfully!');
-      } catch (err) {
-        alert('Error deleting milestone: ' + err.message);
-      }
-    }
-  };
-
-  const handleToggleMilestoneVisibility = async (id) => {
-    try {
-      await toggleAboutMilestoneVisibility(id);
-      await fetchAboutUsContent();
-    } catch (err) {
-      alert('Error toggling milestone visibility: ' + err.message);
-    }
-  };
-
-  const startEditingMilestone = (milestone) => {
-    setEditingMilestone(milestone.id);
-    setMilestoneForm({
-      year: milestone.year || '',
-      title: milestone.title || '',
-      description: milestone.description || '',
-      order_index: milestone.order_index || 0,
-      is_visible: milestone.is_visible !== undefined ? milestone.is_visible : 1
-    });
-    setShowMilestoneModal(true);
   };
 
   // Stat Handlers
@@ -969,8 +904,26 @@ const AboutUsAdmin = () => {
                 type="text"
                 value={heroForm.image_url}
                 onChange={(e) => setHeroForm({...heroForm, image_url: e.target.value})}
+                placeholder="https://example.com/image.jpg or /path/to/image.jpg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
+              {heroForm.image_url && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-2">Image Preview:</p>
+                  <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
+                    <img 
+                      src={heroForm.image_url} 
+                      alt="Hero preview" 
+                      className="w-full h-auto max-h-48 object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200"%3E%3Crect fill="%23f3f4f6" width="400" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage failed to load%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Enter a valid image URL (jpg, png, gif, webp, etc.)</p>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1060,6 +1013,29 @@ const AboutUsAdmin = () => {
               <p className="text-sm text-blue-900"><strong>ℹ️ Mission & Vision:</strong> Edit the mission and vision content displayed on the About Us page</p>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section Header Title</label>
+              <input
+                type="text"
+                value={missionVisionForm.header_title}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, header_title: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Our Mission & Vision"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section Header Description</label>
+              <textarea
+                value={missionVisionForm.header_description}
+                onChange={(e) => setMissionVisionForm({...missionVisionForm, header_description: e.target.value})}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Brief description of the section..."
+              />
+            </div>
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Mission & Vision Content</h3>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <span className="text-red-500">*</span> Mission Title
               </label>
@@ -1111,6 +1087,14 @@ const AboutUsAdmin = () => {
         ) : (
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <div>
+              <span className="text-xs text-gray-600 uppercase">Section Header Title:</span>
+              <p className="text-lg font-semibold text-gray-900">{aboutData?.missionVision?.header_title || 'Not Set'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">Section Header Description:</span>
+              <p className="text-sm text-gray-700">{aboutData?.missionVision?.header_description || 'Not Set'}</p>
+            </div>
+            <div className="border-t pt-3 mt-3">
               <span className="text-xs text-gray-600 uppercase">Mission Title:</span>
               <p className="text-lg font-semibold text-gray-900">{aboutData?.missionVision?.mission_title || 'Not Set'}</p>
             </div>
@@ -1225,13 +1209,6 @@ const AboutUsAdmin = () => {
                   </button>
                 </div>
               ))}
-              <button
-                onClick={addStoryItem}
-                className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500"
-              >
-                <PlusIcon className="w-4 h-4 inline mr-1" />
-                Add Story Item
-              </button>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
@@ -1239,8 +1216,26 @@ const AboutUsAdmin = () => {
                 type="text"
                 value={storyForm.image_url}
                 onChange={(e) => setStoryForm({...storyForm, image_url: e.target.value})}
+                placeholder="https://example.com/image.jpg or /path/to/image.jpg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
+              {storyForm.image_url && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-2">Image Preview:</p>
+                  <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
+                    <img 
+                      src={storyForm.image_url} 
+                      alt="Story preview" 
+                      className="w-full h-auto max-h-48 object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200"%3E%3Crect fill="%23f3f4f6" width="400" height="200"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage failed to load%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Enter a valid image URL (jpg, png, gif, webp, etc.)</p>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1388,17 +1383,6 @@ const AboutUsAdmin = () => {
         <div className="mt-6 border-t pt-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Core Values</h3>
-            <button
-              onClick={() => {
-                setCoreValueForm({ title: '', description: '', icon_type: 'lightbulb', order_index: coreValues.length, is_visible: 1 });
-                setEditingCoreValue(null);
-                setShowCoreValueModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Core Value
-            </button>
           </div>
           <div className="space-y-2">
             {coreValues.map((value) => (
@@ -1511,72 +1495,10 @@ const AboutUsAdmin = () => {
           </div>
         )}
 
-        {/* Milestones Management */}
-        <div className="mt-6 border-t pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Milestones</h3>
-            <button
-              onClick={() => {
-                setMilestoneForm({ year: '', title: '', description: '', order_index: milestones.length, is_visible: 1 });
-                setEditingMilestone(null);
-                setShowMilestoneModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Milestone
-            </button>
-          </div>
-          <div className="space-y-2">
-            {milestones.map((milestone) => (
-              <div key={milestone.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-1 rounded text-xs ${milestone.is_visible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {milestone.is_visible ? 'Visible' : 'Hidden'}
-                  </span>
-                  <span className="font-medium">{milestone.year}</span>
-                  <span>{milestone.title}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startEditingMilestone(milestone)}
-                    className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleMilestoneVisibility(milestone.id)}
-                    className="p-1 text-yellow-600 hover:bg-yellow-100 rounded"
-                  >
-                    {milestone.is_visible ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteMilestone(milestone.id)}
-                    className="p-1 text-red-600 hover:bg-red-100 rounded"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Stats Management */}
         <div className="mt-6 border-t pt-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Statistics</h3>
-            <button
-              onClick={() => {
-                setStatForm({ label: '', value: '', order_index: stats.length, is_visible: 1 });
-                setEditingStat(null);
-                setShowStatModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Stat
-            </button>
           </div>
           <div className="space-y-2">
             {stats.map((stat) => (
@@ -1693,17 +1615,6 @@ const AboutUsAdmin = () => {
         <div className="mt-6 border-t pt-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Testimonials</h3>
-            <button
-              onClick={() => {
-                setTestimonialForm({ quote: '', company: '', author: '', page_index: 0, order_index: testimonials.length, is_visible: 1 });
-                setEditingTestimonial(null);
-                setShowTestimonialModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Testimonial
-            </button>
           </div>
           <div className="space-y-2">
             {testimonials.map((testimonial) => (
@@ -1888,6 +1799,16 @@ const AboutUsAdmin = () => {
                 onChange={(e) => setApproachSectionForm({...approachSectionForm, cta_button_text: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Talk to a Specialist"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button URL</label>
+              <input
+                type="text"
+                value={approachSectionForm.cta_button_url}
+                onChange={(e) => setApproachSectionForm({...approachSectionForm, cta_button_url: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/contact or /contact"
 
 
 
@@ -1917,6 +1838,10 @@ const AboutUsAdmin = () => {
               <span className="text-xs text-gray-600 uppercase">CTA Button Text:</span>
               <p className="text-sm text-gray-700">{aboutData?.approachSection?.cta_button_text || 'Not Set'}</p>
             </div>
+            <div>
+              <span className="text-xs text-gray-600 uppercase">CTA Button URL:</span>
+              <p className="text-sm text-gray-700">{aboutData?.approachSection?.cta_button_url || 'Not Set'}</p>
+            </div>
           </div>
         )}
 
@@ -1924,17 +1849,6 @@ const AboutUsAdmin = () => {
         <div className="mt-6 border-t pt-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Approach Items</h3>
-            <button
-              onClick={() => {
-                setApproachItemForm({ title: '', description: '', icon_type: 'database', order_index: approachItems.length, is_visible: 1 });
-                setEditingApproachItem(null);
-                setShowApproachItemModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Approach Item
-            </button>
           </div>
           <div className="space-y-2">
             {approachItems.map((item) => (
@@ -1971,81 +1885,6 @@ const AboutUsAdmin = () => {
           </div>
         </div>
       </div>
-
-      {/* Milestone Modal */}
-      {showMilestoneModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-2xl w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold">{editingMilestone ? 'Edit Milestone' : 'Add Milestone'}</h3>
-              <button onClick={() => { setShowMilestoneModal(false); setEditingMilestone(null); }} className="text-gray-400 hover:text-gray-600">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                <input
-                  type="text"
-                  value={milestoneForm.year}
-                  onChange={(e) => setMilestoneForm({...milestoneForm, year: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={milestoneForm.title}
-                  onChange={(e) => setMilestoneForm({...milestoneForm, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={milestoneForm.description}
-                  onChange={(e) => setMilestoneForm({...milestoneForm, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Order Index</label>
-                <input
-                  type="number"
-                  value={milestoneForm.order_index}
-                  onChange={(e) => setMilestoneForm({...milestoneForm, order_index: parseInt(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={milestoneForm.is_visible === 1}
-                  onChange={(e) => setMilestoneForm({...milestoneForm, is_visible: e.target.checked ? 1 : 0})}
-                  className="w-4 h-4"
-                />
-                <label className="text-sm text-gray-700">Visible</label>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={editingMilestone ? handleUpdateMilestone : handleCreateMilestone}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-              >
-                {editingMilestone ? 'Update' : 'Create'}
-              </button>
-              <button
-                onClick={() => { setShowMilestoneModal(false); setEditingMilestone(null); }}
-                className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Stat Modal */}
       {showStatModal && (

@@ -23,6 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useMainProductsContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getProductCategories } from '../services/cmsApi';
 
 const MainProductsPage = () => {
   const { data: mainPageData, loading: heroLoading } = useMainProductsContent();
@@ -31,6 +32,7 @@ const MainProductsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [visibleCount, setVisibleCount] = useState(8);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [categories, setCategories] = useState(['all']);
   const filterMenuRef = useRef(null);
   
   // Use sections from mainPageData (main_products_sections) - these are the card entries
@@ -38,15 +40,27 @@ const MainProductsPage = () => {
   const loading = heroLoading;
   const error = null;
 
-  // Get unique categories from products
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set();
-    products.forEach(product => {
-      if (product.category && product.category.trim()) {
-        uniqueCategories.add(product.category);
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getProductCategories();
+        // Map categories to array format: ['all', ...category names]
+        const categoryNames = categoriesData.map(cat => cat.name);
+        setCategories(['all', ...categoryNames]);
+      } catch (err) {
+        console.error('Error fetching product categories:', err);
+        // Fallback to extracting from products if API fails
+        const uniqueCategories = new Set();
+        products.forEach(product => {
+          if (product.category && product.category.trim()) {
+            uniqueCategories.add(product.category);
+          }
+        });
+        setCategories(['all', ...Array.from(uniqueCategories).sort()]);
       }
-    });
-    return ['all', ...Array.from(uniqueCategories).sort()];
+    };
+    fetchCategories();
   }, [products]);
 
   // Filter products based on search and category
@@ -97,7 +111,7 @@ const MainProductsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-saree-teal-light via-white to-saree-lime-light flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner />
-          <p className="text-gray-700 mt-4">Loading our innovative products...</p>
+          <p className="text-gray-700 mt-4">{mainPageData?.hero?.loading_text || 'Loading our innovative products...'}</p>
         </div>
       </div>
     );
@@ -107,7 +121,7 @@ const MainProductsPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saree-teal-light via-white to-saree-lime-light flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Error Loading Products</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{mainPageData?.hero?.error_text || 'Error Loading Products'}</h2>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -140,7 +154,7 @@ const MainProductsPage = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300 cursor-pointer">
+            <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300">
               <CloudIcon className="w-5 h-5 mr-2" />
               {mainPageData?.hero?.subtitle || 'Cloud Services - Made in India'}
             </div>
@@ -158,16 +172,16 @@ const MainProductsPage = () => {
             {/* CTA Buttons */}
             <div className="flex justify-center items-center gap-4 mb-12">
               <Link 
-                to="/pricing"
+                to={mainPageData?.hero?.button1_link || '/pricing'}
                 className="px-8 py-3.5 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-white/90 transition-all duration-300 shadow-2xl hover:shadow-white/20 hover:scale-105 transform"
               >
-                View Pricing
+                {mainPageData?.hero?.button1_text || 'Get Started'}
               </Link>
               <Link 
-                to="#products"
+                to={mainPageData?.hero?.button2_link || '#products'}
                 className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white text-base font-semibold rounded-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all duration-300 shadow-xl"
               >
-                Explore Products
+                {mainPageData?.hero?.button2_text || 'Explore Products'}
               </Link>
             </div>
 
@@ -195,7 +209,7 @@ const MainProductsPage = () => {
                   icon: StarIcon
                 }
               ].map((stat, index) => (
-                <div key={index} className="group cursor-pointer bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                <div key={index} className="group bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
                   <stat.icon className="w-8 h-8 text-white mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg" />
                   <div className="text-2xl font-bold text-white mb-1 drop-shadow-lg">{stat.value}</div>
                   <div className="text-xs text-white/80 font-medium">{stat.label}</div>
@@ -219,7 +233,7 @@ const MainProductsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Page Title */}
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-5">
-            Search All Products
+            {mainPageData?.hero?.page_title || 'Search All Products'}
           </h1>
 
           {/* Filter and Search Bar */}
@@ -231,7 +245,7 @@ const MainProductsPage = () => {
                 className="flex items-center gap-2 px-3 py-2 border-2 border-gray-200 rounded-lg hover:border-saree-teal hover:bg-saree-teal-light/20 transition-all duration-300 bg-white text-sm shadow-md"
               >
                 <FunnelIcon className="w-4 h-4 text-saree-teal" />
-                <span className="text-sm font-medium text-gray-700">Filter</span>
+                <span className="text-sm font-medium text-gray-700">{mainPageData?.hero?.filter_text || 'Filter'}</span>
               </button>
               
               {/* Filter Dropdown */}
@@ -251,7 +265,7 @@ const MainProductsPage = () => {
                             : 'text-gray-700 hover:bg-saree-teal-light hover:text-saree-teal-dark'
                         }`}
                       >
-                        {category === 'all' ? 'All Categories' : category}
+                        {category === 'all' ? (mainPageData?.hero?.all_categories_text || 'All Categories') : category}
                       </button>
                     ))}
                   </div>
@@ -264,7 +278,7 @@ const MainProductsPage = () => {
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-saree-teal" />
               <input
                 type="text"
-                placeholder="Search products & services"
+                placeholder={mainPageData?.hero?.search_placeholder || 'Search products & services'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-saree-teal focus:border-saree-teal outline-none transition-all duration-300 shadow-md hover:border-saree-teal-dark"
@@ -328,7 +342,7 @@ const MainProductsPage = () => {
             ) : (
               !loading && (
                 <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No products found</p>
+                  <p className="text-gray-500">{mainPageData?.hero?.no_items_text || 'No products found'}</p>
                 </div>
               )
             )}

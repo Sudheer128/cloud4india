@@ -23,6 +23,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useMarketplaces, useMainMarketplacesContent } from '../hooks/useCMS';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getMarketplaceCategories } from '../services/cmsApi';
 
 const MainMarketplacesPage = () => {
   const { data: mainPageData, loading: heroLoading } = useMainMarketplacesContent();
@@ -31,6 +32,7 @@ const MainMarketplacesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [visibleCount, setVisibleCount] = useState(8);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [categories, setCategories] = useState(['all']);
   const filterMenuRef = useRef(null);
   
   // Use sections from mainPageData instead of marketplaces
@@ -38,15 +40,27 @@ const MainMarketplacesPage = () => {
   const loading = heroLoading;
   const error = null;
 
-  // Get unique categories from marketplaces
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set();
-    marketplaces.forEach(marketplace => {
-      if (marketplace.category && marketplace.category.trim()) {
-        uniqueCategories.add(marketplace.category);
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getMarketplaceCategories();
+        // Map categories to array format: ['all', ...category names]
+        const categoryNames = categoriesData.map(cat => cat.name);
+        setCategories(['all', ...categoryNames]);
+      } catch (err) {
+        console.error('Error fetching marketplace categories:', err);
+        // Fallback to extracting from marketplaces if API fails
+        const uniqueCategories = new Set();
+        marketplaces.forEach(marketplace => {
+          if (marketplace.category && marketplace.category.trim()) {
+            uniqueCategories.add(marketplace.category);
+          }
+        });
+        setCategories(['all', ...Array.from(uniqueCategories).sort()]);
       }
-    });
-    return ['all', ...Array.from(uniqueCategories).sort()];
+    };
+    fetchCategories();
   }, [marketplaces]);
 
   // Filter marketplaces based on search and category
@@ -140,7 +154,7 @@ const MainMarketplacesPage = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300 cursor-pointer">
+            <div className="inline-flex items-center px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-xl hover:bg-white/30 transition-all duration-300">
               <CloudIcon className="w-5 h-5 mr-2" />
               {mainPageData?.hero?.subtitle || 'Industry Marketplaces - Made in India'}
             </div>
@@ -195,7 +209,7 @@ const MainMarketplacesPage = () => {
                   icon: StarIcon
                 }
               ].map((stat, index) => (
-                <div key={index} className="group cursor-pointer bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                <div key={index} className="group bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
                   <stat.icon className="w-8 h-8 text-white mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg" />
                   <div className="text-2xl font-bold text-white mb-1 drop-shadow-lg">{stat.value}</div>
                   <div className="text-xs text-white/80 font-medium">{stat.label}</div>

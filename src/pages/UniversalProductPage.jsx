@@ -70,37 +70,89 @@ const UniversalProductPage = () => {
   // Dynamic order offset: if media_banner exists at 1, all subsequent sections are shifted by 1
   const getOrderOffset = () => hasMediaBanner ? 1 : 0;
 
-  // Generate navigation items from visible sections
+  // Generate navigation items from visible sections - using dynamic titles from CMS
   const getNavigationItems = () => {
     if (!sections || sections.length === 0) return [];
     
-    const navItems = [];
-    const offset = getOrderOffset();
+    // Get all visible sections, sorted by order
+    const visibleSections = sections
+      .filter(s => s.is_visible !== 0)
+      .sort((a, b) => a.order_index - b.order_index);
     
-    // Map section types to readable names and IDs for products
-    const sectionMapping = [
-      { order: 0, id: 'overview', label: 'Overview', type: 'hero' },
-      { order: 1, id: 'media', label: 'Gallery', type: 'media_banner' },
-      { order: 1 + offset, id: 'features', label: 'Features', type: 'features' },
-      { order: 2 + offset, id: 'pricing', label: 'Pricing', type: 'pricing' },
-      { order: 3 + offset, id: 'specifications', label: 'Specifications', type: 'specifications' },
-      { order: 4 + offset, id: 'security', label: 'Security', type: 'security' },
-      { order: 5 + offset, id: 'support', label: 'Support', type: 'support' },
-      { order: 6 + offset, id: 'migration', label: 'Migration', type: 'migration' },
-      { order: 7 + offset, id: 'use-cases', label: 'Use Cases', type: 'use_cases' },
-      { order: 8 + offset, id: 'get-started', label: 'Get Started', type: 'cta' }
-    ];
+    // Map section types to navigation IDs
+    const typeToIdMapping = {
+      'hero': 'overview',
+      'media_banner': 'media',
+      'features': 'features',
+      'pricing': 'pricing',
+      'specifications': 'specifications',
+      'security': 'security',
+      'support': 'support',
+      'migration': 'migration',
+      'use_cases': 'use-cases',
+      'cta': 'get-started'
+    };
     
-    sectionMapping.forEach(mapping => {
-      const section = getSectionByOrder(mapping.order);
-      if (section && section.section_type === mapping.type && section.is_visible !== 0) {
-        navItems.push({
-          id: mapping.id,
-          label: mapping.label,
-          order: mapping.order
-        });
+    // Helper to create short navigation labels
+    const getShortLabel = (title, sectionType) => {
+      if (!title) return sectionType;
+      
+      // Always show "Overview" for hero section
+      if (sectionType === 'hero') {
+        return 'Overview';
       }
-    });
+      
+      // Common patterns to shorten
+      const patterns = {
+        'Ready to Accelerate': 'Get Started',
+        'Ready to Get Started': 'Get Started',
+        'Ready to': 'Get Started',
+        'Perfect For': 'Use Cases',
+        'Expert Support': 'Support',
+        'Easy Migration': 'Migration',
+        'Flexible Pricing': 'Pricing',
+        'Technical Specifications': 'Specs',
+        'Security & Compliance': 'Security',
+        'Key Features': 'Features',
+        'in Action': 'Gallery',
+        'in action': 'Gallery'
+      };
+      
+      // Check if title matches or contains any pattern
+      for (const [pattern, shortLabel] of Object.entries(patterns)) {
+        if (title.startsWith(pattern) || title.includes(pattern)) {
+          return shortLabel;
+        }
+      }
+      
+      // If title is long (>20 chars), intelligently shorten it
+      if (title.length > 20) {
+        // Take first 2-3 meaningful words
+        const words = title.split(' ').filter(w => w.length > 0);
+        if (words.length <= 2) {
+          return title; // Already short enough
+        }
+        
+        // Skip common filler words for shortening
+        const fillerWords = ['the', 'and', 'or', 'for', 'with', 'your', 'our', 'in', 'on', 'at'];
+        const meaningfulWords = words.filter(w => !fillerWords.includes(w.toLowerCase()));
+        
+        // Take first 2 meaningful words, max 20 chars
+        const shortTitle = meaningfulWords.slice(0, 2).join(' ');
+        return shortTitle.length > 20 ? shortTitle.substring(0, 17) + '...' : shortTitle;
+      }
+      
+      return title;
+    };
+    
+    // Build navigation items dynamically from actual sections
+    const navItems = visibleSections.map(section => ({
+      id: typeToIdMapping[section.section_type] || `section-${section.id}`,
+      label: getShortLabel(section.title, section.section_type), // Use shortened label
+      fullTitle: section.title, // Keep full title for reference
+      order: section.order_index,
+      type: section.section_type
+    }));
     
     return navItems;
   };

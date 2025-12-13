@@ -16,7 +16,8 @@ import {
   useStorageOptions, 
   usePricingFAQs,
   useComputePlans,
-  useDiskOfferings
+  useDiskOfferings,
+  usePricingPageConfig
 } from '../hooks/usePricingData'
 import ChooseImageSection from '../components/ChooseImageSection'
 
@@ -34,6 +35,7 @@ const Pricing = () => {
   const { faqs } = usePricingFAQs()
   const { computePlans: computePlansData } = useComputePlans()
   const { diskOfferings: diskOfferingsData } = useDiskOfferings()
+  const { config: pageConfig } = usePricingPageConfig()
 
   // Icon mapping for categories from CMS
   const iconMap = {
@@ -89,115 +91,7 @@ const Pricing = () => {
       { id: 'postgresql', name: 'PostgreSQL' }
     ]
 
-  const computePlans = {
-    shared: [
-      {
-        ram: '1 GB',
-        vcpu: '1 vCPU',
-        storage: '25 GB SSD',
-        bandwidth: '1 TB',
-        discount: '15%',
-        hourlyPrice: '₹1.20',
-        monthlyPrice: '₹850',
-        yearlyPrice: '₹8,500'
-      },
-      {
-        ram: '2 GB',
-        vcpu: '2 vCPU',
-        storage: '50 GB SSD',
-        bandwidth: '2 TB',
-        discount: '15%',
-        hourlyPrice: '₹2.40',
-        monthlyPrice: '₹1,700',
-        yearlyPrice: '₹17,000'
-      },
-      {
-        ram: '4 GB',
-        vcpu: '2 vCPU',
-        storage: '80 GB SSD',
-        bandwidth: '3 TB',
-        discount: '20%',
-        hourlyPrice: '₹4.80',
-        monthlyPrice: '₹3,400',
-        yearlyPrice: '₹32,640'
-      },
-      {
-        ram: '8 GB',
-        vcpu: '4 vCPU',
-        storage: '160 GB SSD',
-        bandwidth: '4 TB',
-        discount: '20%',
-        hourlyPrice: '₹9.60',
-        monthlyPrice: '₹6,800',
-        yearlyPrice: '₹65,280'
-      }
-    ],
-    dedicated: [
-      {
-        ram: '4 GB',
-        vcpu: '2 vCPU',
-        storage: '80 GB SSD',
-        discount: '20%',
-        hourlyPrice: '₹5.50',
-        monthlyPrice: '₹3,900',
-        yearlyPrice: '₹37,440'
-      },
-      {
-        ram: '8 GB',
-        vcpu: '4 vCPU',
-        storage: '160 GB SSD',
-        discount: '20%',
-        hourlyPrice: '₹11.00',
-        monthlyPrice: '₹7,800',
-        yearlyPrice: '₹74,880'
-      },
-      {
-        ram: '16 GB',
-        vcpu: '8 vCPU',
-        storage: '320 GB SSD',
-        discount: '25%',
-        hourlyPrice: '₹22.00',
-        monthlyPrice: '₹15,600',
-        yearlyPrice: '₹140,400'
-      },
-      {
-        ram: '32 GB',
-        vcpu: '16 vCPU',
-        storage: '640 GB SSD',
-        discount: '25%',
-        hourlyPrice: '₹44.00',
-        monthlyPrice: '₹31,200',
-        yearlyPrice: '₹280,800'
-      }
-    ],
-    kubernetes: [
-      {
-        type: 'Shared 80 GB',
-        nodes: '1',
-        ram: '4 GB',
-        vcpu: '2 vCPU',
-        hourlyPrice: '₹4.16',
-        monthlyPrice: '₹2,995'
-      },
-      {
-        type: 'Shared 160 GB',
-        nodes: '1',
-        ram: '8 GB',
-        vcpu: '4 vCPU',
-        hourlyPrice: '₹8.32',
-        monthlyPrice: '₹5,990'
-      },
-      {
-        type: 'Dedicated 320 GB',
-        nodes: '2',
-        ram: '16 GB',
-        vcpu: '8 vCPU',
-        hourlyPrice: '₹16.64',
-        monthlyPrice: '₹11,980'
-      }
-    ]
-  }
-
+  // All compute plans are now fetched from CMS via useComputePlans hook
   // Storage options are now fetched from CMS via useStorageOptions hook
 
   // Transform compute plans data from API
@@ -207,21 +101,27 @@ const Pricing = () => {
       vcpu: p.vcpu,
       memory: p.memory,
       monthlyPrice: p.monthly_price,
-      hourlyPrice: p.hourly_price
+      hourlyPrice: p.hourly_price,
+      quarterlyPrice: p.quarterly_price || 'N/A',
+      yearlyPrice: p.yearly_price || 'N/A'
     })),
     cpuIntensive: computePlansData.filter(p => p.plan_type === 'cpuIntensive').map(p => ({
       name: p.name,
       vcpu: p.vcpu,
       memory: p.memory,
       monthlyPrice: p.monthly_price,
-      hourlyPrice: p.hourly_price
+      hourlyPrice: p.hourly_price,
+      quarterlyPrice: p.quarterly_price || 'N/A',
+      yearlyPrice: p.yearly_price || 'N/A'
     })),
     memoryIntensive: computePlansData.filter(p => p.plan_type === 'memoryIntensive').map(p => ({
       name: p.name,
       vcpu: p.vcpu,
       memory: p.memory,
       monthlyPrice: p.monthly_price,
-      hourlyPrice: p.hourly_price
+      hourlyPrice: p.hourly_price,
+      quarterlyPrice: p.quarterly_price || 'N/A',
+      yearlyPrice: p.yearly_price || 'N/A'
     }))
   }
 
@@ -231,7 +131,9 @@ const Pricing = () => {
     storageType: offering.storage_type,
     size: offering.size,
     monthlyPrice: offering.monthly_price,
-    hourlyPrice: offering.hourly_price
+    hourlyPrice: offering.hourly_price,
+    quarterlyPrice: offering.quarterly_price || 'N/A',
+    yearlyPrice: offering.yearly_price || 'N/A'
   }))
 
   const PricingCard = ({ plan, isPopular = false, isFirst = false, isLast = false, cardType = 'compute' }) => {
@@ -245,7 +147,7 @@ const Pricing = () => {
     // No longer needed - we show both hourly and monthly
 
     return (
-      <div className={`relative bg-white ${roundedClass} shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group cursor-pointer ${
+      <div className={`relative bg-white ${roundedClass} shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group ${
         isPopular ? 'border-saree-teal ring-4 ring-saree-teal-light hover:bg-saree-teal-light/20' : 'border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/10'
       }`}>
         {isPopular && (
@@ -346,7 +248,7 @@ const Pricing = () => {
   }
 
   const StorageCard = ({ storage }) => (
-    <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group">
+    <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 group">
       <div className="text-center mb-6">
         <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 group-hover:text-saree-teal-dark transition-colors">{storage.name}</h3>
         <p className="text-sm md:text-base text-gray-600 mb-4">{storage.description}</p>
@@ -364,7 +266,7 @@ const Pricing = () => {
       </ul>
       
       <button className="w-full bg-saree-teal hover:bg-saree-teal-dark text-white py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-        Get Started
+        {pageConfig?.button_get_started || 'Get Started'}
       </button>
     </div>
   )
@@ -401,10 +303,10 @@ const Pricing = () => {
           ) : (
             <>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 drop-shadow-2xl">
-                {hero?.title || 'Cloud Server Pricing for Startups, SMEs and Enterprises'}
+                {hero?.title || ''}
               </h1>
               <p className="text-base md:text-lg text-white/90 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
-                {hero?.description || 'Experience the perfect balance of performance and affordability with Cloud4India\'s cloud server pricing. Our bundled packages are designed to provide you with high-performance cloud Apps while optimizing cloud cost savings. Whether you\'re looking for scalable storage or powerful servers, our cloud server cost options ensure you get maximum value without compromising on quality or efficiency.'}
+                {hero?.description || ''}
               </p>
             </>
           )}
@@ -426,7 +328,7 @@ const Pricing = () => {
       <section className="pb-20 bg-gradient-to-br from-saree-lime-light/20 via-white to-saree-rose-light/20">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12">
-            Affordable Cloud Server Pricing and Plans in India
+            {pageConfig?.main_heading || 'Affordable Cloud Server Pricing and Plans in India'}
           </h2>
 
           {/* Main Content Area - Centered */}
@@ -436,9 +338,9 @@ const Pricing = () => {
               {activeTab === 'compute' && (
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Compute Offering</h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{pageConfig?.compute_section_heading || 'Compute Offering'}</h3>
                     <p className="text-sm md:text-base text-gray-600">
-                      Choose a plan based on the amount of CPU, memory, and storage required for your project. The cost will adjust according to the resources you select.
+                      {pageConfig?.compute_section_description || 'Choose a plan based on the amount of CPU, memory, and storage required for your project. The cost will adjust according to the resources you select.'}
                     </p>
                   </div>
 
@@ -446,9 +348,9 @@ const Pricing = () => {
                   <div className="mb-6 border-b border-gray-200">
                     <nav className="flex space-x-8">
                       {[
-                        { id: 'basic', label: 'Basic Compute Plans' },
-                        { id: 'cpuIntensive', label: 'CPU Intensive' },
-                        { id: 'memoryIntensive', label: 'Memory Intensive' }
+                        { id: 'basic', label: pageConfig?.compute_tab_basic_label || 'Basic Compute Plans' },
+                        { id: 'cpuIntensive', label: pageConfig?.compute_tab_cpu_intensive_label || 'CPU Intensive' },
+                        { id: 'memoryIntensive', label: pageConfig?.compute_tab_memory_intensive_label || 'Memory Intensive' }
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -467,12 +369,14 @@ const Pricing = () => {
 
                   {/* Table Header */}
                   <div className="bg-gradient-to-r from-saree-teal-light to-saree-amber-light rounded-t-2xl p-6 text-gray-900 shadow-md">
-                    <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
-                      <div className="text-center">Name</div>
-                      <div className="text-center">vCPU</div>
-                      <div className="text-center">Memory RAM</div>
-                      <div className="text-center">Price Monthly</div>
-                      <div className="text-center">Price Hourly</div>
+                    <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
+                      <div className="text-center">{pageConfig?.compute_table_header_name || 'Name'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_vcpu || 'vCPU'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_memory || 'Memory RAM'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                      <div className="text-center">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                     </div>
                   </div>
 
@@ -481,6 +385,7 @@ const Pricing = () => {
                     {computePlanTabs[activeComputePlanTab]?.map((plan, index) => (
                       <div
                         key={plan.name}
+                        onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
                         className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group ${
                           index === computePlanTabs[activeComputePlanTab].length - 1 
                             ? 'rounded-b-2xl border-gray-200' 
@@ -488,7 +393,7 @@ const Pricing = () => {
                         }`}
                       >
                         <div className="p-6">
-                          <div className="grid grid-cols-5 gap-4 text-sm items-center">
+                          <div className="grid grid-cols-7 gap-4 text-sm items-center">
                             <div className="text-center">
                               <div className="font-semibold text-gray-900">{plan.name}</div>
                             </div>
@@ -499,12 +404,20 @@ const Pricing = () => {
                               <div className="font-semibold text-gray-900">{plan.memory}</div>
                             </div>
                             <div className="text-center">
+                              <div className="font-bold text-lg text-gray-900">{plan.hourlyPrice}</div>
+                              <div className="text-xs text-gray-500">/Hour</div>
+                            </div>
+                            <div className="text-center">
                               <div className="font-bold text-lg text-gray-900">{plan.monthlyPrice}</div>
                               <div className="text-xs text-gray-500">/Month</div>
                             </div>
                             <div className="text-center">
-                              <div className="font-bold text-lg text-gray-900">{plan.hourlyPrice}</div>
-                              <div className="text-xs text-gray-500">/Hour</div>
+                              <div className="font-bold text-lg text-gray-900">{plan.quarterlyPrice}</div>
+                              <div className="text-xs text-gray-500">/Quarter</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-gray-900">{plan.yearlyPrice}</div>
+                              <div className="text-xs text-gray-500">/Year</div>
                             </div>
                           </div>
                         </div>
@@ -517,20 +430,22 @@ const Pricing = () => {
               {/* Disk Offering Section */}
               <div className="mt-16">
                 <div className="mb-6">
-                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Disk Offering</h3>
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{pageConfig?.disk_section_heading || 'Disk Offering'}</h3>
                   <p className="text-sm md:text-base text-gray-600">
-                    Choose the disk storage size that best fits your requirements. All storage options use high-performance NVMe technology.
+                    {pageConfig?.disk_section_description || 'Choose the disk storage size that best fits your requirements. All storage options use high-performance NVMe technology.'}
                   </p>
                 </div>
 
                 {/* Table Header */}
                 <div className="bg-gradient-to-r from-saree-lime-light to-saree-rose-light rounded-t-2xl p-6 text-gray-900 shadow-md">
-                  <div className="grid grid-cols-5 gap-4 text-sm font-semibold">
-                    <div className="text-center">Name</div>
-                    <div className="text-center">Storage Type</div>
-                    <div className="text-center">Size</div>
-                    <div className="text-center">Price Monthly</div>
-                    <div className="text-center">Price Hourly</div>
+                  <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
+                    <div className="text-center">{pageConfig?.disk_table_header_name || 'Name'}</div>
+                    <div className="text-center">{pageConfig?.disk_table_header_type || 'Storage Type'}</div>
+                    <div className="text-center">{pageConfig?.disk_table_header_size || 'Size'}</div>
+                    <div className="text-center">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
+                    <div className="text-center">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
+                    <div className="text-center">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                    <div className="text-center">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                   </div>
                 </div>
 
@@ -539,6 +454,7 @@ const Pricing = () => {
                   {diskOfferings.map((disk, index) => (
                     <div
                       key={disk.name}
+                      onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
                       className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-amber hover:bg-saree-amber-light/20 cursor-pointer group ${
                         index === diskOfferings.length - 1 
                           ? 'rounded-b-2xl border-gray-200' 
@@ -546,7 +462,7 @@ const Pricing = () => {
                       }`}
                     >
                       <div className="p-6">
-                        <div className="grid grid-cols-5 gap-4 text-sm items-center">
+                        <div className="grid grid-cols-7 gap-4 text-sm items-center">
                           <div className="text-center">
                             <div className="font-semibold text-gray-900">{disk.name}</div>
                           </div>
@@ -557,12 +473,20 @@ const Pricing = () => {
                             <div className="font-semibold text-gray-900">{disk.size}</div>
                           </div>
                           <div className="text-center">
+                            <div className="font-bold text-lg text-gray-900">{disk.hourlyPrice}</div>
+                            <div className="text-xs text-gray-500">/Hour</div>
+                          </div>
+                          <div className="text-center">
                             <div className="font-bold text-lg text-gray-900">{disk.monthlyPrice}</div>
                             <div className="text-xs text-gray-500">/Month</div>
                           </div>
                           <div className="text-center">
-                            <div className="font-bold text-lg text-gray-900">{disk.hourlyPrice}</div>
-                            <div className="text-xs text-gray-500">/Hour</div>
+                            <div className="font-bold text-lg text-gray-900">{disk.quarterlyPrice}</div>
+                            <div className="text-xs text-gray-500">/Quarter</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-lg text-gray-900">{disk.yearlyPrice}</div>
+                            <div className="text-xs text-gray-500">/Year</div>
                           </div>
                         </div>
                       </div>
@@ -575,17 +499,17 @@ const Pricing = () => {
           {activeTab === 'storage' && (
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Storage Pricing and Plans</h3>
-                    <p className="text-sm md:text-base text-gray-600">Choose from our flexible storage options designed to meet your specific needs and budget requirements.</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{pageConfig?.storage_section_heading || 'Storage Pricing and Plans'}</h3>
+                    <p className="text-sm md:text-base text-gray-600">{pageConfig?.storage_section_description || 'Choose from our flexible storage options designed to meet your specific needs and budget requirements.'}</p>
                   </div>
 
                   {/* Storage Table Header */}
                   <div className="bg-gradient-to-r from-phulkari-turquoise-light to-saree-coral-light rounded-t-2xl p-6 text-gray-900 shadow-md">
                     <div className="grid grid-cols-4 gap-4 text-sm font-semibold">
-                      <div className="text-center">Storage Type</div>
-                      <div className="text-center">Description</div>
-                      <div className="text-center">Price</div>
-                      <div className="text-center">Action</div>
+                      <div className="text-center">{pageConfig?.storage_table_header_type || 'Storage Type'}</div>
+                      <div className="text-center">{pageConfig?.storage_table_header_description || 'Description'}</div>
+                      <div className="text-center">{pageConfig?.storage_table_header_price || 'Price'}</div>
+                      <div className="text-center">{pageConfig?.storage_table_header_action || 'Action'}</div>
                     </div>
                   </div>
 
@@ -626,13 +550,13 @@ const Pricing = () => {
                         'bg-gradient-to-r from-saree-teal-light to-saree-lime-light'
                       }`}>
                         <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
-                          <div className="text-center">Service</div>
-                          <div className="text-center">Type</div>
-                          <div className="text-center">Features</div>
-                          <div className="text-center">Bandwidth</div>
-                          <div className="text-center">Discount</div>
-                          <div className="text-center">Price</div>
-                          <div className="text-center">Action</div>
+                          <div className="text-center">{pageConfig?.service_table_header_service || 'Service'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_type || 'Type'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_features || 'Features'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_bandwidth || 'Bandwidth'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_discount || 'Discount'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_price || 'Price'}</div>
+                          <div className="text-center">{pageConfig?.service_table_header_action || 'Action'}</div>
                         </div>
                       </div>
 
@@ -665,7 +589,7 @@ const Pricing = () => {
                         Advanced {activeTab} Apps to enhance your cloud infrastructure.
                       </p>
                       <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        Contact Sales
+                        {pageConfig?.button_contact_sales || 'Contact Sales'}
                       </button>
                     </div>
                   )}
@@ -678,14 +602,14 @@ const Pricing = () => {
       {/* FAQ Section */}
       <section className="bg-gradient-to-br from-phulkari-peach-light via-white to-phulkari-turquoise-light py-20">
         <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12">Have Any Questions?</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12">{pageConfig?.faq_section_heading || 'Have Any Questions?'}</h2>
           <div className="text-center text-gray-600 mb-12">
-            <p className="text-base md:text-lg">Don't Worry, We've Got Answers!</p>
+            <p className="text-base md:text-lg">{pageConfig?.faq_section_subheading || 'Don\'t Worry, We\'ve Got Answers!'}</p>
           </div>
           
           <div className="space-y-6">
             {faqs.map((faq, index) => (
-              <div key={faq.id || index} className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
+              <div key={faq.id || index} className="bg-white rounded-xl p-6 md:p-8 border-2 border-gray-200 hover:border-saree-teal hover:bg-saree-teal-light/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                 <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 group-hover:text-saree-teal-dark transition-colors">{faq.question}</h3>
                 <p className="text-sm md:text-base text-gray-600 leading-relaxed">{faq.answer}</p>
               </div>

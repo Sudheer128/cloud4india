@@ -28,7 +28,7 @@ const MIGRATION_FILES = [
   // Content migrations
   '../migrate-hsbc-metrics.js',
   '../migrate-implementation-journey.js',
-  '../migrate-tech-solutions.js',
+  '../migrate-tech-marketplaces.js',
   '../migrate-use-cases.js',
   '../migrate-resources-docs.js',
   

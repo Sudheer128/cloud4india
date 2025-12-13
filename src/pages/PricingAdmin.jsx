@@ -17,7 +17,8 @@ const PricingAdmin = () => {
   const [heroData, setHeroData] = useState({
     id: 1,
     title: '',
-    description: ''
+    description: '',
+    redirect_url: 'https://portal.cloud4india.com/register'
   });
 
   // Compute Plans State
@@ -30,6 +31,45 @@ const PricingAdmin = () => {
   // FAQs State
   const [faqs, setFaqs] = useState([]);
 
+  // Page Configuration State
+  const [pageConfig, setPageConfig] = useState({
+    main_heading: '',
+    compute_section_heading: '',
+    compute_section_description: '',
+    compute_tab_basic_label: '',
+    compute_tab_cpu_intensive_label: '',
+    compute_tab_memory_intensive_label: '',
+    compute_table_header_name: '',
+    compute_table_header_vcpu: '',
+    compute_table_header_memory: '',
+    compute_table_header_hourly: '',
+    compute_table_header_monthly: '',
+    compute_table_header_quarterly: '',
+    compute_table_header_yearly: '',
+    disk_section_heading: '',
+    disk_section_description: '',
+    disk_table_header_name: '',
+    disk_table_header_type: '',
+    disk_table_header_size: '',
+    storage_section_heading: '',
+    storage_section_description: '',
+    storage_table_header_type: '',
+    storage_table_header_description: '',
+    storage_table_header_price: '',
+    storage_table_header_action: '',
+    service_table_header_service: '',
+    service_table_header_type: '',
+    service_table_header_features: '',
+    service_table_header_bandwidth: '',
+    service_table_header_discount: '',
+    service_table_header_price: '',
+    service_table_header_action: '',
+    faq_section_heading: '',
+    faq_section_subheading: '',
+    button_get_started: '',
+    button_contact_sales: ''
+  });
+
   // Editing States
   const [editingComputePlan, setEditingComputePlan] = useState(null);
   const [editingDiskOffering, setEditingDiskOffering] = useState(null);
@@ -41,7 +81,41 @@ const PricingAdmin = () => {
     loadComputePlans();
     loadDiskOfferings();
     loadFaqs();
+    loadPageConfig();
   }, []);
+
+  const loadPageConfig = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pricing/page-config`);
+      if (response.ok) {
+        const data = await response.json();
+        setPageConfig(data);
+      }
+    } catch (err) {
+      console.error('Error loading page config:', err);
+    }
+  };
+
+  const savePageConfig = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch(`${API_BASE_URL}/api/pricing/page-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pageConfig)
+      });
+      
+      if (response.ok) {
+        alert('Page configuration updated successfully!');
+      } else {
+        throw new Error('Failed to update page configuration');
+      }
+    } catch (err) {
+      alert('Error updating page configuration: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // API Functions
   const loadHeroData = async () => {
@@ -270,7 +344,9 @@ const PricingAdmin = () => {
       vcpu: '',
       memory: '',
       monthly_price: '',
-      hourly_price: ''
+      hourly_price: '',
+      quarterly_price: '',
+      yearly_price: ''
     });
 
     const handleSubmit = (e) => {
@@ -337,6 +413,17 @@ const PricingAdmin = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <input
+                  type="text"
+                  value={formData.hourly_price}
+                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹0.7"
+                  required
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
                 <input
                   type="text"
@@ -347,15 +434,27 @@ const PricingAdmin = () => {
                   required
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
                 <input
                   type="text"
-                  value={formData.hourly_price}
-                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  value={formData.quarterly_price}
+                  onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹0.7"
-                  required
+                  placeholder="e.g., ₹1,459.20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                <input
+                  type="text"
+                  value={formData.yearly_price}
+                  onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹5,529.60"
                 />
               </div>
             </div>
@@ -389,7 +488,9 @@ const PricingAdmin = () => {
       storage_type: 'NVMe',
       size: '',
       monthly_price: '',
-      hourly_price: ''
+      hourly_price: '',
+      quarterly_price: '',
+      yearly_price: ''
     });
 
     const handleSubmit = (e) => {
@@ -441,6 +542,17 @@ const PricingAdmin = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <input
+                  type="text"
+                  value={formData.hourly_price}
+                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹0.25"
+                  required
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
                 <input
                   type="text"
@@ -451,15 +563,27 @@ const PricingAdmin = () => {
                   required
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
                 <input
                   type="text"
-                  value={formData.hourly_price}
-                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  value={formData.quarterly_price}
+                  onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹0.25"
-                  required
+                  placeholder="e.g., ₹456.00"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                <input
+                  type="text"
+                  value={formData.yearly_price}
+                  onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g., ₹1,728.00"
                 />
               </div>
             </div>
@@ -563,6 +687,7 @@ const PricingAdmin = () => {
             <nav className="-mb-px flex space-x-8">
               {[
                 { id: 'hero', name: 'Hero Section' },
+                { id: 'page-config', name: 'Page Configuration' },
                 { id: 'compute-plans', name: 'Compute Plans' },
                 { id: 'disk-offerings', name: 'Disk Offerings' },
                 { id: 'faqs', name: 'FAQs' }
@@ -582,6 +707,224 @@ const PricingAdmin = () => {
             </nav>
           </div>
         </div>
+
+        {/* Page Configuration Tab */}
+        {activeTab === 'page-config' && (
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Page Configuration</h2>
+            <p className="text-gray-600 mb-6">Configure all text labels, headings, and descriptions displayed on the pricing page.</p>
+            
+            <div className="space-y-8">
+              {/* Main Heading */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Main Section Heading</h3>
+                <input
+                  type="text"
+                  value={pageConfig.main_heading || ''}
+                  onChange={(e) => setPageConfig({...pageConfig, main_heading: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3"
+                  placeholder="Affordable Cloud Server Pricing and Plans in India"
+                />
+              </div>
+
+              {/* Compute Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Compute Section</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Section Heading</label>
+                    <input
+                      type="text"
+                      value={pageConfig.compute_section_heading || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, compute_section_heading: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      placeholder="Compute Offering"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Section Description</label>
+                    <textarea
+                      value={pageConfig.compute_section_description || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, compute_section_description: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 h-24"
+                      placeholder="Choose a plan based on the amount of CPU, memory, and storage required..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Basic Tab Label</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_tab_basic_label || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_tab_basic_label: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        placeholder="Basic Compute Plans"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CPU Intensive Tab Label</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_tab_cpu_intensive_label || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_tab_cpu_intensive_label: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        placeholder="CPU Intensive"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Memory Intensive Tab Label</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_tab_memory_intensive_label || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_tab_memory_intensive_label: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        placeholder="Memory Intensive"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Name</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_name || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_name: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: vCPU</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_vcpu || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_vcpu: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="vCPU"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Memory</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_memory || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_memory: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Memory RAM"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Hourly</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_hourly || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_hourly: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Price Hourly"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Monthly</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_monthly || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_monthly: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Price Monthly"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_quarterly || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_quarterly: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Price Quarterly"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Yearly</label>
+                      <input
+                        type="text"
+                        value={pageConfig.compute_table_header_yearly || ''}
+                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_yearly: e.target.value})}
+                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="Price Yearly"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* FAQ Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">FAQ Section</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Section Heading</label>
+                    <input
+                      type="text"
+                      value={pageConfig.faq_section_heading || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, faq_section_heading: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      placeholder="Have Any Questions?"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Section Subheading</label>
+                    <input
+                      type="text"
+                      value={pageConfig.faq_section_subheading || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, faq_section_subheading: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      placeholder="Don't Worry, We've Got Answers!"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Button Labels</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Get Started Button</label>
+                    <input
+                      type="text"
+                      value={pageConfig.button_get_started || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, button_get_started: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      placeholder="Get Started"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Sales Button</label>
+                    <input
+                      type="text"
+                      value={pageConfig.button_contact_sales || ''}
+                      onChange={(e) => setPageConfig({...pageConfig, button_contact_sales: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      placeholder="Contact Sales"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <button
+                  onClick={savePageConfig}
+                  disabled={saving}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Page Configuration'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Hero Section Tab */}
         {activeTab === 'hero' && (
@@ -608,6 +951,18 @@ const PricingAdmin = () => {
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 h-32"
                   placeholder="Experience the perfect balance of performance and affordability..."
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Redirect URL (when clicking on pricing rows)</label>
+                <input
+                  type="text"
+                  value={heroData.redirect_url}
+                  onChange={(e) => setHeroData({...heroData, redirect_url: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3"
+                  placeholder="https://portal.cloud4india.com/register"
+                />
+                <p className="text-sm text-gray-500 mt-1">Users will be redirected to this URL when they click on any pricing row</p>
               </div>
               
               <button
@@ -667,8 +1022,10 @@ const PricingAdmin = () => {
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Name</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">vCPU</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Memory RAM</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Yearly</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                     </tr>
                   </thead>
@@ -680,8 +1037,10 @@ const PricingAdmin = () => {
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.name}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.vcpu}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.memory}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.hourly_price}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.quarterly_price || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{plan.yearly_price || '-'}</td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <button
@@ -702,7 +1061,7 @@ const PricingAdmin = () => {
                       ))}
                     {computePlans.filter(plan => plan.plan_type === activeComputePlanTab).length === 0 && (
                       <tr>
-                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                           No plans found for this category. Click "Add Compute Plan" to create one.
                         </td>
                       </tr>
@@ -735,8 +1094,10 @@ const PricingAdmin = () => {
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Name</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Storage Type</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Size</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Yearly</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
@@ -746,8 +1107,10 @@ const PricingAdmin = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.storage_type}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.size}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{offering.monthly_price}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.hourly_price}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.monthly_price}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.quarterly_price || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{offering.yearly_price || '-'}</td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
                           <button
@@ -768,7 +1131,7 @@ const PricingAdmin = () => {
                   ))}
                   {diskOfferings.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                         No disk offerings found. Click "Add Disk Offering" to create one.
                       </td>
                     </tr>

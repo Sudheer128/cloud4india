@@ -187,6 +187,7 @@ const createTables = () => {
         header_title TEXT NOT NULL DEFAULT 'Our Approach',
         header_description TEXT,
         cta_button_text TEXT DEFAULT 'Talk to a Specialist',
+        cta_button_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`, (err) => {

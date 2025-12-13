@@ -41,6 +41,7 @@ import {
 import { useMarketplaceSections } from '../hooks/useMarketplaceSections'
 import { useSectionItems } from '../hooks/useSectionItems'
 import { appThemeColors, getGradient, getTextColor, getHoverBorder } from '../utils/appThemeColors'
+import DynamicMarketplaceSection from '../components/DynamicMarketplaceSection'
 
 // Rupee Icon - displays ₹ symbol using Unicode character
 const RupeeIconSimple = ({ className }) => (
@@ -63,6 +64,39 @@ const RupeeIconSimple = ({ className }) => (
     </text>
   </svg>
 );
+
+// Component to fetch and render media banner items
+const MediaBannerItems = ({ section, marketplaceId }) => {
+  const { items, loading, error } = useSectionItems(marketplaceId, section.id);
+  
+  if (loading) {
+    return (
+      <section data-section-id="media" className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-saree-teal mx-auto"></div>
+            <p className="text-gray-600 mt-4">Loading gallery...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+  
+  if (error) {
+    console.error('Error loading media items:', error);
+  }
+  
+  return (
+    <div data-section-id="media">
+      <DynamicMarketplaceSection 
+        section={section} 
+        items={items || []} 
+        marketplace={null}
+        hasNavigation={false}
+      />
+    </div>
+  );
+};
 
 const UniversalMarketplacePage = () => {
   const { appName } = useParams();
@@ -985,7 +1019,7 @@ const UniversalMarketplacePage = () => {
         </section>
       )}
 
-      {/* Media Banner Section - Always after hero (order_index = 1) */}
+      {/* Media Banner Section - Always after hero (order_index = 1) - Using DynamicMarketplaceSection */}
       {(() => {
         // Find media_banner section at order_index 1 (backend ensures it's always at position 1)
         const mediaBannerSection = sections.find(s => 
@@ -995,107 +1029,8 @@ const UniversalMarketplacePage = () => {
         );
         if (!mediaBannerSection) return null;
         
-        // Get CMS base URL for uploaded files
-        const cmsBaseUrl = import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002');
-        
-        // Determine media URL
-        let mediaUrl = '';
-        let isYouTube = false;
-        
-        if (mediaBannerSection.media_url) {
-          if (mediaBannerSection.media_source === 'youtube' || 
-              mediaBannerSection.media_url.includes('youtube.com/embed/') ||
-              mediaBannerSection.media_url.includes('youtube.com/watch') ||
-              mediaBannerSection.media_url.includes('youtu.be/')) {
-            // YouTube video - backend should normalize to embed format
-            mediaUrl = mediaBannerSection.media_url;
-            isYouTube = true;
-          } else if (mediaBannerSection.media_source === 'upload') {
-            // Uploaded file - construct full URL
-            mediaUrl = mediaBannerSection.media_url.startsWith('http') 
-              ? mediaBannerSection.media_url 
-              : `${cmsBaseUrl}${mediaBannerSection.media_url}`;
-            isYouTube = false;
-          }
-        }
-        
-        return (
-          <section data-section-id="media" className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {/* Title and Description */}
-              {(mediaBannerSection.title || mediaBannerSection.content) && (
-                <div className="text-center mb-12">
-                  {mediaBannerSection.title && (
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                      {mediaBannerSection.title}
-                    </h2>
-                  )}
-                  {mediaBannerSection.content && (
-                    <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
-                      {mediaBannerSection.content}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Media Display */}
-              {mediaUrl && (
-                <div className="rounded-2xl overflow-hidden shadow-2xl bg-gray-900">
-                  {mediaBannerSection.media_type === 'video' && isYouTube ? (
-                    // YouTube Video Embed
-                    <div className="aspect-video w-full">
-                      <iframe
-                        src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=1&mute=1&loop=1&controls=1&rel=0&enablejsapi=1&playlist=${mediaUrl.match(/embed\/([^?&]+)/)?.[1] || ''}`}
-                        className="w-full h-full"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        title={mediaBannerSection.title || 'Video'}
-                      ></iframe>
-                    </div>
-                  ) : mediaBannerSection.media_type === 'video' ? (
-                    // Uploaded Video
-                    <div className="aspect-video w-full">
-                      <video
-                        src={mediaUrl}
-                        autoPlay
-                        muted
-                        loop
-                        controls
-                        className="w-full h-full object-cover"
-                        playsInline
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                  ) : mediaBannerSection.media_type === 'image' ? (
-                    // Image
-                    <div className="w-full">
-                      <img
-                        src={mediaUrl}
-                        alt={mediaBannerSection.title || 'Banner image'}
-                        className="w-full h-auto object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          console.error('Error loading image:', mediaUrl);
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Fallback message if no media */}
-              {!mediaUrl && (
-                <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-                  <p className="text-gray-500">No media configured for this section.</p>
-                </div>
-              )}
-            </div>
-          </section>
-        );
+        // Use MediaBannerItems component to fetch and render items
+        return <MediaBannerItems section={mediaBannerSection} marketplaceId={marketplaceId} />;
       })()}
 
       {/* Key Benefits Section */}

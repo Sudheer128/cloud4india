@@ -23,9 +23,6 @@ const HeroSection = () => {
             <button className="bg-gray-800 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-900 transition-all duration-300 hover:shadow-xl">
               {heroData?.primary_button_text || 'Get started for free'}
             </button>
-            <button className="border-2 border-gray-700 text-gray-700 px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-700 hover:text-white transition-all duration-300">
-              {heroData?.secondary_button_text || 'Contact a Cloud4India specialist'}
-            </button>
           </div>
         </div>
       </div>

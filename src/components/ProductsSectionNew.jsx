@@ -1,18 +1,37 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
-import { useMainProductsContent } from '../hooks/useCMS'
+import { useMainProductsContent, useHomepageContent } from '../hooks/useCMS'
 import { ContentWrapper } from './LoadingComponents'
 import { toSlug } from '../utils/slugUtils'
+import { getProductCategories } from '../services/cmsApi'
 
 const ProductsSectionNew = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [categories, setCategories] = useState(['all'])
   const { data: mainPageData, loading, error, refetch } = useMainProductsContent()
+  const { data: homepageData } = useHomepageContent()
   
   const products = mainPageData?.sections || []
+  const config = homepageData?.sectionsConfig?.products || {}
 
-  const categories = ['all', 'Frameworks', 'Content Management Systems', 'Databases']
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await getProductCategories()
+        // Map categories to array format: ['all', ...category names]
+        const categoryNames = categoriesData.map(cat => cat.name)
+        setCategories(['all', ...categoryNames])
+      } catch (err) {
+        console.error('Error fetching product categories:', err)
+        // Fallback to default categories if API fails
+        setCategories(['all', 'Frameworks', 'Content Management Systems', 'Databases'])
+      }
+    }
+    fetchCategories()
+  }, [])
 
   const filteredProducts = products?.filter(product => {
     const productName = product.product_name || product.title || product.name || '';
@@ -44,14 +63,14 @@ const ProductsSectionNew = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-4xl font-light text-gray-900">Explore our Products</h2>
+          <h2 className="text-4xl font-light text-gray-900">{config.heading || 'Explore our Products'}</h2>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="flex items-center space-x-4">
             <button className="flex items-center space-x-2 border-2 border-gray-300 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors bg-white">
               <FunnelIcon className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900">Filter by category</span>
+              <span className="text-sm font-medium text-gray-900">{config.filter_text || 'Filter by category'}</span>
             </button>
           </div>
           
@@ -60,7 +79,7 @@ const ProductsSectionNew = () => {
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search categories"
+                placeholder={config.search_placeholder || 'Search categories'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white"
@@ -153,7 +172,7 @@ const ProductsSectionNew = () => {
               onClick={() => window.location.href = '/products'}
               className="bg-saree-teal text-white border-2 border-saree-teal px-8 py-3 rounded-lg font-semibold hover:bg-saree-teal-dark transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
-              View more Products
+              {config.button_text || 'View more Products'}
             </button>
           </div>
         )}

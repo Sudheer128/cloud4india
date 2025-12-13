@@ -129,7 +129,7 @@ const CoreValuesSection = () => {
               return (
                 <div 
                   key={value.id || index} 
-                  className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200 hover:border-transparent hover:shadow-2xl transition-all duration-300 group hover:-translate-y-2 cursor-pointer overflow-hidden relative"
+                  className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200 hover:border-transparent hover:shadow-2xl transition-all duration-300 group hover:-translate-y-2 overflow-hidden relative"
                 >
                   <div className={`absolute inset-0 ${color.light} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
                   <div className="relative z-10">

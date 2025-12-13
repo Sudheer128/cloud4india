@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   CheckIcon, 
   StarIcon, 
@@ -77,6 +77,10 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
   const secondaryCTAItem = items.find(item => item.item_type === 'cta_secondary' && item.is_visible);
   const heroImageItem = items.find(item => item.item_type === 'image' && item.is_visible);
 
+  // Get feature bullets (item_type='feature') and stats (item_type='stat')
+  const featureBullets = items.filter(item => item.item_type === 'feature' && item.is_visible);
+  const statItems = items.filter(item => item.item_type === 'stat' && item.is_visible);
+
   return (
     <section className={`relative py-20 overflow-hidden bg-gradient-to-br from-phulkari-turquoise via-saree-teal to-saree-teal-dark ${hasNavigation ? '-mt-32' : ''}`}>
       {/* Different Background Patterns - Inspired but unique */}
@@ -122,76 +126,102 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
               {section.description || descriptionItem?.title || product?.description || 'Product description goes here'}
             </p>
             
-            {/* Feature list with icons */}
+            {/* Feature list with icons - Dynamic from CMS */}
+            {featureBullets.length > 0 && (
             <div className="space-y-3 mb-8">
-              <div className="flex items-center gap-3 text-white">
+                {featureBullets.map((feature, index) => (
+                  <div key={feature.id || index} className="flex items-center gap-3 text-white">
                 <div className="w-6 h-6 bg-saree-amber rounded-full flex items-center justify-center flex-shrink-0">
                   <CheckIcon className="w-4 h-4 text-gray-900" />
                 </div>
-                <span className="text-base font-medium">Instant deployment in seconds</span>
+                    <span className="text-base font-medium">{feature.title}</span>
               </div>
-              <div className="flex items-center gap-3 text-white">
-                <div className="w-6 h-6 bg-saree-amber rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckIcon className="w-4 h-4 text-gray-900" />
+                ))}
                 </div>
-                <span className="text-base font-medium">24/7 expert support included</span>
-              </div>
-              <div className="flex items-center gap-3 text-white">
-                <div className="w-6 h-6 bg-saree-amber rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckIcon className="w-4 h-4 text-gray-900" />
-                </div>
-                <span className="text-base font-medium">Enterprise-grade security</span>
-              </div>
-            </div>
+            )}
             
             <div className="flex flex-col sm:flex-row gap-4">
               {primaryCTAItem && (
-                <button className="px-8 py-4 bg-saree-amber text-gray-900 text-base font-bold rounded-lg hover:bg-saree-amber-dark transition-all duration-300 shadow-2xl hover:scale-105 transform">
+                primaryCTAItem.value ? (
+                  <a
+                    href={primaryCTAItem.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-8 py-4 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:scale-105 transform text-center"
+                  >
+                    {primaryCTAItem.title}
+                  </a>
+                ) : (
+                  <button className="px-8 py-4 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:scale-105 transform">
                   {primaryCTAItem.title}
                 </button>
+                )
               )}
               {secondaryCTAItem && (
+                secondaryCTAItem.value ? (
+                  <a
+                    href={secondaryCTAItem.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-8 py-4 bg-transparent text-white text-base font-bold rounded-lg border-2 border-white hover:bg-white hover:text-saree-teal-dark transition-all duration-300 shadow-xl text-center"
+                  >
+                    {secondaryCTAItem.title}
+                  </a>
+                ) : (
                 <button className="px-8 py-4 bg-transparent text-white text-base font-bold rounded-lg border-2 border-white hover:bg-white hover:text-saree-teal-dark transition-all duration-300 shadow-xl">
                   {secondaryCTAItem.title}
                 </button>
+                )
               )}
             </div>
           </div>
 
-          {/* Right Card - Different design with feature cards stacked */}
+          {/* Right Card - Dynamic Stats from CMS */}
           <div className="space-y-4">
-            {/* Main CTA Card */}
+            {/* Main CTA Card - show if primary CTA exists */}
+            {primaryCTAItem && (
             <div className="bg-white rounded-2xl p-8 shadow-2xl transform hover:scale-105 transition-all duration-300">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-saree-teal to-phulkari-turquoise rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
                   <ServerIcon className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Try It Now</h3>
-                  <p className="text-sm text-gray-600">Start in 60 seconds</p>
+                    <h3 className="text-xl font-bold text-gray-900">{primaryCTAItem.description || 'Try It Now'}</h3>
+                    <p className="text-sm text-gray-600">{primaryCTAItem.label || 'Start in 60 seconds'}</p>
                 </div>
               </div>
               
+              {primaryCTAItem.value ? (
+                <a
+                  href={primaryCTAItem.value}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
+                >
+                  {primaryCTAItem.title} →
+                </a>
+              ) : (
               <button className="w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                Launch Console →
+                  {primaryCTAItem.title} →
               </button>
+              )}
             </div>
+            )}
 
-            {/* Stats Cards in a row */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all">
-                <div className="text-2xl font-bold text-saree-teal mb-1">99.9%</div>
-                <div className="text-xs text-gray-600 font-semibold">Uptime</div>
+            {/* Stats Cards - Dynamic from CMS */}
+            {statItems.length > 0 && (
+              <div className={`grid gap-3 ${statItems.length === 1 ? 'grid-cols-1' : statItems.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {statItems.slice(0, 3).map((stat, index) => {
+                  const colors = ['text-saree-teal', 'text-saree-amber', 'text-saree-lime'];
+                  return (
+                    <div key={stat.id || index} className="bg-white/95 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all">
+                      <div className={`text-2xl font-bold ${colors[index % 3]} mb-1`}>{stat.value || stat.title}</div>
+                      <div className="text-xs text-gray-600 font-semibold">{stat.label || stat.description}</div>
               </div>
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all">
-                <div className="text-2xl font-bold text-saree-amber mb-1">24/7</div>
-                <div className="text-xs text-gray-600 font-semibold">Support</div>
+                  );
+                })}
               </div>
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all">
-                <div className="text-2xl font-bold text-saree-lime mb-1">Free</div>
-                <div className="text-xs text-gray-600 font-semibold">Trial</div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -202,22 +232,45 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
   );
 };
 
-// Media Banner Section Component (for videos and images)
+// Media Banner Section Component - Carousel Gallery for Multiple Photos/Videos
 const MediaBannerSection = ({ section, items }) => {
-  // Get CMS base URL for uploaded files
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
   
-  // Determine media URL
-  let mediaUrl = '';
+  // Filter visible media items with valid URLs
+  const mediaItems = items.filter(item => {
+    if (!item.is_visible) return false;
+    try {
+      const content = item.content ? JSON.parse(item.content) : {};
+      return content.media_url && content.media_url.trim() !== '';
+    } catch (e) {
+      return false;
+    }
+  });
+  
+  if (mediaItems.length === 0) {
+    return null; // Don't render if no valid media items
+  }
+  
+  // Process media item to get URL and type
+  const getMediaInfo = (item) => {
+    let content = {};
+    try {
+      content = item.content ? JSON.parse(item.content) : {};
+    } catch (e) {
+      console.error('Error parsing media content:', e);
+    }
+    
+    const mediaType = content.media_type || 'image';
+    const mediaSource = content.media_source || 'upload';
+    let mediaUrl = content.media_url || '';
   let isYouTube = false;
   
-  if (section.media_url) {
-    if (section.media_source === 'youtube' || 
-        section.media_url.includes('youtube.com/embed/') ||
-        section.media_url.includes('youtube.com/watch') ||
-        section.media_url.includes('youtu.be/')) {
+    if (mediaType === 'video' && (mediaSource === 'youtube' || 
+        mediaUrl.includes('youtube.com') || 
+        mediaUrl.includes('youtu.be'))) {
       // YouTube video - normalize to embed format
-      let embedUrl = section.media_url;
+      let embedUrl = mediaUrl;
       if (embedUrl.includes('youtube.com/watch?v=')) {
         const videoId = embedUrl.split('v=')[1]?.split('&')[0];
         embedUrl = `https://www.youtube.com/embed/${videoId}`;
@@ -227,80 +280,129 @@ const MediaBannerSection = ({ section, items }) => {
       }
       mediaUrl = embedUrl;
       isYouTube = true;
-    } else if (section.media_source === 'upload') {
-      // Uploaded file - construct full URL
-      mediaUrl = section.media_url.startsWith('http') 
-        ? section.media_url 
-        : `${cmsBaseUrl}${section.media_url}`;
-      isYouTube = false;
+    } else if (mediaSource === 'upload' && !mediaUrl.startsWith('http')) {
+      mediaUrl = `${cmsBaseUrl}${mediaUrl}`;
     }
-  }
+    
+    return { mediaType, mediaUrl, isYouTube, title: item.title, description: item.description };
+  };
   
-  if (!mediaUrl) {
-    return null; // Don't render if no media URL
-  }
+  const currentMedia = getMediaInfo(mediaItems[currentIndex]);
+  
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % mediaItems.length);
+  };
+  
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+  };
+  
+  const goToSlide = (index) => {
+    setCurrentIndex(index);
+  };
   
   return (
-    <section className="py-20 bg-gradient-to-br from-saree-teal-light/20 via-white to-saree-amber-light/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
         {section.title && (
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
               {section.title}
             </h2>
             {section.description && (
-              <p className="text-base text-gray-600 max-w-3xl mx-auto">
+              <p className="text-sm text-gray-600 max-w-2xl mx-auto">
                 {section.description}
               </p>
             )}
           </div>
         )}
         
-        <div className="rounded-2xl overflow-hidden shadow-2xl bg-white">
-          {section.media_type === 'video' && isYouTube ? (
-            // YouTube Video Embed
-            <div className="aspect-video w-full">
-              <iframe
-                src={`${mediaUrl}${mediaUrl.includes('?') ? '&' : '?'}autoplay=0&mute=0&loop=0&controls=1&rel=0&enablejsapi=1`}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-                title={section.title || 'Video'}
-              ></iframe>
+        {/* Carousel Container */}
+        <div className="relative">
+          {/* Current Media Info - Above Media */}
+          {(currentMedia.title || currentMedia.description) && (
+            <div className="mb-3 text-center">
+              {currentMedia.title && (
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{currentMedia.title}</h3>
+              )}
+              {currentMedia.description && (
+                <p className="text-xs text-gray-600">{currentMedia.description}</p>
+              )}
             </div>
-          ) : section.media_type === 'video' ? (
+          )}
+          
+          {/* Main Media Display - Smaller Size */}
+          <div className="rounded-xl overflow-hidden shadow-lg bg-white">
+            <div className="relative group" style={{ paddingBottom: '45%' }}>
+              {currentMedia.mediaType === 'video' && currentMedia.isYouTube ? (
+                // YouTube Video
+              <iframe
+                  key={`youtube-${currentIndex}`}
+                  src={`${currentMedia.mediaUrl}?autoplay=0&mute=0&controls=1&rel=0`}
+                  className="absolute inset-0 w-full h-full"
+                frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                  title={currentMedia.title || 'Video'}
+                />
+              ) : currentMedia.mediaType === 'video' ? (
             // Uploaded Video
-            <div className="aspect-video w-full">
               <video
-                src={mediaUrl}
-                autoPlay
-                muted
-                loop
+                  key={`video-${currentIndex}`}
+                  src={currentMedia.mediaUrl}
                 controls
-                className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                 playsInline
               >
                 Your browser does not support the video tag.
               </video>
-            </div>
-          ) : section.media_type === 'image' ? (
+              ) : (
             // Image
-            <div className="w-full">
               <img
-                src={mediaUrl}
-                alt={section.title || 'Banner image'}
-                className="w-full h-auto object-cover"
+                  key={`image-${currentIndex}`}
+                  src={currentMedia.mediaUrl}
+                  alt={currentMedia.title || 'Gallery image'}
+                  className="absolute inset-0 w-full h-full object-cover"
                 loading="lazy"
-                onError={(e) => {
-                  console.error('Error loading image:', mediaUrl);
-                  e.target.style.display = 'none';
-                }}
-              />
+                />
+              )}
+              
+              {/* Navigation Arrows - Clean Design */}
+              {mediaItems.length > 1 && (
+                <>
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-saree-teal hover:bg-saree-teal-dark text-white p-2.5 rounded-full shadow-lg hover:scale-105 transition-all duration-200 z-10"
+                    aria-label="Previous"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-saree-teal hover:bg-saree-teal-dark text-white p-2.5 rounded-full shadow-lg hover:scale-105 transition-all duration-200 z-10"
+                    aria-label="Next"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Counter Badge - Top Right */}
+                  <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
+                    <span className="text-xs font-semibold text-white">
+                      {currentIndex + 1} / {mediaItems.length}
+                    </span>
             </div>
-          ) : null}
+                </>
+              )}
         </div>
+          </div>
+        </div>
+        
       </div>
     </section>
   );
@@ -308,6 +410,8 @@ const MediaBannerSection = ({ section, items }) => {
 
 // Features Section Component
 const FeaturesSection = ({ section, items }) => {
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  
   return (
     <section className="py-20 bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -322,7 +426,10 @@ const FeaturesSection = ({ section, items }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
-            const IconComponent = iconMap[item.icon] || CpuChipIcon;
+            // Check if icon is a custom uploaded path or heroicon name
+            const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
+            const IconComponent = !isCustomIcon ? (iconMap[item.icon] || CpuChipIcon) : null;
+            const customIconUrl = isCustomIcon ? (item.icon.startsWith('http') ? item.icon : `${cmsBaseUrl}${item.icon}`) : null;
             // 6 colors to avoid same pattern in 3-column grid
             const colors = [
               { bg: 'from-saree-teal-light to-white', border: 'border-saree-teal', iconBg: 'bg-saree-teal', hover: 'hover:bg-saree-teal-light hover:border-saree-teal-dark' },
@@ -335,9 +442,17 @@ const FeaturesSection = ({ section, items }) => {
             const color = colors[index % colors.length];
             
             return (
-              <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 cursor-pointer group`}>
+              <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  {isCustomIcon ? (
+                    <img 
+                      src={customIconUrl} 
+                      alt={item.title}
+                      className="w-6 h-6 object-contain"
+                    />
+                  ) : (
                   <IconComponent className="w-6 h-6 text-white" />
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">{item.title}</h3>
                 <p className="text-sm text-gray-700 leading-relaxed group-hover:text-gray-900 transition-colors duration-300">
@@ -413,9 +528,20 @@ const PricingSection = ({ section, items }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button className={`${content.buttonColor === 'green' ? 'bg-saree-teal hover:bg-saree-teal-dark' : 'bg-saree-amber hover:bg-saree-amber-dark'} text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg`}>
+                        {content.buttonUrl ? (
+                          <a
+                            href={content.buttonUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                          >
+                            {content.buttonText || 'Order Now'}
+                          </a>
+                        ) : (
+                          <button className="bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
                           {content.buttonText || 'Order Now'}
                         </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -431,6 +557,8 @@ const PricingSection = ({ section, items }) => {
 
 // Specifications Section Component
 const SpecificationsSection = ({ section, items }) => {
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  
   return (
     <section className="py-20 bg-gradient-to-br from-saree-lime-light/30 via-white to-phulkari-turquoise-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -445,7 +573,9 @@ const SpecificationsSection = ({ section, items }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
-            const IconComponent = iconMap[item.icon] || CpuChipIcon;
+            const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
+            const IconComponent = !isCustomIcon ? (iconMap[item.icon] || CpuChipIcon) : null;
+            const customIconUrl = isCustomIcon ? (item.icon.startsWith('http') ? item.icon : `${cmsBaseUrl}${item.icon}`) : null;
             // 6 colors to avoid same pattern in 3-column grid
             const colors = [
               { bg: 'from-saree-teal-light to-white', border: 'border-saree-teal', iconBg: 'bg-saree-teal', hover: 'hover:bg-saree-teal-light hover:border-saree-teal-dark' },
@@ -465,9 +595,17 @@ const SpecificationsSection = ({ section, items }) => {
             }
             
             return (
-              <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 cursor-pointer group`}>
+              <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  {isCustomIcon ? (
+                    <img 
+                      src={customIconUrl} 
+                      alt={item.title}
+                      className="w-6 h-6 object-contain"
+                    />
+                  ) : (
                   <IconComponent className="w-6 h-6 text-white" />
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">{item.title}</h3>
                 <ul className="space-y-2 text-sm text-gray-700">
@@ -489,6 +627,15 @@ const SpecificationsSection = ({ section, items }) => {
 
 // Security Section Component
 const SecuritySection = ({ section, items }) => {
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  
+  let rightSideContent = {};
+  try {
+    rightSideContent = section.content ? JSON.parse(section.content) : {};
+  } catch (e) {
+    console.error('Error parsing security content:', e);
+  }
+  
   return (
     <section className="py-20 bg-gradient-to-br from-phulkari-turquoise-light/20 via-white to-saree-teal-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -505,7 +652,9 @@ const SecuritySection = ({ section, items }) => {
           <div>
             <div className="space-y-8">
               {items.filter(item => item.is_visible).map((item, index) => {
-                const IconComponent = iconMap[item.icon] || ShieldCheckIcon;
+                const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
+                const IconComponent = !isCustomIcon ? (iconMap[item.icon] || ShieldCheckIcon) : null;
+                const customIconUrl = isCustomIcon ? (item.icon.startsWith('http') ? item.icon : `${cmsBaseUrl}${item.icon}`) : null;
                 const colors = [
                   { iconBg: 'bg-saree-teal', hover: 'hover:bg-saree-teal-dark' },
                   { iconBg: 'bg-saree-amber', hover: 'hover:bg-saree-amber-dark' },
@@ -514,9 +663,17 @@ const SecuritySection = ({ section, items }) => {
                 const color = colors[index % colors.length];
                 
                 return (
-                  <div key={item.id} className="flex items-start group cursor-pointer">
+                  <div key={item.id} className="flex items-start group">
                     <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mr-4 flex-shrink-0 ${color.hover} transition-all duration-300 group-hover:scale-110`}>
+                      {isCustomIcon ? (
+                        <img 
+                          src={customIconUrl} 
+                          alt={item.title}
+                          className="w-6 h-6 object-contain"
+                        />
+                      ) : (
                       <IconComponent className="w-6 h-6 text-white" />
+                      )}
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-saree-teal transition-colors duration-300">{item.title}</h3>
@@ -528,10 +685,16 @@ const SecuritySection = ({ section, items }) => {
             </div>
           </div>
           
+          {/* Right side card - only show if section has a content field with features list */}
+          {section.content && (() => {
+            try {
+              const content = JSON.parse(section.content);
+              if (content.features && Array.isArray(content.features) && content.features.length > 0) {
+                return (
           <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal transition-all duration-300">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Security Features</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-6">{content.title || 'Security Features'}</h3>
             <div className="space-y-4">
-              {['DDoS Protection', 'Intrusion Detection', 'Regular Security Updates', 'Access Control', 'Audit Logging', 'Backup & Recovery'].map((feature, index) => (
+                      {content.features.map((feature, index) => (
                 <div key={index} className="flex items-center group">
                   <CheckIcon className="w-5 h-5 text-saree-lime mr-3 group-hover:scale-110 transition-transform duration-300" />
                   <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{feature}</span>
@@ -539,6 +702,13 @@ const SecuritySection = ({ section, items }) => {
               ))}
             </div>
           </div>
+                );
+              }
+            } catch (e) {
+              // Invalid JSON, skip
+            }
+            return null;
+          })()}
         </div>
       </div>
     </section>
@@ -547,6 +717,8 @@ const SecuritySection = ({ section, items }) => {
 
 // Support Section Component
 const SupportSection = ({ section, items }) => {
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  
   return (
     <section className="py-20 bg-gradient-to-br from-saree-rose-light/20 via-white to-saree-amber-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -561,7 +733,9 @@ const SupportSection = ({ section, items }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
-            const IconComponent = iconMap[item.icon] || ClockIcon;
+            const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
+            const IconComponent = !isCustomIcon ? (iconMap[item.icon] || ClockIcon) : null;
+            const customIconUrl = isCustomIcon ? (item.icon.startsWith('http') ? item.icon : `${cmsBaseUrl}${item.icon}`) : null;
             const colors = [
               { iconBg: 'bg-saree-teal', hover: 'hover:bg-saree-teal-dark' },
               { iconBg: 'bg-saree-amber', hover: 'hover:bg-saree-amber-dark' },
@@ -571,9 +745,17 @@ const SupportSection = ({ section, items }) => {
             const color = colors[index % colors.length];
             
             return (
-              <div key={item.id} className="text-center group cursor-pointer hover:scale-105 transition-transform duration-300">
+              <div key={item.id} className="text-center group hover:scale-105 transition-transform duration-300">
                 <div className={`w-16 h-16 ${color.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 ${color.hover} group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                  {isCustomIcon ? (
+                    <img 
+                      src={customIconUrl} 
+                      alt={item.title}
+                      className="w-8 h-8 object-contain"
+                    />
+                  ) : (
                   <IconComponent className="w-8 h-8 text-white" />
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-saree-teal transition-colors duration-300">{item.title}</h3>
                 <p className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors duration-300">{item.description}</p>
@@ -610,7 +792,7 @@ const MigrationSection = ({ section, items }) => {
             const color = colors[index % colors.length];
             
             return (
-              <div key={item.id} className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal hover:scale-105 transition-all duration-300 cursor-pointer group">
+              <div key={item.id} className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal hover:scale-105 transition-all duration-300 group">
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 ${color.hover} group-hover:scale-110 transition-all duration-300`}>
                   <span className="text-white font-bold text-xl">{index + 1}</span>
                 </div>
@@ -627,6 +809,8 @@ const MigrationSection = ({ section, items }) => {
 
 // Use Cases Section Component
 const UseCasesSection = ({ section, items }) => {
+  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  
   return (
     <section className="py-20 bg-gradient-to-br from-saree-coral-light/20 via-white to-saree-lime-light/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -641,7 +825,9 @@ const UseCasesSection = ({ section, items }) => {
 
         <div className="space-y-12">
           {items.filter(item => item.is_visible).map((item, index) => {
-            const IconComponent = iconMap[item.icon] || GlobeAltIcon;
+            const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
+            const IconComponent = !isCustomIcon ? (iconMap[item.icon] || GlobeAltIcon) : null;
+            const customIconUrl = isCustomIcon ? (item.icon.startsWith('http') ? item.icon : `${cmsBaseUrl}${item.icon}`) : null;
             const colors = [
               { bg: 'from-saree-teal-light to-white', border: 'border-saree-teal', iconBg: 'bg-saree-teal', dotBg: 'bg-saree-teal', hover: 'hover:border-saree-teal-dark' },
               { bg: 'from-saree-amber-light to-white', border: 'border-saree-amber', iconBg: 'bg-saree-amber', dotBg: 'bg-saree-amber', hover: 'hover:border-saree-amber-dark' },
@@ -661,7 +847,15 @@ const UseCasesSection = ({ section, items }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
                   <div className="text-center lg:text-left">
                     <div className={`w-20 h-20 ${color.iconBg} rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      {isCustomIcon ? (
+                        <img 
+                          src={customIconUrl} 
+                          alt={item.title}
+                          className="w-10 h-10 object-contain"
+                        />
+                      ) : (
                       <IconComponent className="w-10 h-10 text-white" />
+                      )}
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
                     <p className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors duration-300">{item.description}</p>
@@ -713,14 +907,36 @@ const CTASection = ({ section, items }) => {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {primaryCTAItem && (
+            primaryCTAItem.value ? (
+              <a
+                href={primaryCTAItem.value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-saree-teal text-white px-8 py-3 rounded-lg font-semibold text-base hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-center"
+              >
+                {primaryCTAItem.title}
+              </a>
+            ) : (
             <button className="bg-saree-teal text-white px-8 py-3 rounded-lg font-semibold text-base hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
               {primaryCTAItem.title}
             </button>
+            )
           )}
           {secondaryCTAItem && (
+            secondaryCTAItem.value ? (
+              <a
+                href={secondaryCTAItem.value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border-2 border-saree-amber text-saree-amber-dark px-8 py-3 rounded-lg font-semibold text-base hover:border-saree-amber-dark hover:bg-saree-amber-light transition-all duration-300 text-center"
+              >
+                {secondaryCTAItem.title}
+              </a>
+            ) : (
             <button className="border-2 border-saree-amber text-saree-amber-dark px-8 py-3 rounded-lg font-semibold text-base hover:border-saree-amber-dark hover:bg-saree-amber-light transition-all duration-300">
               {secondaryCTAItem.title}
             </button>
+            )
           )}
         </div>
       </div>
@@ -752,7 +968,7 @@ const DefaultSection = ({ section, items }) => {
             const color = colors[index % colors.length];
             
             return (
-              <div key={item.id} className={`${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 cursor-pointer group`}>
+              <div key={item.id} className={`${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-saree-teal transition-colors duration-300">{item.title}</h3>
                 <p className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{item.description}</p>
             </div>

@@ -455,6 +455,7 @@ const HomePageManagement = ({
           {[
             { id: 'hero', label: 'Hero Section' },
             { id: 'why', label: 'Why Items' },
+            { id: 'sections-config', label: 'Section Headings' },
             { id: 'comprehensive', label: 'Comprehensive Section' },
             { id: 'feature-banners', label: 'Feature Banners' }
           ].map(tab => (
@@ -491,6 +492,12 @@ const HomePageManagement = ({
             editing={editingItem}
             onEdit={setEditingItem}
             onCancel={() => setEditingItem(null)}
+          />
+        )}
+
+        {activeTab === 'sections-config' && (
+          <SectionsConfigEditor 
+            sectionsConfig={homepageData?.sectionsConfig}
           />
         )}
 
@@ -1401,16 +1408,14 @@ const HeroEditor = ({ hero, onUpdate }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    primary_button_text: '',
-    secondary_button_text: ''
+    primary_button_text: ''
   });
   useEffect(() => {
     if (hero) {
       setFormData({
         title: hero.title || '',
         description: hero.description || '',
-        primary_button_text: hero.primary_button_text || '',
-        secondary_button_text: hero.secondary_button_text || ''
+        primary_button_text: hero.primary_button_text || ''
       });
     }
   }, [hero]);
@@ -1448,7 +1453,6 @@ const HeroEditor = ({ hero, onUpdate }) => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Primary Button Text</label>
             <input
@@ -1457,17 +1461,6 @@ const HeroEditor = ({ hero, onUpdate }) => {
               onChange={(e) => setFormData({...formData, primary_button_text: e.target.value})}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Button Text</label>
-            <input
-              type="text"
-              value={formData.secondary_button_text}
-              onChange={(e) => setFormData({...formData, secondary_button_text: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
         </div>
 
         <button
@@ -1488,6 +1481,58 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
     content: '',
     link: ''
   });
+  
+  const [whyHeaderForm, setWhyHeaderForm] = useState({
+    heading: '',
+    description: ''
+  });
+  
+  const [savingHeader, setSavingHeader] = useState(false);
+
+  // Load Why section header from API
+  useEffect(() => {
+    const fetchWhyConfig = async () => {
+      try {
+        const CMS_URL = import.meta.env.VITE_CMS_URL || import.meta.env.VITE_CMS_API_URL || 'http://149.13.60.6:4002';
+        const response = await fetch(`${CMS_URL}/api/homepage`);
+        const data = await response.json();
+        if (data.sectionsConfig?.why) {
+          setWhyHeaderForm({
+            heading: data.sectionsConfig.why.heading || '',
+            description: data.sectionsConfig.why.description || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error loading why config:', error);
+      }
+    };
+    fetchWhyConfig();
+  }, []);
+  
+  const handleSaveHeader = async () => {
+    setSavingHeader(true);
+    try {
+        const CMS_URL = import.meta.env.VITE_CMS_URL || import.meta.env.VITE_CMS_API_URL || 'http://149.13.60.6:4002';
+        const response = await fetch(`${CMS_URL}/api/homepage/sections/why`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(whyHeaderForm)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save');
+      }
+      
+      alert('Why section header updated successfully!');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving configuration');
+    } finally {
+      setSavingHeader(false);
+    }
+  };
+
   useEffect(() => {
     if (editing && editing !== 'new' && whyItems) {
       const item = whyItems.find(item => item.id === editing);
@@ -1532,8 +1577,43 @@ const WhyItemsEditor = ({ whyItems, onCreate, onUpdate, onDelete, editing, onEdi
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6">
+      {/* Why Section Header */}
+      <div className="mb-8 pb-6 border-b">
+        <h2 className="text-xl font-semibold mb-4">Why Section Header</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Heading</label>
+            <input
+              type="text"
+              value={whyHeaderForm.heading}
+              onChange={(e) => setWhyHeaderForm({...whyHeaderForm, heading: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+              placeholder="Why Cloud4India?"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={whyHeaderForm.description}
+              onChange={(e) => setWhyHeaderForm({...whyHeaderForm, description: e.target.value})}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter description..."
+            />
+          </div>
+          <button
+            onClick={handleSaveHeader}
+            disabled={savingHeader}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {savingHeader ? 'Saving...' : 'Save Why Section Header'}
+          </button>
+        </div>
+      </div>
+      
+      {/* Why Items List */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Why Items</h2>
+        <h2 className="text-xl font-semibold">Why Items (Expandable Cards)</h2>
         <button
           onClick={() => onEdit('new')}
           className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
@@ -2784,6 +2864,227 @@ const FeatureBannersEditor = ({
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+// Section Headings Config Editor Component
+const SectionsConfigEditor = ({ sectionsConfig }) => {
+  const [formData, setFormData] = useState({
+    why: { heading: '', description: '' },
+    products: { heading: '', button_text: '', filter_text: '', search_placeholder: '' },
+    marketplaces: { heading: '', button_text: '', filter_text: '', search_placeholder: '' },
+    solutions: { heading: '', button_text: '', filter_text: '', search_placeholder: '' }
+  });
+  
+  const [saving, setSaving] = useState(null);
+
+  useEffect(() => {
+    if (sectionsConfig) {
+      setFormData({
+        why: {
+          heading: sectionsConfig.why?.heading || 'Why Cloud4India?',
+          description: sectionsConfig.why?.description || ''
+        },
+        products: {
+          heading: sectionsConfig.products?.heading || 'Explore our Products',
+          button_text: sectionsConfig.products?.button_text || 'View more Products',
+          filter_text: sectionsConfig.products?.filter_text || 'Filter by category',
+          search_placeholder: sectionsConfig.products?.search_placeholder || 'Search categories'
+        },
+        marketplaces: {
+          heading: sectionsConfig.marketplaces?.heading || 'Explore our Apps',
+          button_text: sectionsConfig.marketplaces?.button_text || 'View more Apps',
+          filter_text: sectionsConfig.marketplaces?.filter_text || 'Filter by category',
+          search_placeholder: sectionsConfig.marketplaces?.search_placeholder || 'Search categories'
+        },
+        solutions: {
+          heading: sectionsConfig.solutions?.heading || 'Explore our Solutions',
+          button_text: sectionsConfig.solutions?.button_text || 'View more Solutions',
+          filter_text: sectionsConfig.solutions?.filter_text || 'Filter by category',
+          search_placeholder: sectionsConfig.solutions?.search_placeholder || 'Search categories'
+        }
+      });
+    }
+  }, [sectionsConfig]);
+
+  const handleSave = async (sectionName) => {
+    setSaving(sectionName);
+    try {
+      const CMS_URL = import.meta.env.VITE_CMS_URL || import.meta.env.VITE_CMS_API_URL || 'http://149.13.60.6:4002';
+      const response = await fetch(`${CMS_URL}/api/homepage/sections/${sectionName}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData[sectionName])
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save');
+      }
+      
+      alert(`${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} section config updated successfully!`);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('Error saving configuration');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 space-y-8">
+      <h2 className="text-xl font-semibold mb-6">Homepage Section Headings & Text</h2>
+      
+      {/* Products Section Config */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Products Section</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Heading</label>
+            <input
+              type="text"
+              value={formData.products.heading}
+              onChange={(e) => setFormData({...formData, products: {...formData.products, heading: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+            <input
+              type="text"
+              value={formData.products.button_text}
+              onChange={(e) => setFormData({...formData, products: {...formData.products, button_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter Text</label>
+            <input
+              type="text"
+              value={formData.products.filter_text}
+              onChange={(e) => setFormData({...formData, products: {...formData.products, filter_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Placeholder</label>
+            <input
+              type="text"
+              value={formData.products.search_placeholder}
+              onChange={(e) => setFormData({...formData, products: {...formData.products, search_placeholder: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => handleSave('products')}
+          disabled={saving === 'products'}
+          className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {saving === 'products' ? 'Saving...' : 'Save Products Section'}
+        </button>
+      </div>
+
+      {/* Marketplaces Section Config */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Marketplaces Section</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Heading</label>
+            <input
+              type="text"
+              value={formData.marketplaces.heading}
+              onChange={(e) => setFormData({...formData, marketplaces: {...formData.marketplaces, heading: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+            <input
+              type="text"
+              value={formData.marketplaces.button_text}
+              onChange={(e) => setFormData({...formData, marketplaces: {...formData.marketplaces, button_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter Text</label>
+            <input
+              type="text"
+              value={formData.marketplaces.filter_text}
+              onChange={(e) => setFormData({...formData, marketplaces: {...formData.marketplaces, filter_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Placeholder</label>
+            <input
+              type="text"
+              value={formData.marketplaces.search_placeholder}
+              onChange={(e) => setFormData({...formData, marketplaces: {...formData.marketplaces, search_placeholder: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => handleSave('marketplaces')}
+          disabled={saving === 'marketplaces'}
+          className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {saving === 'marketplaces' ? 'Saving...' : 'Save Marketplaces Section'}
+        </button>
+      </div>
+
+      {/* Solutions Section Config */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Solutions Section</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Heading</label>
+            <input
+              type="text"
+              value={formData.solutions.heading}
+              onChange={(e) => setFormData({...formData, solutions: {...formData.solutions, heading: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Button Text</label>
+            <input
+              type="text"
+              value={formData.solutions.button_text}
+              onChange={(e) => setFormData({...formData, solutions: {...formData.solutions, button_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter Text</label>
+            <input
+              type="text"
+              value={formData.solutions.filter_text}
+              onChange={(e) => setFormData({...formData, solutions: {...formData.solutions, filter_text: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search Placeholder</label>
+            <input
+              type="text"
+              value={formData.solutions.search_placeholder}
+              onChange={(e) => setFormData({...formData, solutions: {...formData.solutions, search_placeholder: e.target.value}})}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => handleSave('solutions')}
+          disabled={saving === 'solutions'}
+          className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {saving === 'solutions' ? 'Saving...' : 'Save Solutions Section'}
+        </button>
       </div>
     </div>
   );
