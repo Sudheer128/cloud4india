@@ -7,16 +7,50 @@ const MediaBannerSection = ({ section, items }) => {
   
   // Filter visible media items with valid URLs
   const mediaItems = items.filter(item => {
-    if (!item.is_visible) return false;
+    // Check visibility: is_visible should be !== 0 (consistent with section visibility checks)
+    if (item.is_visible === 0 || item.is_visible === false || item.is_visible === null || item.is_visible === undefined) {
+      console.log('Item filtered out (not visible):', item.id, item.title, 'is_visible:', item.is_visible);
+      return false;
+    }
     try {
       const content = item.content ? JSON.parse(item.content) : {};
-      return content.media_url && content.media_url.trim() !== '';
+      const hasMediaUrl = content.media_url && content.media_url.trim() !== '';
+      if (!hasMediaUrl) {
+        console.log('Item filtered out (no media_url):', item.id, item.title, content);
+      }
+      return hasMediaUrl;
     } catch (e) {
+      console.error('Error parsing item content:', item.id, item.title, e);
       return false;
     }
   });
   
+  // Debug logging - detailed content inspection
+  console.log('MediaBannerSection - Items received:', {
+    totalItems: items?.length || 0,
+    visibleItems: mediaItems.length,
+    items: items?.map(item => {
+      let parsedContent = null;
+      try {
+        parsedContent = item.content ? JSON.parse(item.content) : {};
+      } catch (e) {
+        console.error(`Item ${item.id} content parse error:`, e, 'Raw:', item.content);
+      }
+      return {
+        id: item.id,
+        title: item.title,
+        is_visible: item.is_visible,
+        item_type: item.item_type,
+        contentRaw: item.content,
+        contentParsed: parsedContent,
+        hasMediaUrl: parsedContent?.media_url ? 'YES' : 'NO',
+        mediaUrl: parsedContent?.media_url || 'MISSING'
+      };
+    })
+  });
+  
   if (mediaItems.length === 0) {
+    console.warn('MediaBannerSection - No valid media items found. Items received:', items);
     return null; // Don't render if no valid media items
   }
   
@@ -100,39 +134,39 @@ const MediaBannerSection = ({ section, items }) => {
             </div>
           )}
           
-          {/* Main Media Display */}
+          {/* Main Media Display - Smaller Size */}
           <div className="rounded-xl overflow-hidden shadow-lg bg-white">
             <div className="relative group" style={{ paddingBottom: '45%' }}>
               {currentMedia.mediaType === 'video' && currentMedia.isYouTube ? (
                 // YouTube Video
-                <iframe
+              <iframe
                   key={`youtube-${currentIndex}`}
                   src={`${currentMedia.mediaUrl}?autoplay=0&mute=0&controls=1&rel=0`}
                   className="absolute inset-0 w-full h-full"
-                  frameBorder="0"
+                frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
+                allowFullScreen
                   title={currentMedia.title || 'Video'}
                 />
               ) : currentMedia.mediaType === 'video' ? (
-                // Uploaded Video
-                <video
+            // Uploaded Video
+              <video
                   key={`video-${currentIndex}`}
                   src={currentMedia.mediaUrl}
-                  controls
+                controls
                   className="absolute inset-0 w-full h-full object-cover"
-                  playsInline
-                >
-                  Your browser does not support the video tag.
-                </video>
+                playsInline
+              >
+                Your browser does not support the video tag.
+              </video>
               ) : (
-                // Image
-                <img
+            // Image
+              <img
                   key={`image-${currentIndex}`}
                   src={currentMedia.mediaUrl}
                   alt={currentMedia.title || 'Gallery image'}
                   className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
+                loading="lazy"
                 />
               )}
               
@@ -167,52 +201,17 @@ const MediaBannerSection = ({ section, items }) => {
                   </div>
                 </>
               )}
-            </div>
+        </div>
           </div>
         </div>
-        
-        {/* Thumbnail Navigation */}
-        {mediaItems.length > 1 && (
-          <div className="mt-6 flex justify-center gap-2 overflow-x-auto pb-2">
-            {mediaItems.map((item, index) => {
-              const mediaInfo = getMediaInfo(item);
-              const isActive = index === currentIndex;
-              return (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                    isActive 
-                      ? 'border-saree-teal ring-2 ring-saree-teal/50 scale-105' 
-                      : 'border-gray-300 hover:border-saree-teal/50'
-                  }`}
-                >
-                  {mediaInfo.mediaType === 'image' ? (
-                    <img
-                      src={mediaInfo.mediaUrl}
-                      alt={item.title || `Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </section>
   );
 };
 
 const DynamicMarketplaceSection = ({ section, items, marketplace, hasNavigation = false }) => {
-  // Don't render if section is hidden
-  if (!section.is_visible) {
+  // Don't render if section is hidden (check for 0, false, null, or undefined)
+  if (section.is_visible === 0 || section.is_visible === false || section.is_visible === null || section.is_visible === undefined) {
     return null;
   }
 

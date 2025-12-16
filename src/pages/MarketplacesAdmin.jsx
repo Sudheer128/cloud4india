@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   getAdminMarketplaces,
   toggleMarketplaceVisibility,
@@ -379,40 +380,38 @@ const DeleteCategoryModal = ({ isOpen, onClose, categoryName, appCount, appNames
   );
 };
 
-// Helper function to get available categories from localStorage
-const getAvailableCategories = () => {
-  try {
-    const stored = localStorage.getItem('availableCategories');
-    return stored ? JSON.parse(stored) : [];
-  } catch (e) {
-    return [];
-  }
-};
-
-// Helper function to save available categories to localStorage
-const saveAvailableCategories = (categories) => {
-  try {
-    localStorage.setItem('availableCategories', JSON.stringify(categories));
-  } catch (e) {
-    console.error('Error saving categories to localStorage:', e);
-  }
-};
-
 // Marketplaces Management Component
-const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMarketplace, onDeleteMarketplace, onToggleVisibility, onRefresh }) => {
+const MarketplacesManagement = ({ marketplaces, onDuplicateMarketplace, onDeleteMarketplace, onToggleVisibility, onRefresh }) => {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
   const [showRenameCategoryModal, setShowRenameCategoryModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [categoryToRename, setCategoryToRename] = useState(null);
-  const [availableCategories, setAvailableCategories] = useState(getAvailableCategories());
+  const [availableCategories, setAvailableCategories] = useState([]);
+  
+  // Load categories from database on mount
+  useEffect(() => {
+    loadCategoriesFromDB();
+  }, []);
+  
+  const loadCategoriesFromDB = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories`);
+      if (response.ok) {
+        const cats = await response.json();
+        setAvailableCategories(cats.map(c => c.name));
+      }
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
+  };
 
   // Extract unique categories from marketplaces
-  const categoriesFromMarketplaces = Array.from(new Set(marketplaces.map(s => s.category).filter(Boolean)));
-  
-  // Merge categories from marketplaces with available categories (from localStorage)
-  // Remove categories from availableCategories if they now exist in marketplaces
+  const categoriesFromMarketplaces = Array.from(new Set(marketplaces.map(m => m.category).filter(Boolean)));
+
+  // Merge categories from marketplaces with available categories
   const mergedCategories = Array.from(new Set([
     ...categoriesFromMarketplaces,
     ...availableCategories.filter(cat => !categoriesFromMarketplaces.includes(cat))
@@ -427,22 +426,32 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
 
   // Get category statistics
   const getCategoryStats = (categoryName) => {
-    const appsInCategory = marketplaces.filter(s => s.category === categoryName);
+    const appsInCategory = marketplaces.filter(m => m.category === categoryName);
     return {
       count: appsInCategory.length,
-      names: appsInCategory.map(s => s.name)
+      names: appsInCategory.map(m => m.name)
     };
   };
 
-  const handleAddCategory = (categoryName) => {
-    // Add category to available categories list
-    if (!availableCategories.includes(categoryName)) {
-      const updated = [...availableCategories, categoryName];
-      setAvailableCategories(updated);
-      saveAvailableCategories(updated);
+  const handleAddCategory = async (categoryName) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: categoryName })
+      });
+      
+      if (response.ok) {
+        await loadCategoriesFromDB();
+        setShowAddCategoryModal(false);
+        alert(`Category "${categoryName}" has been added! It will now appear in all dropdowns.`);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to add category'}`);
+      }
+    } catch (err) {
+      alert('Error adding category: ' + err.message);
     }
-    setShowAddCategoryModal(false);
-    alert(`Category "${categoryName}" has been added! It will now appear in all dropdowns. You can now duplicate an app and assign it to this category using the Edit button.`);
   };
 
   const handleDeleteCategoryClick = (categoryName) => {
@@ -455,15 +464,29 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
     setShowDeleteCategoryModal(true);
   };
 
-  const handleDeleteCategoryConfirm = () => {
-    // Remove category from available categories list
-    const categoryName = categoryToDelete?.name;
-    const updated = availableCategories.filter(cat => cat !== categoryName);
-    setAvailableCategories(updated);
-    saveAvailableCategories(updated);
-    setShowDeleteCategoryModal(false);
-    setCategoryToDelete(null);
-    alert(`Category "${categoryName}" has been removed.`);
+  const handleDeleteCategoryConfirm = async () => {
+    try {
+      const categoryName = categoryToDelete?.name;
+      // Find category ID
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories`);
+      const cats = await response.json();
+      const catToDelete = cats.find(c => c.name === categoryName);
+      
+      if (catToDelete) {
+        const deleteResponse = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories/${catToDelete.id}`, {
+          method: 'DELETE'
+        });
+        
+        if (deleteResponse.ok) {
+          await loadCategoriesFromDB();
+          setShowDeleteCategoryModal(false);
+          setCategoryToDelete(null);
+          alert(`Category "${categoryName}" has been deleted.`);
+        }
+      }
+    } catch (err) {
+      alert('Error deleting category: ' + err.message);
+    }
   };
 
   const handleRenameCategoryClick = (categoryName) => {
@@ -477,54 +500,36 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
 
   const handleRenameCategory = async (oldCategoryName, newCategoryName) => {
     try {
-      // Update available categories list
-      const updated = availableCategories.map(cat => cat === oldCategoryName ? newCategoryName : cat);
-      if (!updated.includes(newCategoryName) && availableCategories.includes(oldCategoryName)) {
-        updated.push(newCategoryName);
-      }
-      setAvailableCategories(updated.filter(cat => cat !== oldCategoryName || cat === newCategoryName));
-      saveAvailableCategories(updated.filter(cat => cat !== oldCategoryName || cat === newCategoryName));
-
-      // Get all marketplaces with the old category
-      const marketplacesToUpdate = marketplaces.filter(s => s.category === oldCategoryName);
+      // Find category ID and update it
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories`);
+      const cats = await response.json();
+      const catToRename = cats.find(c => c.name === oldCategoryName);
       
-      if (marketplacesToUpdate.length === 0) {
-        // If no marketplaces, just update the available categories list
-        alert(`Category "${oldCategoryName}" has been renamed to "${newCategoryName}".`);
-        setShowRenameCategoryModal(false);
-        setCategoryToRename(null);
-        return;
-      }
-
-      // Update each marketplace
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const marketplace of marketplacesToUpdate) {
-        try {
-          await updateMarketplace(marketplace.id, {
-            ...marketplace,
-            category: newCategoryName
-          });
-          successCount++;
-        } catch (err) {
-          console.error(`Error updating marketplace ${marketplace.id}:`, err);
-          errorCount++;
+      if (catToRename) {
+        const updateResponse = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/categories/${catToRename.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newCategoryName })
+        });
+        
+        if (updateResponse.ok) {
+          // Update marketplaces with old category
+          const marketplacesToUpdate = marketplaces.filter(m => m.category === oldCategoryName);
+          
+          for (const marketplace of marketplacesToUpdate) {
+            await updateMarketplace(marketplace.id, {
+              ...marketplace,
+              category: newCategoryName
+            });
+          }
+          
+          await loadCategoriesFromDB();
+          if (onRefresh) await onRefresh();
+          
+          alert(`Successfully renamed category "${oldCategoryName}" to "${newCategoryName}". Updated ${marketplacesToUpdate.length} app${marketplacesToUpdate.length !== 1 ? 's' : ''}.`);
+          setShowRenameCategoryModal(false);
+          setCategoryToRename(null);
         }
-      }
-
-      // Refresh marketplaces list
-      if (onRefresh) {
-        await onRefresh();
-      }
-
-      // Show result
-      if (errorCount === 0) {
-        alert(`Successfully renamed category "${oldCategoryName}" to "${newCategoryName}". Updated ${successCount} app${successCount !== 1 ? 's' : ''}.`);
-        setShowRenameCategoryModal(false);
-        setCategoryToRename(null);
-      } else {
-        alert(`Renamed category with some errors. ${successCount} app${successCount !== 1 ? 's' : ''} updated, ${errorCount} error${errorCount !== 1 ? 's' : ''}.`);
       }
     } catch (err) {
       console.error('Error renaming category:', err);
@@ -536,7 +541,7 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Marketplace</h3>
+        <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Manage Marketplace Apps</h3>
         <div className="flex items-center gap-3">
           {/* Category Filter Dropdown */}
           <div className="relative">
@@ -566,7 +571,7 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
 
       <div className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl overflow-hidden">
         <div className="hidden md:grid grid-cols-[1.5fr_2fr_1.5fr_auto] gap-4 px-6 py-3 text-xs font-semibold text-gray-600 bg-gray-50 border-b border-gray-200">
-          <div>Marketplace</div>
+          <div>Marketplace App</div>
           <div>Description</div>
           <div>Route</div>
           <div className="text-right">Actions</div>
@@ -582,9 +587,9 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
                       ? 'bg-sky-100 text-sky-700'
                       : marketplace.category === 'Databases'
                       ? 'bg-purple-100 text-purple-700'
-                      :                     marketplace.category === 'Developer Tools'
+                      : marketplace.category === 'Developer Tools'
                       ? 'bg-amber-100 text-amber-700'
-                      :                     marketplace.category === 'Media'
+                      : marketplace.category === 'Media'
                       ? 'bg-pink-100 text-pink-700'
                       : marketplace.category === 'E Commerce'
                       ? 'bg-orange-100 text-orange-700'
@@ -604,10 +609,10 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
                 <div className="text-xs text-gray-500 mt-2 md:mt-0">/marketplace/{toSlug(marketplace.name)}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
-                    onClick={() => onEditMarketplace(marketplace)}
+                    onClick={() => navigate(`/admin/marketplaces-new/${marketplace.id}`)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                    title="Edit Page Content"
-                    aria-label="Edit Page Content"
+                    title="Edit Marketplace App - New Interface"
+                    aria-label="Edit Marketplace App - New Interface"
                   >
                     <PencilSquareIcon className="w-4 h-4" />
                   </button>
@@ -626,18 +631,13 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
                         ? 'bg-orange-600 text-white hover:bg-orange-700' 
                         : 'bg-purple-600 text-white hover:bg-purple-700'
                     }`}
-                    title={marketplace.is_visible !== 0 ? 'Hide Marketplace' : 'Show Marketplace'}
-                    aria-label={marketplace.is_visible !== 0 ? 'Hide Marketplace' : 'Show Marketplace'}
+                    title={marketplace.is_visible !== 0 ? 'Hide App' : 'Show App'}
+                    aria-label={marketplace.is_visible !== 0 ? 'Hide App' : 'Show App'}
                   >
                     {marketplace.is_visible !== 0 ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                      </svg>
+                      <EyeSlashIcon className="w-4 h-4" />
                     ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
+                      <EyeIcon className="w-4 h-4" />
                     )}
                   </button>
                   <button
@@ -688,18 +688,14 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
                         <button
                           onClick={() => handleRenameCategoryClick(category)}
                           className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                          title="Rename category"
+                          title="Rename Category"
                         >
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteCategoryClick(category)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            stats.count > 0
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-red-50 text-red-600 hover:bg-red-100'
-                          }`}
-                          title={stats.count > 0 ? 'Cannot delete: Category has apps' : 'Delete category'}
+                          className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          title="Delete Category"
                           disabled={stats.count > 0}
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -707,9 +703,10 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
                       </div>
                     </div>
                     {stats.count > 0 && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Delete or reassign all apps to remove this category
-                      </p>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {stats.names.slice(0, 3).join(', ')}
+                        {stats.count > 3 && ` and ${stats.count - 3} more`}
+                      </div>
                     )}
                   </div>
                 );
@@ -717,29 +714,13 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p>No categories available. Add a new category to get started.</p>
+              <p>No categories available. Add categories using the button above.</p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Marketplace Page Management</h3>
-            <p className="mt-1 text-sm text-blue-700">
-              Click the <strong>Edit</strong> button (blue) to manage the complete content of each marketplace page including hero sections, benefits, use cases, and more.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Add New Category Modal */}
+      {/* Modals */}
       <AddCategoryModal
         isOpen={showAddCategoryModal}
         onClose={() => setShowAddCategoryModal(false)}
@@ -747,27 +728,25 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
         existingCategories={categories.filter(cat => cat !== 'all')}
       />
 
-      {/* Delete Category Modal */}
       <DeleteCategoryModal
         isOpen={showDeleteCategoryModal}
         onClose={() => {
           setShowDeleteCategoryModal(false);
           setCategoryToDelete(null);
         }}
-        categoryName={categoryToDelete?.name || ''}
+        categoryName={categoryToDelete?.name}
         appCount={categoryToDelete?.appCount || 0}
         appNames={categoryToDelete?.appNames || []}
         onConfirm={handleDeleteCategoryConfirm}
       />
 
-      {/* Rename Category Modal */}
       <RenameCategoryModal
         isOpen={showRenameCategoryModal}
         onClose={() => {
           setShowRenameCategoryModal(false);
           setCategoryToRename(null);
         }}
-        oldCategoryName={categoryToRename?.oldName || ''}
+        oldCategoryName={categoryToRename?.oldName}
         appCount={categoryToRename?.appCount || 0}
         onSave={handleRenameCategory}
         existingCategories={categories.filter(cat => cat !== 'all')}
@@ -776,1865 +755,10 @@ const MarketplacesManagement = ({ marketplaces, onEditMarketplace, onDuplicateMa
   );
 };
 
-// Marketplace Editor Component - Full Featured Editor
-const MarketplaceEditor = ({ marketplace, onBack }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [cardData, setCardData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    color: '',
-    border_color: '',
-    route: '',
-    gradient_start: '',
-    gradient_end: '',
-    enable_single_page: true,
-    redirect_url: ''
-  });
-  const [sections, setSections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingSection, setEditingSection] = useState(null);
-  const [managingItems, setManagingItems] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState([]);
-
-  useEffect(() => {
-    // Load available categories
-    const loadCategories = async () => {
-      try {
-        // Get categories from localStorage
-        const storedCategories = getAvailableCategories();
-        
-        // Get categories from all marketplaces
-        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/marketplaces`);
-        if (response.ok) {
-          const allMarketplaces = await response.json();
-          const categoriesFromMarketplaces = Array.from(new Set(allMarketplaces.map(s => s.category).filter(Boolean)));
-          
-          // Merge categories from marketplaces with localStorage categories
-          const mergedCategories = Array.from(new Set([
-            ...categoriesFromMarketplaces,
-            ...storedCategories.filter(cat => !categoriesFromMarketplaces.includes(cat))
-          ])).sort();
-          
-          setAvailableCategories(mergedCategories);
-        } else {
-          // Fallback to localStorage only
-          setAvailableCategories(storedCategories);
-        }
-      } catch (err) {
-        console.error('Error loading categories:', err);
-        // Fallback to localStorage only
-        setAvailableCategories(getAvailableCategories());
-      }
-    };
-    
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
-    if (marketplace) {
-      setCardData({
-        name: marketplace.name,
-        description: marketplace.description,
-        category: marketplace.category,
-        color: marketplace.color,
-        border_color: marketplace.border_color,
-        route: marketplace.route,
-        gradient_start: marketplace.gradient_start || 'blue',
-        gradient_end: marketplace.gradient_end || 'blue-700',
-        enable_single_page: marketplace.enable_single_page !== undefined ? Boolean(marketplace.enable_single_page) : true,
-        redirect_url: marketplace.redirect_url || ''
-      });
-      loadSections();
-    }
-  }, [marketplace]);
-
-  const loadSections = async () => {
-    try {
-      setLoading(true);
-      console.log(`Loading sections for marketplace ID: ${marketplace.id}`);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const sectionsData = await response.json();
-      console.log(`Loaded ${sectionsData.length} sections:`, sectionsData);
-      setSections(sectionsData);
-    } catch (err) {
-      console.error('Error loading sections:', err);
-      setSections([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveCard = async () => {
-    try {
-      setSaving(true);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cardData),
-      });
-      
-      if (response.ok) {
-        alert('Marketplace card updated successfully!');
-      } else {
-        throw new Error('Failed to update marketplace');
-      }
-    } catch (err) {
-      alert('Error updating marketplace: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCreateSection = async (sectionData) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sectionData),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        setEditingSection(null);
-        alert('Section created successfully!');
-      } else {
-        throw new Error('Failed to create section');
-      }
-    } catch (err) {
-      alert('Error creating section: ' + err.message);
-    }
-  };
-
-  const handleUpdateSection = async (sectionId, sectionData) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sectionData),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        setEditingSection(null);
-        alert('Section updated successfully!');
-      } else {
-        throw new Error('Failed to update section');
-      }
-    } catch (err) {
-      alert('Error updating section: ' + err.message);
-    }
-  };
-
-  const handleDeleteSection = async (sectionId) => {
-    if (window.confirm('Are you sure you want to delete this section?')) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          await loadSections();
-          alert('Section deleted successfully!');
-        } else {
-          throw new Error('Failed to delete section');
-        }
-      } catch (err) {
-        alert('Error deleting section: ' + err.message);
-      }
-    }
-  };
-
-  const handleToggleVisibility = async (sectionId, currentVisibility) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${sectionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_visible: !currentVisibility }),
-      });
-      
-      if (response.ok) {
-        await loadSections();
-        alert(`Section ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
-      } else {
-        throw new Error('Failed to toggle section visibility');
-      }
-    } catch (err) {
-      alert('Error toggling section visibility: ' + err.message);
-    }
-  };
-
-  const sectionTypes = [
-    { value: 'hero', label: 'Hero Section', description: 'Main banner with title, subtitle, and call-to-action buttons (Order: 0)' },
-    { value: 'media_banner', label: 'Video/Photo Banner', description: 'Video or photo banner section with title and sub-text (Order: 1, appears after hero section)' },
-    { value: 'benefits', label: 'Key Benefits', description: 'Main benefits and value propositions (Order: 1+offset)' },
-    { value: 'segments', label: 'Industry Segments', description: 'Different industry segments or target markets (Order: 2+offset)' },
-    { value: 'technology', label: 'Technology Features', description: 'Technical capabilities and innovations (Order: 4+offset)' },
-    { value: 'use_cases', label: 'Use Cases & Marketplaces', description: 'Real-world applications and scenarios (Order: 5+offset)' },
-    { value: 'roi', label: 'ROI & Value', description: 'Return on investment and business value (Order: 6+offset)' },
-    { value: 'implementation', label: 'Implementation Timeline', description: 'Step-by-step implementation process (Order: 7+offset)' },
-    { value: 'resources', label: 'Resources & Support', description: 'Documentation, training, and support materials (Order: 8+offset)' },
-    { value: 'cta', label: 'Call to Action', description: 'Final engagement section with contact forms (Order: 9+offset)' }
-  ];
-
-  return (
-    <div>
-      <div className="flex items-center mb-6">
-        <button
-          onClick={onBack}
-          className="mr-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h3 className="text-xl font-semibold text-gray-900">Edit Marketplace: {marketplace.name}</h3>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6">
-        <nav className="flex space-x-8 border-b border-gray-200">
-          {[
-            { id: 'overview', label: 'Marketplace Overview', description: 'Basic marketplace information' },
-            { id: 'sections', label: 'Page Sections', description: 'Manage page content sections' },
-            { id: 'preview', label: 'Preview', description: 'Preview the marketplace page' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              title={tab.description}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Marketplace Overview Tab */}
-      {activeTab === 'overview' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h4 className="text-lg font-semibold mb-6 flex items-center">
-            <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-            Marketplace Overview & Card Details
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Marketplace Name</label>
-              <input
-                type="text"
-                value={cardData.name}
-                onChange={(e) => setCardData({...cardData, name: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Financial Services"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select
-                value={cardData.category}
-                onChange={(e) => setCardData({...cardData, category: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select category...</option>
-                {availableCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={cardData.description}
-              onChange={(e) => setCardData({...cardData, description: e.target.value})}
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Brief description for the marketplace card..."
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">This appears on the marketplaces overview page</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Page Route</label>
-              <input
-                type="text"
-                value={cardData.route}
-                onChange={(e) => setCardData({...cardData, route: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="/marketplace/financial-services"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Navigation Options Section */}
-          <div className="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-            <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              Navigation Options
-            </h4>
-            <p className="text-sm text-gray-600 mb-4">
-              Choose how users navigate when clicking this app in the marketplace. Enable single page to show detailed app page, or provide a custom URL (like a sign-in page).
-            </p>
-
-            <div className="mb-4">
-              <label className="flex items-center cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={cardData.enable_single_page}
-                    onChange={(e) => setCardData({...cardData, enable_single_page: e.target.checked, redirect_url: e.target.checked ? '' : cardData.redirect_url})}
-                    className="sr-only"
-                  />
-                  <div className={`block w-14 h-8 rounded-full transition-colors ${cardData.enable_single_page ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                  <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${cardData.enable_single_page ? 'transform translate-x-6' : ''}`}></div>
-                </div>
-                <div className="ml-3 text-sm font-medium text-gray-700">
-                  Enable Single Page View
-                </div>
-              </label>
-              <p className="text-xs text-gray-500 mt-2 ml-1">
-                {cardData.enable_single_page 
-                  ? '✓ Users will navigate to the detailed app page: /marketplace/' + toSlug(cardData.name || marketplace.name)
-                  : '✗ Users will be redirected to custom URL (specify below)'}
-              </p>
-            </div>
-
-            {!cardData.enable_single_page && (
-              <div className="mt-4 animate-fadeIn">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Redirect URL
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={cardData.redirect_url}
-                  onChange={(e) => setCardData({...cardData, redirect_url: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://portal.cloud4india.com/login"
-                  required={!cardData.enable_single_page}
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Enter the full URL where users should be redirected (e.g., sign-in page, external link, etc.)
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-gray-200">
-            <button
-              onClick={handleSaveCard}
-              disabled={saving}
-              className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                'Save Overview'
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Page Sections Tab */}
-      {activeTab === 'sections' && (
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">Page Content Sections</h4>
-              <p className="text-sm text-gray-600 mt-1">Manage all sections of the marketplace page</p>
-            </div>
-            <button
-              onClick={() => setEditingSection('new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add New Section
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading sections...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sections.length > 0 ? (
-                sections.map((section, index) => (
-                  <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-3">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
-                            section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
-                            section.section_type === 'media_banner' ? 'bg-pink-100 text-pink-700' :
-                            section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
-                            section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
-                            section.section_type === 'use_cases' ? 'bg-orange-100 text-orange-700' :
-                            section.section_type === 'cta' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
-                          </span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            Order: {section.order_index}
-                          </span>
-                        </div>
-                        <h5 className="font-semibold text-gray-900 mb-2 text-lg">
-                          {section.title || 'Untitled Section'}
-                        </h5>
-                        <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                          {section.content ? 
-                            (section.content.length > 200 ? 
-                              section.content.substring(0, 200) + '...' : 
-                              section.content
-                            ) : 
-                            'No content'
-                          }
-                        </p>
-                        <div className="text-xs text-gray-500">
-                          Created: {new Date(section.created_at).toLocaleDateString()} • 
-                          Updated: {new Date(section.updated_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        <button
-                          onClick={() => setEditingSection(section.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setManagingItems(section.id)}
-                          className="text-green-600 hover:text-green-800 text-sm bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Items
-                        </button>
-                        <button
-                          onClick={() => handleToggleVisibility(section.id, section.is_visible !== 0)}
-                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
-                            section.is_visible !== 0 
-                              ? 'text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100' 
-                              : 'text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100'
-                          }`}
-                        >
-                          {section.is_visible !== 0 ? 'Hide' : 'Unhide'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSection(section.id)}
-                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sections created yet</h3>
-                  <p className="text-gray-500 mb-4">Start building your marketplace page by adding content sections.</p>
-                  <button
-                    onClick={() => setEditingSection('new')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Add First Section
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section Editor */}
-          {editingSection && (
-            <SectionEditor
-              section={editingSection === 'new' ? null : sections.find(s => s.id === editingSection)}
-              sectionTypes={sectionTypes}
-              onCreate={handleCreateSection}
-              onUpdate={handleUpdateSection}
-              onCancel={() => setEditingSection(null)}
-            />
-          )}
-
-          {/* Section Items Manager */}
-          {managingItems && (
-            <SectionItemsManager
-              section={sections.find(s => s.id === managingItems)}
-              marketplaceId={marketplace.id}
-              onCancel={() => setManagingItems(null)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Preview Tab */}
-      {activeTab === 'preview' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">Marketplace Page Preview</h4>
-              <p className="text-sm text-gray-600 mt-1">Preview how your marketplace page will look</p>
-            </div>
-            <div className="flex space-x-3">
-              <a
-                href={`/marketplace/${toSlug(cardData.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                View Live Page
-              </a>
-              <button
-                onClick={loadSections}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
-              >
-                Refresh Preview
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading preview...</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Marketplace Overview Card */}
-              <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-blue-500">
-                <h5 className="text-lg font-semibold text-gray-900 mb-2">Marketplace Overview</h5>
-                <div className={`bg-gradient-to-br ${cardData.color} border ${cardData.border_color} rounded-xl p-4 max-w-md`}>
-                  <div className="mb-3">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${
-                      cardData.category === 'Content Management Systems'
-                        ? 'bg-sky-100 text-sky-700'
-                        : 'bg-emerald-100 text-emerald-700'
-                    }`}>
-                      {cardData.category}
-                    </span>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{cardData.name}</h3>
-                    <p className="text-gray-600 text-sm">{cardData.description}</p>
-                  </div>
-                  <div className="text-blue-600 font-medium text-sm">
-                    View marketplace →
-                  </div>
-                </div>
-              </div>
-
-              {/* Page Sections Preview */}
-              <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-green-500">
-                <h5 className="text-lg font-semibold text-gray-900 mb-4">Page Content ({sections.length} sections)</h5>
-                {sections.length > 0 ? (
-                  <div className="space-y-4">
-                    {sections.map((section, index) => (
-                      <div key={section.id} className="bg-white rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center">
-                            <span className="text-sm font-medium text-gray-900 mr-2">
-                              {index + 1}. {section.title || 'Untitled Section'}
-                            </span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              section.section_type === 'hero' ? 'bg-purple-100 text-purple-700' :
-                              section.section_type === 'media_banner' ? 'bg-pink-100 text-pink-700' :
-                              section.section_type === 'benefits' ? 'bg-green-100 text-green-700' :
-                              section.section_type === 'segments' ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {sectionTypes.find(t => t.value === section.section_type)?.label || section.section_type}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm">
-                          {section.content ? 
-                            (section.content.length > 150 ? 
-                              section.content.substring(0, 150) + '...' : 
-                              section.content
-                            ) : 
-                            'No content'
-                          }
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm">No sections created yet. Add sections to see them here.</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Section Editor Component
-const SectionEditor = ({ section, sectionTypes, onCreate, onUpdate, onCancel }) => {
-  const [formData, setFormData] = useState({
-    section_type: '',
-    title: '',
-    content: '',
-    order_index: 0,
-    media_type: '',
-    media_source: '',
-    media_url: ''
-  });
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
-
-  useEffect(() => {
-    if (section) {
-      setFormData({
-        section_type: section.section_type || '',
-        title: section.title || '',
-        content: section.content || '',
-        order_index: section.order_index || 0,
-        media_type: section.media_type || '',
-        media_source: section.media_source || '',
-        media_url: section.media_url || ''
-      });
-      
-      // Set preview URL if media exists
-      if (section.media_url) {
-        if (section.media_source === 'youtube') {
-          setPreviewUrl(section.media_url);
-        } else if (section.media_source === 'upload') {
-          const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
-          setPreviewUrl(`${baseUrl}${section.media_url}`);
-        }
-      }
-    } else {
-      setFormData({
-        section_type: '',
-        title: '',
-        content: '',
-        order_index: 0,
-        media_type: '',
-        media_source: '',
-        media_url: ''
-      });
-      setPreviewUrl('');
-    }
-    setUploadError('');
-  }, [section]);
-
-  const handleFileUpload = async (file, type) => {
-    setUploading(true);
-    setUploadError('');
-    
-    try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
-      const formDataObj = new FormData();
-      formDataObj.append(type === 'image' ? 'image' : 'video', file);
-      
-      const endpoint = type === 'image' ? '/api/upload/image' : '/api/upload/video';
-      const response = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        body: formDataObj
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-      
-      // Update form data with uploaded file path
-      setFormData(prev => ({
-        ...prev,
-        media_url: data.filePath,
-        media_source: 'upload'
-      }));
-      
-      // Set preview URL
-      setPreviewUrl(`${baseUrl}${data.filePath}`);
-      
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(error.message || 'Failed to upload file');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFileChange = (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    // Validate file type
-    if (type === 'image') {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        setUploadError('Invalid file type. Only JPEG, JPG, and PNG images are allowed.');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        setUploadError('File size too large. Maximum size is 10MB.');
-        return;
-      }
-    } else if (type === 'video') {
-      if (file.type !== 'video/mp4') {
-        setUploadError('Invalid file type. Only MP4 videos are allowed.');
-        return;
-      }
-      if (file.size > 100 * 1024 * 1024) {
-        setUploadError('File size too large. Maximum size is 100MB.');
-        return;
-      }
-    }
-    
-    handleFileUpload(file, type);
-  };
-
-  const handleYouTubeUrlChange = (e) => {
-    const url = e.target.value;
-    
-    // Extract video ID for preview - using same logic as backend
-    if (url) {
-      // Handle various YouTube URL formats - same regex as backend extractYouTubeVideoId
-      let videoId = null;
-      
-      // Try multiple patterns (exact same as backend)
-      const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-        /youtube\.com\/watch\?.*&v=([^&\n?#]+)/,
-      ];
-      
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-          videoId = match[1];
-          break;
-        }
-      }
-      
-      if (videoId) {
-        // Extract only the first 11 characters (YouTube video IDs are always 11 chars)
-        const cleanVideoId = videoId.substring(0, 11);
-        const embedUrl = `https://www.youtube.com/embed/${cleanVideoId}`;
-        setPreviewUrl(embedUrl);
-        // Also update formData with the normalized embed URL (same as backend expects)
-        setFormData(prev => ({
-          ...prev,
-          media_url: embedUrl
-        }));
-      } else {
-        setPreviewUrl('');
-        // Keep original URL in formData if extraction fails (backend will validate)
-        setFormData(prev => ({
-          ...prev,
-          media_url: url
-        }));
-      }
-    } else {
-      setPreviewUrl('');
-      setFormData(prev => ({
-        ...prev,
-        media_url: ''
-      }));
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validate media_banner fields
-    if (formData.section_type === 'media_banner') {
-      if (!formData.media_type) {
-        setUploadError('Please select media type (Video or Photo)');
-        return;
-      }
-      if (!formData.media_source) {
-        setUploadError('Please select media source');
-        return;
-      }
-      if (!formData.media_url) {
-        setUploadError('Please provide media URL or upload a file');
-        return;
-      }
-    }
-    
-    if (section) {
-      onUpdate(section.id, formData);
-    } else {
-      onCreate(formData);
-    }
-  };
-
-
-  const selectedSectionType = sectionTypes.find(t => t.value === formData.section_type);
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
-          <div className="flex justify-between items-center">
-            <h5 className="text-xl font-semibold text-gray-900">
-              {section ? 'Edit Section' : 'Add New Section'}
-            </h5>
-            <button
-              onClick={onCancel}
-              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Section Type</label>
-              <select
-                value={formData.section_type}
-                onChange={(e) => setFormData({...formData, section_type: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select section type...</option>
-                {sectionTypes.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-              {selectedSectionType && (
-                <p className="text-xs text-gray-500 mt-1">{selectedSectionType.description}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Section Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter section title..."
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order Index</label>
-              <input
-                type="number"
-                value={formData.order_index}
-                onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">Content</label>
-            </div>
-            <textarea
-              value={formData.content}
-              onChange={(e) => setFormData({...formData, content: e.target.value})}
-              rows={formData.section_type === 'media_banner' ? 3 : 12}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-              placeholder={formData.section_type === 'media_banner' ? 'Enter sub-text or description...' : 'Enter section content... (HTML supported)'}
-              required
-            />
-            <div className="flex justify-between items-center mt-2">
-              {formData.section_type !== 'media_banner' && (
-                <p className="text-xs text-gray-500">
-                  💡 <strong>HTML supported:</strong> Use tags like &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt; for formatting
-                </p>
-              )}
-              <div className="text-xs text-gray-400">
-                {formData.content.length} characters
-              </div>
-            </div>
-          </div>
-
-          {/* Media Banner Fields */}
-          {formData.section_type === 'media_banner' && (
-            <div className="space-y-6 border-t border-gray-200 pt-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Media Type *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="media_type"
-                      value="video"
-                      checked={formData.media_type === 'video'}
-                      onChange={(e) => {
-                        setFormData({...formData, media_type: e.target.value, media_source: '', media_url: ''});
-                        setPreviewUrl('');
-                      }}
-                      className="mr-2"
-                      required
-                    />
-                    <span className="text-sm text-gray-700">Video</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="media_type"
-                      value="image"
-                      checked={formData.media_type === 'image'}
-                      onChange={(e) => {
-                        setFormData({...formData, media_type: e.target.value, media_source: '', media_url: ''});
-                        setPreviewUrl('');
-                      }}
-                      className="mr-2"
-                      required
-                    />
-                    <span className="text-sm text-gray-700">Photo</span>
-                  </label>
-                </div>
-              </div>
-
-              {formData.media_type === 'video' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Video Source *</label>
-                  <div className="flex gap-4 mb-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="media_source"
-                        value="youtube"
-                        checked={formData.media_source === 'youtube'}
-                        onChange={(e) => {
-                          setFormData({...formData, media_source: e.target.value, media_url: ''});
-                          setPreviewUrl('');
-                        }}
-                        className="mr-2"
-                        required
-                      />
-                      <span className="text-sm text-gray-700">YouTube Link</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="media_source"
-                        value="upload"
-                        checked={formData.media_source === 'upload'}
-                        onChange={(e) => {
-                          setFormData({...formData, media_source: e.target.value, media_url: ''});
-                          setPreviewUrl('');
-                        }}
-                        className="mr-2"
-                        required
-                      />
-                      <span className="text-sm text-gray-700">Upload File</span>
-                    </label>
-                  </div>
-
-                  {formData.media_source === 'youtube' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
-                      <input
-                        type="url"
-                        value={formData.media_url}
-                        onChange={handleYouTubeUrlChange}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Supports: youtube.com/watch?v=, youtu.be/, youtube.com/embed/
-                      </p>
-                    </div>
-                  )}
-
-                  {formData.media_source === 'upload' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Video File *</label>
-                      <input
-                        type="file"
-                        accept="video/mp4"
-                        onChange={(e) => handleFileChange(e, 'video')}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required={!formData.media_url}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        MP4 format only. Maximum size: 100MB
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {formData.media_type === 'image' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photo *</label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png"
-                    onChange={(e) => handleFileChange(e, 'image')}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required={!formData.media_url}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    JPEG, JPG, or PNG format. Maximum size: 10MB
-                  </p>
-                </div>
-              )}
-
-              {/* Upload Error */}
-              {uploadError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-800">{uploadError}</p>
-                </div>
-              )}
-
-              {/* Upload Progress */}
-              {uploading && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <p className="text-sm text-blue-800">Uploading file...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Preview */}
-              {previewUrl && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Preview</label>
-                  <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                    {(formData.media_source === 'youtube' || (formData.media_type === 'video' && (formData.media_url.includes('youtube.com') || formData.media_url.includes('youtu.be')))) ? (
-                      <div className="aspect-video w-full">
-                        <iframe
-                          src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}autoplay=0&mute=0&controls=1&rel=0&enablejsapi=1`}
-                          className="w-full h-full rounded-lg"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          referrerPolicy="strict-origin-when-cross-origin"
-                        ></iframe>
-                      </div>
-                    ) : formData.media_type === 'video' ? (
-                      <div className="aspect-video w-full">
-                        <video
-                          src={previewUrl}
-                          controls
-                          className="w-full h-full rounded-lg"
-                        ></video>
-                      </div>
-                    ) : (
-                      <div className="w-full">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-auto rounded-lg max-h-96 object-contain"
-                          onError={(e) => {
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f3f4f6" width="400" height="300"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="16" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage not available%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
-            >
-              {section ? 'Update Section' : 'Create Section'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Section Items Manager Component
-const SectionItemsManager = ({ section, marketplaceId, onCancel }) => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingItem, setEditingItem] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (section) {
-      loadItems();
-    }
-  }, [section]);
-
-  const loadItems = async () => {
-    try {
-      setLoading(true);
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`;
-      
-      console.log(`Loading items from: ${apiPath}`);
-      const response = await fetch(apiPath);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const itemsData = await response.json();
-      console.log(`Loaded ${itemsData.length} items:`, itemsData);
-      setItems(itemsData);
-    } catch (err) {
-      console.error('Error loading section items:', err);
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateItem = async (itemData) => {
-    try {
-      setSaving(true);
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`;
-      const response = await fetch(apiPath, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(itemData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      await loadItems();
-      setEditingItem(null);
-      alert('Item created successfully!');
-    } catch (err) {
-      console.error('Error creating item:', err);
-      alert('Failed to create item. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateItem = async (itemId, itemData) => {
-    try {
-      setSaving(true);
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items/${itemId}`;
-      const response = await fetch(apiPath, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(itemData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      await loadItems();
-      setEditingItem(null);
-      alert('Item updated successfully!');
-    } catch (err) {
-      console.error('Error updating item:', err);
-      alert('Failed to update item. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleItemVisibility = async (itemId, currentVisibility) => {
-    try {
-      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items/${itemId}`;
-      const response = await fetch(apiPath, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_visible: currentVisibility ? 0 : 1 }),
-      });
-
-      if (response.ok) {
-      await loadItems();
-        alert(`Item ${!currentVisibility ? 'shown' : 'hidden'} successfully!`);
-      } else {
-        throw new Error('Failed to toggle item visibility');
-      }
-    } catch (err) {
-      console.error('Error toggling item visibility:', err);
-      alert('Error toggling item visibility: ' + err.message);
-    }
-  };
-
-  const itemTypes = [
-    { value: 'benefit', label: 'Benefit Card' },
-    { value: 'feature', label: 'Feature' },
-    { value: 'stat', label: 'Statistic' },
-    { value: 'use_case', label: 'Use Case' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'segment', label: 'Segment' },
-    { value: 'step', label: 'Step' },
-    { value: 'resource', label: 'Resource' },
-    { value: 'media_item', label: 'Media Item' }
-  ];
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-bold">Manage Section Items</h3>
-              <p className="text-green-100 mt-1">
-                Section: {section?.title || 'Untitled'} ({section?.section_type})
-              </p>
-            </div>
-            <button
-              onClick={onCancel}
-              className="text-green-100 hover:text-white text-2xl"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
-          {/* Section Items Header */}
-          <div className="mb-6">
-              <h4 className="text-lg font-semibold text-gray-900">Section Items</h4>
-              <p className="text-sm text-gray-600 mt-1">Manage detailed content like cards, stats, and features</p>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading items...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {items.length > 0 ? (
-                items.map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-3">
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full mr-3 ${
-                            item.item_type === 'benefit' ? 'bg-green-100 text-green-700' :
-                            item.item_type === 'feature' ? 'bg-blue-100 text-blue-700' :
-                            item.item_type === 'stat' ? 'bg-purple-100 text-purple-700' :
-                            item.item_type === 'use_case' ? 'bg-orange-100 text-orange-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {itemTypes.find(t => t.value === item.item_type)?.label || item.item_type}
-                          </span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            Order: {item.order_index}
-                          </span>
-                        </div>
-                        <h5 className="font-semibold text-gray-900 mb-2 text-lg">
-                          {item.title || 'Untitled Item'}
-                        </h5>
-                        <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                          {item.description ? 
-                            (item.description.length > 200 ? 
-                              item.description.substring(0, 200) + '...' : 
-                              item.description
-                            ) : 
-                            'No description'
-                          }
-                        </p>
-                        {item.icon && (
-                          <div className="text-xs text-gray-500 mb-2">
-                            <strong>Icon:</strong> {item.icon}
-                          </div>
-                        )}
-                        {item.value && (
-                          <div className="text-xs text-gray-500 mb-2">
-                            <strong>Value:</strong> {item.value}
-                          </div>
-                        )}
-                        {item.label && (
-                          <div className="text-xs text-gray-500 mb-2">
-                            <strong>Label:</strong> {item.label}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        <button
-                          onClick={() => setEditingItem(item.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleToggleItemVisibility(item.id, (item.is_visible ?? 1) !== 0)}
-                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${
-                            (item.is_visible ?? 1) !== 0 
-                              ? 'text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100' 
-                              : 'text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100'
-                          }`}
-                        >
-                          {(item.is_visible ?? 1) !== 0 ? 'Hide' : 'Unhide'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No items available</h3>
-                  <p className="text-gray-500 mb-4">No section items found in this section.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Item Editor */}
-          {editingItem && (
-            <SectionItemEditor
-              item={editingItem === 'new' ? null : items.find(i => i.id === editingItem)}
-              itemTypes={itemTypes}
-              onCreate={handleCreateItem}
-              onUpdate={handleUpdateItem}
-              onCancel={() => setEditingItem(null)}
-              saving={saving}
-              section={section}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Section Item Editor Component
-const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, saving, section }) => {
-  const [formData, setFormData] = useState({
-    item_type: '',
-    title: '',
-    description: '',
-    icon: '',
-    value: '',
-    label: '',
-    order_index: 0,
-    features: '',
-    content: ''
-  });
-  const [featuresList, setFeaturesList] = useState([]);
-  const [contentJSON, setContentJSON] = useState({});
-
-  useEffect(() => {
-    if (item) {
-      setFormData({
-        item_type: item.item_type || '',
-        title: item.title || '',
-        description: item.description || '',
-        icon: item.icon || '',
-        value: item.value || '',
-        label: item.label || '',
-        order_index: item.order_index || 0,
-        features: item.features || '',
-        content: item.content || ''
-      });
-      
-      // Parse features from JSON
-      try {
-        if (item.features) {
-          const parsedFeatures = JSON.parse(item.features);
-          setFeaturesList(Array.isArray(parsedFeatures) ? parsedFeatures : []);
-        } else {
-          setFeaturesList([]);
-        }
-      } catch (e) {
-        console.error('Error parsing features:', e);
-        setFeaturesList([]);
-      }
-      
-      // Parse content JSON for media items
-      if (item.item_type === 'media_item' && item.content) {
-        try {
-          const parsedContent = JSON.parse(item.content);
-          setContentJSON(parsedContent);
-        } catch (e) {
-          console.error('Error parsing content:', e);
-          setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
-        }
-      } else if (item.item_type === 'media_item' && !item.content) {
-        setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
-      }
-    } else {
-      setFormData({
-        item_type: '',
-        title: '',
-        description: '',
-        icon: '',
-        value: '',
-        label: '',
-        order_index: 0,
-        features: '',
-        content: ''
-      });
-      setFeaturesList([]);
-      setContentJSON({});
-    }
-  }, [item]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Build final formData with content JSON for media items
-    let finalFormData = { ...formData };
-    
-    if (formData.item_type === 'media_item') {
-      finalFormData.content = JSON.stringify(contentJSON);
-    }
-    
-    if (item) {
-      onUpdate(item.id, finalFormData);
-    } else {
-      onCreate(finalFormData);
-    }
-  };
-
-  const updateFeature = (index, value) => {
-    const newFeatures = [...featuresList];
-    newFeatures[index] = value;
-    setFeaturesList(newFeatures);
-    
-    // Update the features field in formData
-    setFormData(prev => ({
-      ...prev,
-      features: JSON.stringify(newFeatures)
-    }));
-  };
-
-  const addFeature = () => {
-    const newFeatures = [...featuresList, ''];
-    setFeaturesList(newFeatures);
-    
-    // Update the features field in formData
-    setFormData(prev => ({
-      ...prev,
-      features: JSON.stringify(newFeatures)
-    }));
-  };
-
-  const removeFeature = (index) => {
-    if (featuresList.length > 1) {
-      const newFeatures = featuresList.filter((_, i) => i !== index);
-      setFeaturesList(newFeatures);
-      
-      // Update the features field in formData
-      setFormData(prev => ({
-        ...prev,
-        features: JSON.stringify(newFeatures)
-      }));
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
-          <div className="flex justify-between items-center">
-            <h5 className="text-xl font-semibold text-gray-900">
-              {item ? 'Edit Item' : 'Add New Item'}
-            </h5>
-            <button
-              onClick={onCancel}
-              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
-              <select
-                value={formData.item_type}
-                onChange={(e) => {
-                  const newType = e.target.value;
-                  setFormData({...formData, item_type: newType});
-                  if (newType === 'media_item' && !contentJSON.media_type) {
-                    setContentJSON({ media_type: 'image', media_source: 'upload', media_url: '' });
-                  }
-                }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select item type...</option>
-                {itemTypes.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order Index</label>
-              <input
-                type="number"
-                value={formData.order_index}
-                onChange={(e) => setFormData({...formData, order_index: parseInt(e.target.value)})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Media Item Form */}
-          {formData.item_type === 'media_item' ? (
-            <>
-              <div className="bg-purple-50 p-3 rounded-lg mb-4">
-                <p className="text-xs text-purple-900">
-                  <strong>Media Item</strong> - Add photos or videos to the gallery carousel
-                </p>
-          </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., GPU Dashboard Overview"
-                />
-                <p className="text-xs text-gray-500 mt-1">Shown as overlay on the media (optional)</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Brief description shown below title"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Media Type *</label>
-                <div className="flex gap-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="media_type"
-                      value="image"
-                      checked={contentJSON.media_type === 'image'}
-                      onChange={(e) => setContentJSON({...contentJSON, media_type: e.target.value, media_source: 'upload', media_url: ''})}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">📷 Photo</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="media_type"
-                      value="video"
-                      checked={contentJSON.media_type === 'video'}
-                      onChange={(e) => setContentJSON({...contentJSON, media_type: e.target.value, media_source: 'youtube', media_url: ''})}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">🎥 Video</span>
-                  </label>
-                </div>
-              </div>
-              
-              {contentJSON.media_type === 'video' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Video Source *</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="video_source"
-                        value="youtube"
-                        checked={contentJSON.media_source === 'youtube'}
-                        onChange={(e) => setContentJSON({...contentJSON, media_source: e.target.value, media_url: ''})}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">YouTube URL</span>
-                    </label>
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="video_source"
-                        value="upload"
-                        checked={contentJSON.media_source === 'upload'}
-                        onChange={(e) => setContentJSON({...contentJSON, media_source: e.target.value, media_url: ''})}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Upload Video File</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-              
-              {contentJSON.media_source === 'youtube' ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
-                  <input
-                    type="url"
-                    value={contentJSON.media_url || ''}
-                    onChange={(e) => setContentJSON({...contentJSON, media_url: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    required
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload {contentJSON.media_type === 'video' ? 'Video' : 'Photo'} *
-                  </label>
-                  <input
-                    type="file"
-                    accept={contentJSON.media_type === 'video' ? 'video/*' : 'image/*'}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-                        const formDataObj = new FormData();
-                        const isVideo = contentJSON.media_type === 'video';
-                        formDataObj.append(isVideo ? 'video' : 'image', file);
-                        
-                        const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image';
-                        fetch(`${baseUrl}${endpoint}`, {
-                          method: 'POST',
-                          body: formDataObj
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                          if (data.filePath) {
-                            setContentJSON({...contentJSON, media_url: data.filePath, media_source: 'upload'});
-                            alert('Media uploaded successfully!');
-                          } else {
-                            alert('Upload failed: ' + (data.error || 'Unknown error'));
-                          }
-                        })
-                        .catch(err => {
-                          console.error('Upload error:', err);
-                          alert('Upload failed: ' + err.message);
-                        });
-                      }
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  {contentJSON.media_url && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-                      <p className="text-xs text-green-900">✓ {contentJSON.media_type === 'video' ? 'Video' : 'Photo'} uploaded: {contentJSON.media_url}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter item title..."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              rows={4}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter description..."
-              required
-            />
-          </div>
-            </>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Icon (optional)</label>
-              <input
-                type="text"
-                value={formData.icon}
-                onChange={(e) => setFormData({...formData, icon: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., ShieldCheckIcon"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Value (optional)</label>
-              <input
-                type="text"
-                value={formData.value}
-                onChange={(e) => setFormData({...formData, value: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., 40% or Key Features"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Label (optional)</label>
-              <input
-                type="text"
-                value={formData.label}
-                onChange={(e) => setFormData({...formData, label: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Featured"
-              />
-            </div>
-          </div>
-
-          {/* Features (Bullet Points with Checkmarks) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Features (Bullet Points with ✓)
-            </label>
-            <p className="text-xs text-gray-500 mb-3">
-              These appear as checkmark bullets in Technology and other sections
-            </p>
-            <div className="space-y-2">
-              {featuresList.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <span className="text-green-600 text-sm w-6">✓</span>
-                  <input
-                    type="text"
-                    value={feature}
-                    onChange={(e) => updateFeature(index, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    placeholder={`Feature ${index + 1}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(index)}
-                    className="text-red-500 hover:text-red-700 p-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                    disabled={featuresList.length <= 1}
-                    title="Remove feature"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-              {featuresList.length === 0 && (
-                <p className="text-gray-400 text-sm italic py-2">No features added yet</p>
-              )}
-              <button
-                type="button"
-                onClick={addFeature}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center mt-2"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Feature
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                item ? 'Update Item' : 'Create Item'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 // Main Marketplaces Admin Component
 const MarketplacesAdmin = () => {
   const [marketplaces, setMarketplaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [editingMarketplace, setEditingMarketplace] = useState(null);
 
   useEffect(() => {
     fetchMarketplaces();
@@ -2643,31 +767,25 @@ const MarketplacesAdmin = () => {
   const fetchMarketplaces = async () => {
     try {
       setLoading(true);
-      setError(null);
       const marketplacesData = await getAdminMarketplaces();
-      setMarketplaces(marketplacesData || []);
+      setMarketplaces(marketplacesData);
     } catch (error) {
       console.error('Error fetching marketplaces:', error);
-      setError(error.message || 'Failed to load marketplaces. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditMarketplace = (marketplace) => {
-    setEditingMarketplace(marketplace);
-  };
-
   const handleDuplicateMarketplace = async (marketplace) => {
-    const newName = prompt('Enter new marketplace name:', `${marketplace.name} (Copy)`);
+    const newName = prompt('Enter new marketplace app name:', `${marketplace.name} (Copy)`);
     if (!newName) return;
 
     try {
       await duplicateMarketplace(marketplace.id, { name: newName });
       await fetchMarketplaces();
-      alert('Marketplace duplicated successfully!');
+      alert('Marketplace app duplicated successfully!');
     } catch (error) {
-      alert('Error duplicating marketplace: ' + error.message);
+      alert('Error duplicating marketplace app: ' + error.message);
     }
   };
 
@@ -2676,9 +794,9 @@ const MarketplacesAdmin = () => {
       try {
         await deleteMarketplace(marketplace.id);
         await fetchMarketplaces();
-        alert('Marketplace deleted successfully!');
+        alert('Marketplace app deleted successfully!');
       } catch (error) {
-        alert('Error deleting marketplace: ' + error.message);
+        alert('Error deleting marketplace app: ' + error.message);
       }
     }
   };
@@ -2687,7 +805,7 @@ const MarketplacesAdmin = () => {
     try {
       await toggleMarketplaceVisibility(marketplace.id);
       await fetchMarketplaces();
-      alert(`Marketplace ${marketplace.is_visible ? 'hidden' : 'shown'} successfully!`);
+      alert(`Marketplace app ${marketplace.is_visible ? 'hidden' : 'shown'} successfully!`);
     } catch (error) {
       alert('Error toggling marketplace visibility: ' + error.message);
     }
@@ -2698,24 +816,7 @@ const MarketplacesAdmin = () => {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading marketplaces...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Marketplaces</h3>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button 
-            onClick={fetchMarketplaces}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Retry
-          </button>
+          <p className="text-gray-600">Loading marketplace apps...</p>
         </div>
       </div>
     );
@@ -2723,24 +824,15 @@ const MarketplacesAdmin = () => {
 
   return (
     <div className="w-full">
-      {editingMarketplace ? (
-        <MarketplaceEditor 
-          marketplace={editingMarketplace}
-          onBack={() => setEditingMarketplace(null)}
-        />
-      ) : (
         <MarketplacesManagement
           marketplaces={marketplaces}
-          onEditMarketplace={handleEditMarketplace}
           onDuplicateMarketplace={handleDuplicateMarketplace}
           onDeleteMarketplace={handleDeleteMarketplace}
           onToggleVisibility={handleToggleVisibility}
           onRefresh={fetchMarketplaces}
         />
-      )}
     </div>
   );
 };
 
 export default MarketplacesAdmin;
-

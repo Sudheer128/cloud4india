@@ -7,7 +7,9 @@ import {
   ChevronDoubleRightIcon,
   PuzzlePieceIcon,
   InformationCircleIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  DocumentTextIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -78,6 +80,13 @@ const AdminSidebar = () => {
       icon: InformationCircleIcon,
       path: '/admin/about-us',
       matchPaths: ['/admin/about-us']
+    },
+    {
+      id: 'integrity',
+      label: 'Integrity',
+      icon: ShieldCheckIcon,
+      path: '/admin/integrity',
+      matchPaths: ['/admin/integrity']
     }
   ];
 

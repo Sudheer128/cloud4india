@@ -368,36 +368,13 @@ const MediaBannerSection = ({ section, items }) => {
                 />
               )}
               
-              {/* Navigation Arrows - Clean Design */}
+              {/* Counter Badge - Top Right (only show if multiple items) */}
               {mediaItems.length > 1 && (
-                <>
-                  <button
-                    onClick={prevSlide}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-saree-teal hover:bg-saree-teal-dark text-white p-2.5 rounded-full shadow-lg hover:scale-105 transition-all duration-200 z-10"
-                    aria-label="Previous"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  
-                  <button
-                    onClick={nextSlide}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-saree-teal hover:bg-saree-teal-dark text-white p-2.5 rounded-full shadow-lg hover:scale-105 transition-all duration-200 z-10"
-                    aria-label="Next"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  
-                  {/* Counter Badge - Top Right */}
-                  <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
-                    <span className="text-xs font-semibold text-white">
-                      {currentIndex + 1} / {mediaItems.length}
-                    </span>
-            </div>
-                </>
+                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
+                  <span className="text-xs font-semibold text-white">
+                    {currentIndex + 1} / {mediaItems.length}
+                  </span>
+                </div>
               )}
         </div>
           </div>

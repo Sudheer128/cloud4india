@@ -160,6 +160,12 @@ const runMigrations = async () => {
     // Add content and media banner columns to product_sections if they don't exist
     await addProductMediaBannerColumns();
     
+    // Add content and is_visible columns to section_items if they don't exist
+    await addSectionItemsVisibilityColumn();
+    
+    // Add eyebrow column to integrity_pages if it doesn't exist
+    await addIntegrityPagesEyebrowColumn();
+    
     console.log('✅ Database migrations completed');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
@@ -171,6 +177,10 @@ const runMigrations = async () => {
 const addMarketplaceMediaBannerColumns = () => {
   return new Promise((resolve) => {
     const columns = [
+      { 
+        name: 'is_visible', 
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN is_visible INTEGER DEFAULT 1;" 
+      },
       { 
         name: 'media_type', 
         sql: "ALTER TABLE marketplace_sections ADD COLUMN media_type TEXT;" 
@@ -355,6 +365,24 @@ const addSectionItemsVisibilityColumn = () => {
   });
 };
 
+// Add eyebrow column to integrity_pages table
+const addIntegrityPagesEyebrowColumn = () => {
+  return new Promise((resolve) => {
+    db.run("ALTER TABLE integrity_pages ADD COLUMN eyebrow TEXT;", (err) => {
+      if (err) {
+        if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+          console.log(`   ⏭️  Column eyebrow already exists in integrity_pages`);
+        } else {
+          console.log(`   ⚠️  Error adding column eyebrow to integrity_pages: ${err.message}`);
+        }
+      } else {
+        console.log(`   ✅ Added column eyebrow to integrity_pages`);
+      }
+      resolve();
+    });
+  });
+};
+
 // Create tables
 db.serialize(() => {
   // Hero Section table
@@ -412,6 +440,10 @@ db.serialize(() => {
     title TEXT,
     content TEXT,
     order_index INTEGER DEFAULT 0,
+    is_visible INTEGER DEFAULT 1,
+    media_type TEXT,
+    media_source TEXT,
+    media_url TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (marketplace_id) REFERENCES marketplaces (id)
@@ -2443,7 +2475,7 @@ app.get('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
 // Create new section item
 app.post('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
   const { sectionId } = req.params;
-  const { item_type, title, description, icon, value, label, features } = req.body;
+  const { item_type, title, description, icon, value, label, features, content, is_visible } = req.body;
   
   // Get next order index
   db.get('SELECT MAX(order_index) as max_order FROM section_items WHERE section_id = ?', [sectionId], (err, result) => {
@@ -2453,9 +2485,10 @@ app.post('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
     }
     
     const nextOrder = (result.max_order || -1) + 1;
+    const visibility = is_visible !== undefined ? is_visible : 1; // Default to visible
     
-    db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [sectionId, item_type, title, description, icon, value, label, features, nextOrder], 
+    db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, content, is_visible, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [sectionId, item_type, title, description, icon, value, label, features, content || null, visibility, nextOrder], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -2473,7 +2506,10 @@ app.post('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
 // Update section item
 app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
-  const { item_type, title, description, icon, value, label, features, is_visible } = req.body;
+  const { item_type, title, description, icon, value, label, features, is_visible, content } = req.body;
+  
+  console.log(`[PUT /api/marketplaces/:id/sections/:sectionId/items/:itemId] Updating item ${itemId} in section ${sectionId}`);
+  console.log('Request body:', { item_type, title, description, icon, value, label, features, is_visible, content: content ? (content.length > 100 ? content.substring(0, 100) + '...' : content) : null });
   
   // Build dynamic update query
   const updateFields = [];
@@ -2507,6 +2543,13 @@ app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) =>
     updateFields.push('features = ?');
     values.push(features);
   }
+  if (content !== undefined && content !== null) {
+    updateFields.push('content = ?');
+    values.push(content);
+    console.log(`[PUT] Including content field in update: ${content.substring(0, 100)}...`);
+  } else {
+    console.log(`[PUT] Content field is ${content === null ? 'null' : 'undefined'}, not updating it`);
+  }
   if (is_visible !== undefined) {
     updateFields.push('is_visible = ?');
     values.push(is_visible);
@@ -2516,12 +2559,24 @@ app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) =>
   values.push(itemId, sectionId);
   
   const query = `UPDATE section_items SET ${updateFields.join(', ')} WHERE id = ? AND section_id = ?`;
+  console.log('[PUT] SQL Query:', query);
+  console.log('[PUT] Values:', values.map((v, i) => i < values.length - 2 ? (typeof v === 'string' && v.length > 50 ? v.substring(0, 50) + '...' : v) : v));
   
   db.run(query, values, function(err) {
     if (err) {
+      console.error('[PUT] Database error:', err);
       res.status(500).json({ error: err.message });
       return;
     }
+    console.log(`[PUT] Update successful. Changes: ${this.changes}`);
+    
+    // Verify the content was saved by retrieving it
+    db.get('SELECT content FROM section_items WHERE id = ?', [itemId], (err, row) => {
+      if (!err && row) {
+        console.log('[PUT] Verified saved content:', row.content ? (row.content.length > 100 ? row.content.substring(0, 100) + '...' : row.content) : 'NULL');
+      }
+    });
+    
     res.json({ message: 'Section item updated successfully', changes: this.changes });
   });
 });
@@ -6246,7 +6301,6 @@ app.get('/api/about', (req, res) => {
                 });
               });
             });
-          });
         });
       });
     });
@@ -8539,6 +8593,339 @@ app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) =>
   });
 });
 
+// ==================== Integrity Pages API Endpoints ====================
+
+// Get all integrity pages
+app.get('/api/integrity-pages', (req, res) => {
+  const { all } = req.query;
+  const showAll = all === 'true';
+  
+  const query = showAll
+    ? 'SELECT * FROM integrity_pages ORDER BY id ASC'
+    : 'SELECT * FROM integrity_pages WHERE is_visible = 1 ORDER BY id ASC';
+  
+  db.all(query, (err, pages) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(pages);
+  });
+});
+
+// Get single integrity page by slug
+app.get('/api/integrity-pages/:slug', (req, res) => {
+  const { slug } = req.params;
+  const { all } = req.query;
+  const showAll = all === 'true';
+  
+  const query = showAll
+    ? 'SELECT * FROM integrity_pages WHERE slug = ?'
+    : 'SELECT * FROM integrity_pages WHERE slug = ? AND is_visible = 1';
+  
+  db.get(query, [slug], (err, page) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!page) {
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    res.json(page);
+  });
+});
+
+// Create new integrity page
+app.post('/api/integrity-pages', (req, res) => {
+  const { slug, title, description, content, is_visible } = req.body;
+  
+  if (!slug || !title || !content) {
+    res.status(400).json({ error: 'Slug, title, and content are required' });
+    return;
+  }
+  
+  db.run(`INSERT INTO integrity_pages (slug, title, description, content, is_visible) 
+          VALUES (?, ?, ?, ?, ?)`,
+    [slug, title, description || null, content, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint')) {
+          res.status(409).json({ error: 'Page with this slug already exists' });
+        } else {
+          res.status(500).json({ error: err.message });
+        }
+        return;
+      }
+      res.json({ 
+        id: this.lastID, 
+        slug, 
+        title,
+        description: description || null,
+        content, 
+        is_visible: is_visible !== undefined ? is_visible : 1,
+        message: 'Page created successfully' 
+      });
+    });
+});
+
+// Update integrity page
+app.put('/api/integrity-pages/:id', (req, res) => {
+  const { id } = req.params;
+  const { slug, title, description, content, is_visible, eyebrow } = req.body;
+  
+  console.log('🚀 ===== INTEGRITY PAGE UPDATE REQUEST =====');
+  console.log('📥 Received update request for page ID:', id);
+  console.log('📥 Request body:', { slug, title, description, content: content ? content.substring(0, 50) + '...' : null, is_visible, eyebrow });
+  
+  const updateFields = [];
+  const values = [];
+  
+  if (slug !== undefined) {
+    updateFields.push('slug = ?');
+    values.push(slug);
+  }
+  if (title !== undefined) {
+    updateFields.push('title = ?');
+    values.push(title);
+  }
+  if (description !== undefined) {
+    updateFields.push('description = ?');
+    // Always use the description value as-is (don't convert empty string to empty string)
+    // If it's null, set to null; if it's empty string, set to empty string; otherwise use the value
+    const descValue = description === null ? null : String(description);
+    values.push(descValue);
+    console.log('📝 Description update:', { 
+      original: description, 
+      type: typeof description,
+      processed: descValue,
+      length: descValue?.length 
+    });
+  }
+  if (eyebrow !== undefined) {
+    updateFields.push('eyebrow = ?');
+    // Allow empty strings, only set to null if explicitly null
+    values.push(eyebrow === null ? null : (eyebrow || ''));
+  }
+  if (content !== undefined) {
+    updateFields.push('content = ?');
+    values.push(content);
+  }
+  if (is_visible !== undefined) {
+    updateFields.push('is_visible = ?');
+    values.push(is_visible);
+  }
+  
+  if (updateFields.length === 0) {
+    res.status(400).json({ error: 'No fields to update' });
+    return;
+  }
+  
+  updateFields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+  
+  const query = `UPDATE integrity_pages SET ${updateFields.join(', ')} WHERE id = ?`;
+  
+  console.log('🔧 Backend UPDATE query:', query);
+  console.log('🔧 Backend UPDATE values:', values);
+  
+  // Execute the UPDATE query
+  console.log('🔧 Executing UPDATE with query:', query);
+  console.log('🔧 Values array:', JSON.stringify(values));
+  console.log('🔧 Values count:', values.length);
+  console.log('🔧 Placeholders in query:', (query.match(/\?/g) || []).length);
+  
+  db.run(query, values, function(err) {
+    if (err) {
+      console.error('❌ Backend UPDATE error:', err);
+      console.error('❌ Error details:', err.message, err.stack);
+      if (err.message.includes('UNIQUE constraint')) {
+        res.status(409).json({ error: 'Page with this slug already exists' });
+      } else {
+        res.status(500).json({ error: err.message });
+      }
+      return;
+    }
+    
+    console.log('✅ Backend UPDATE executed:', { 
+      changes: this.changes, 
+      lastID: this.lastID,
+      'this.changes type': typeof this.changes
+    });
+    
+    if (this.changes === 0) {
+      console.warn('⚠️ Backend UPDATE: No rows changed - row might not exist');
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    
+    // Verify the update by fetching the updated row immediately after UPDATE
+    // Use a small delay to ensure SQLite has committed
+    setTimeout(() => {
+      db.get('SELECT id, slug, title, description, eyebrow, content FROM integrity_pages WHERE id = ?', [id], (verifyErr, updatedRow) => {
+        if (verifyErr) {
+          console.error('❌ Backend verification error:', verifyErr);
+          res.json({ message: 'Page updated successfully', changes: this.changes, warning: 'Could not verify update' });
+          return;
+        }
+        
+        if (!updatedRow) {
+          console.error('❌ Backend verification: Row not found after update!');
+          res.json({ message: 'Page updated successfully', changes: this.changes, warning: 'Row not found after update' });
+          return;
+        }
+        
+        console.log('🔍 Backend verified updated row:', {
+          id: updatedRow?.id,
+          title: updatedRow?.title,
+          description: updatedRow?.description,
+          'description length': updatedRow?.description?.length,
+          eyebrow: updatedRow?.eyebrow,
+          'expected description': description,
+          'description matches': updatedRow?.description === description,
+          'description === check': updatedRow?.description === description,
+          'description == check': updatedRow?.description == description
+        });
+        
+        // If description doesn't match, log a detailed warning
+        if (description !== undefined && updatedRow?.description !== description) {
+          console.error('⚠️⚠️⚠️ CRITICAL: Description mismatch after update! ⚠️⚠️⚠️');
+          console.error('  Sent description:', JSON.stringify(description));
+          console.error('  Stored description:', JSON.stringify(updatedRow?.description));
+          console.error('  Sent length:', description?.length);
+          console.error('  Stored length:', updatedRow?.description?.length);
+          console.error('  Sent type:', typeof description);
+          console.error('  Stored type:', typeof updatedRow?.description);
+          console.error('  Query was:', query);
+          console.error('  Values were:', JSON.stringify(values));
+          
+          // Try to update again directly to see if it works
+          db.run('UPDATE integrity_pages SET description = ? WHERE id = ?', [description, id], function(retryErr) {
+            if (retryErr) {
+              console.error('  Retry UPDATE also failed:', retryErr);
+            } else {
+              console.log('  Retry UPDATE succeeded:', { changes: this.changes });
+              // Fetch again to verify
+              db.get('SELECT description FROM integrity_pages WHERE id = ?', [id], (retryVerifyErr, retryRow) => {
+                if (retryVerifyErr) {
+                  console.error('  Retry verification failed:', retryVerifyErr);
+                } else {
+                  console.log('  Retry verification - description now:', JSON.stringify(retryRow?.description));
+                }
+              });
+            }
+          });
+        }
+        
+        res.json({ 
+          message: 'Page updated successfully', 
+          changes: this.changes,
+          updated: updatedRow,
+          descriptionMatch: updatedRow?.description === description
+        });
+      });
+    }, 50);
+  });
+});
+
+// Delete integrity page
+app.delete('/api/integrity-pages/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.run('DELETE FROM integrity_pages WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    res.json({ message: 'Page deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle integrity page visibility
+app.put('/api/integrity-pages/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  
+  db.get('SELECT is_visible FROM integrity_pages WHERE id = ?', [id], (err, page) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!page) {
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    
+    const newVisibility = page.is_visible === 1 ? 0 : 1;
+    
+    db.run('UPDATE integrity_pages SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ 
+          message: 'Visibility toggled successfully', 
+          is_visible: newVisibility,
+          changes: this.changes 
+        });
+      });
+  });
+});
+
+// Duplicate integrity page
+app.post('/api/integrity-pages/:id/duplicate', (req, res) => {
+  const { id } = req.params;
+  const { slug, title } = req.body;
+  
+  // Get original page
+  db.get('SELECT * FROM integrity_pages WHERE id = ?', [id], (err, originalPage) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!originalPage) {
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    
+    // Check if slug already exists
+    const newSlug = slug || `${originalPage.slug}-copy`;
+    const newTitle = title || `${originalPage.title} (Copy)`;
+    
+    db.get('SELECT id FROM integrity_pages WHERE slug = ?', [newSlug], (err, existing) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (existing) {
+        res.status(409).json({ error: 'Page with this slug already exists' });
+        return;
+      }
+      
+      // Create duplicate
+      db.run(`INSERT INTO integrity_pages (slug, title, description, content, is_visible) 
+              VALUES (?, ?, ?, ?, ?)`,
+        [newSlug, newTitle, originalPage.description || null, originalPage.content, 0], // Default to hidden
+        function(err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ 
+            id: this.lastID, 
+            slug: newSlug, 
+            title: newTitle,
+            message: 'Page duplicated successfully' 
+          });
+        });
+    });
+  });
+});
+
 // Start server
 
 app.listen(PORT, async () => {
@@ -8553,6 +8940,11 @@ app.listen(PORT, async () => {
   console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
   console.log(`💰 Pricing API available at http://localhost:${PORT}/api/pricing`);
   console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
+  
+  // Always ensure media columns exist (critical for marketplace_sections)
+  console.log('🔄 Ensuring media columns exist in marketplace_sections...');
+  await addMarketplaceMediaBannerColumns();
+  await addProductMediaBannerColumns();
   
   // Run migrations only if RUN_MIGRATIONS environment variable is set to true
   const shouldRunMigrations = process.env.RUN_MIGRATIONS === 'true';

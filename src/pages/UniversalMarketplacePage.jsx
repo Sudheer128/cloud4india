@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getMarketplaceByName } from '../services/cmsApi'
+import { useMarketplaceData } from '../hooks/useMarketplaceData'
+import DynamicMarketplaceSection from '../components/DynamicMarketplaceSection'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { 
   ArrowRightIcon,
   StarIcon,
@@ -38,10 +40,8 @@ import {
   CheckCircleIcon,
   CodeBracketIcon
 } from '@heroicons/react/24/outline'
-import { useMarketplaceSections } from '../hooks/useMarketplaceSections'
 import { useSectionItems } from '../hooks/useSectionItems'
 import { appThemeColors, getGradient, getTextColor, getHoverBorder } from '../utils/appThemeColors'
-import DynamicMarketplaceSection from '../components/DynamicMarketplaceSection'
 
 // Rupee Icon - displays ₹ symbol using Unicode character
 const RupeeIconSimple = ({ className }) => (
@@ -65,115 +65,31 @@ const RupeeIconSimple = ({ className }) => (
   </svg>
 );
 
-// Component to fetch and render media banner items
-const MediaBannerItems = ({ section, marketplaceId }) => {
-  const { items, loading, error } = useSectionItems(marketplaceId, section.id);
-  
-  if (loading) {
-    return (
-      <section data-section-id="media" className="py-16 bg-gradient-to-br from-white via-saree-teal-light/10 to-saree-amber-light/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-saree-teal mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading gallery...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-  
-  if (error) {
-    console.error('Error loading media items:', error);
-  }
-  
-  return (
-    <div data-section-id="media">
-      <DynamicMarketplaceSection 
-        section={section} 
-        items={items || []} 
-        marketplace={null}
-        hasNavigation={false}
-      />
-    </div>
-  );
-};
 
 const UniversalMarketplacePage = () => {
   const { appName } = useParams();
-  const [marketplace, setMarketplace] = useState(null);
-  const [marketplaceLoading, setMarketplaceLoading] = useState(true);
-  const [marketplaceError, setMarketplaceError] = useState(null);
-  const [marketplaceId, setMarketplaceId] = useState(null);
   const [activeSection, setActiveSection] = useState('overview');
-  const { sections, loading, error } = useMarketplaceSections(marketplaceId);
   const isScrollingRef = useRef(false);
   const lastActiveSectionRef = useRef('overview');
+  
+  // Use the hook exactly like Products/Solutions
+  const { sections, itemsBySection, marketplace, loading, error } = useMarketplaceData(appName);
 
-  // Fetch marketplace by name to get the ID
-  useEffect(() => {
-    const fetchMarketplace = async () => {
-      if (!appName) {
-        setMarketplaceLoading(false);
-        return;
-      }
-
-      try {
-        setMarketplaceLoading(true);
-        setMarketplaceError(null);
-        const marketplaceData = await getMarketplaceByName(appName);
-        setMarketplace(marketplaceData);
-        setMarketplaceId(marketplaceData.id);
-      } catch (err) {
-        setMarketplaceError(err.message);
-        console.error('Error fetching marketplace by name:', err);
-      } finally {
-        setMarketplaceLoading(false);
-      }
-    };
-
-    fetchMarketplace();
-  }, [appName]);
-
-  // Disable automatic scroll tracking to prevent flickering
-  // Active section only updates when clicking navigation items
-  useEffect(() => {
-    // This effect is intentionally disabled to prevent scroll flickering
-    // The active section is updated manually in scrollToSection function
-  }, [sections]);
-
-  if (marketplaceLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-saree-teal mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading marketplace content...</p>
-        </div>
+        <LoadingSpinner />
       </div>
     );
   }
 
-  if (marketplaceError || error) {
+  if (error) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Content</h1>
-          <p className="text-gray-600 mb-4">{marketplaceError || error}</p>
-          <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
-            Return to Marketplace
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!marketplaceId) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">📄</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Marketplace Not Found</h1>
-          <p className="text-gray-600 mb-4">The marketplace you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-4">{error}</p>
           <Link to="/marketplace" className="text-saree-teal hover:text-saree-teal-dark font-semibold">
             Return to Marketplace
           </Link>
@@ -197,48 +113,51 @@ const UniversalMarketplacePage = () => {
     );
   }
 
-  // Helper function to get section by order
-  const getSectionByOrder = (order) => {
-    return sections.find(section => section.order_index === order);
+  // Map section type to section ID for navigation - exactly like Products/Solutions
+  const getSectionId = (section) => {
+    const mapping = {
+      'hero': 'overview',
+      'media_banner': 'media',
+      'benefits': 'benefits',
+      'segments': 'segments',
+      'technology': 'technology',
+      'use_cases': 'use-cases',
+      'roi': 'roi',
+      'implementation': 'implementation',
+      'resources': 'resources',
+      'cta': 'get-started'
+    };
+    return mapping[section.section_type] || `section-${section.id}`;
   };
 
-  // Check if media_banner exists at order_index 1
-  const hasMediaBanner = sections.some(s => s.section_type === 'media_banner' && s.order_index === 1 && s.is_visible !== 0);
-  
-  // Dynamic order offset: if media_banner exists at 1, all subsequent sections are shifted by 1
-  const getOrderOffset = () => hasMediaBanner ? 1 : 0;
-
-  // Generate navigation items from visible sections
+  // Generate navigation items from visible sections - simplified like Products/Solutions
   const getNavigationItems = () => {
     if (!sections || sections.length === 0) return [];
     
-    const navItems = [];
-    const offset = getOrderOffset();
-    
     // Map section types to readable names and IDs
-    const sectionMapping = [
-      { order: 0, id: 'overview', label: 'Overview', type: 'hero' },
-      { order: 1, id: 'media', label: 'Gallery', type: 'media_banner' },
-      { order: 1 + offset, id: 'benefits', label: 'Key Benefits', type: 'benefits' },
-      { order: 2 + offset, id: 'segments', label: 'Industry Segments', type: 'segments' },
-      { order: 4 + offset, id: 'technology', label: 'Technology Features', type: 'technology' },
-      { order: 5 + offset, id: 'use-cases', label: 'Use Cases', type: 'use_cases' },
-      { order: 6 + offset, id: 'roi', label: 'ROI & Value', type: 'roi' },
-      { order: 7 + offset, id: 'implementation', label: 'Implementation Timeline', type: 'implementation' },
-      { order: 8 + offset, id: 'resources', label: 'Resources & Support', type: 'resources' },
-      { order: 9 + offset, id: 'get-started', label: 'Get started', type: 'cta' }
-    ];
+    const typeToIdMapping = {
+      'hero': 'overview',
+      'media_banner': 'media',
+      'benefits': 'benefits',
+      'segments': 'segments',
+      'technology': 'technology',
+      'use_cases': 'use-cases',
+      'roi': 'roi',
+      'implementation': 'implementation',
+      'resources': 'resources',
+      'cta': 'get-started'
+    };
     
-    sectionMapping.forEach(mapping => {
-      const section = getSectionByOrder(mapping.order);
-      if (section && section.section_type === mapping.type && section.is_visible !== 0) {
-        navItems.push({
-          id: mapping.id,
-          label: mapping.label, // Always use mapping label for consistent, shorter names
-          order: mapping.order
-        });
-      }
-    });
+    // Build navigation items dynamically from actual sections
+    const navItems = sections
+      .filter(section => section.is_visible !== 0)
+      .map(section => ({
+        id: typeToIdMapping[section.section_type] || `section-${section.id}`,
+        label: section.title || section.section_type,
+        order: section.order_index,
+        type: section.section_type
+      }))
+      .sort((a, b) => a.order - b.order);
     
     return navItems;
   };
@@ -289,9 +208,158 @@ const UniversalMarketplacePage = () => {
     }
   };
 
+  // Component for CTA section buttons (fetched from section items)
+  const CTAButtons = ({ marketplaceId, sectionId }) => {
+    const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
+    
+    if (loading || error || !items) return null;
+    
+    // Get CTA buttons
+    const ctaButtons = items.filter(item => 
+      item.is_visible && (item.item_type === 'cta_primary' || item.item_type === 'cta_secondary')
+    ).sort((a, b) => a.order_index - b.order_index);
+    
+    if (ctaButtons.length === 0) {
+      // Fallback to default buttons if no items in database
+      return (
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button className="bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg">
+            Start Your Financial Journey
+          </button>
+          <button className="border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300">
+            Schedule a Demo
+          </button>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        {ctaButtons.map((button, index) => {
+          const isPrimary = button.item_type === 'cta_primary';
+          const buttonUrl = button.value || '#';
+          const ButtonElement = buttonUrl && buttonUrl !== '#' ? 'a' : 'button';
+          
+          return (
+            <ButtonElement
+              key={button.id || index}
+              href={buttonUrl !== '#' ? buttonUrl : undefined}
+              className={isPrimary 
+                ? "bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg"
+                : "border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300"
+              }
+            >
+              {button.title}
+            </ButtonElement>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Component for segment stats (fetched from section items)
+  const SegmentStats = ({ marketplaceId, sectionId }) => {
+    const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
+    
+    if (loading || error || !items) return null;
+    
+    // Get stat items
+    const statItems = items.filter(item => 
+      item.is_visible && item.item_type === 'stat'
+    ).sort((a, b) => a.order_index - b.order_index);
+    
+    if (statItems.length === 0) {
+      // Fallback to default stats if no items in database
+      return (
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-saree-teal mb-2">500+</div>
+            <div className="text-gray-600">Banking Institutions</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-saree-amber mb-2">200+</div>
+            <div className="text-gray-600">Capital Market Firms</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-saree-lime mb-2">300+</div>
+            <div className="text-gray-600">Insurance Companies</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-saree-coral mb-2">150+</div>
+            <div className="text-gray-600">Payment Providers</div>
+          </div>
+        </div>
+      );
+    }
+    
+    const colors = ['text-saree-teal', 'text-saree-amber', 'text-saree-lime', 'text-saree-coral'];
+    
+    return (
+      <div className={`mt-16 grid gap-8 ${statItems.length === 4 ? 'grid-cols-2 md:grid-cols-4' : statItems.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+        {statItems.map((stat, index) => (
+          <div key={stat.id || index} className="text-center">
+            <div className={`text-3xl font-bold ${colors[index % colors.length]} mb-2`}>
+              {stat.value}
+            </div>
+            <div className="text-gray-600">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Component for hero CTA buttons (fetched from section items)
+  const HeroButtons = ({ marketplaceId, sectionId }) => {
+    const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
+    
+    if (loading || error || !items) return null;
+    
+    // Get CTA buttons (cta_primary and cta_secondary types)
+    const ctaButtons = items.filter(item => 
+      item.is_visible && (item.item_type === 'cta_primary' || item.item_type === 'cta_secondary')
+    ).sort((a, b) => a.order_index - b.order_index);
+    
+    if (ctaButtons.length === 0) {
+      // Fallback to default buttons if no items in database
+      return (
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button className="bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg">
+            Get Started Today
+          </button>
+          <button className="border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300">
+            Watch Demo
+          </button>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        {ctaButtons.map((button, index) => {
+          const isPrimary = button.item_type === 'cta_primary';
+          const buttonUrl = button.value || '#';
+          const ButtonElement = buttonUrl && buttonUrl !== '#' ? 'a' : 'button';
+          
+          return (
+            <ButtonElement
+              key={button.id || index}
+              href={buttonUrl !== '#' ? buttonUrl : undefined}
+              className={isPrimary 
+                ? "bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg"
+                : "border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300"
+              }
+            >
+              {button.title}
+            </ButtonElement>
+          );
+        })}
+      </div>
+    );
+  };
+
   // Component for dynamic benefit cards
   const DynamicBenefitCards = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -374,7 +442,7 @@ const UniversalMarketplacePage = () => {
 
   // Component for dynamic financial segments
   const DynamicFinancialSegments = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -412,7 +480,7 @@ const UniversalMarketplacePage = () => {
               </p>
               <div className="text-left">
                 <div className="text-white/80 text-sm font-medium mb-1">Trusted by</div>
-                <div className="text-white font-bold text-base">{item.value || '500+ Institutions'}</div>
+                {item.value && <div className="text-white font-bold text-base">{item.value}</div>}
               </div>
             </div>
           );
@@ -423,7 +491,7 @@ const UniversalMarketplacePage = () => {
 
   // Component for dynamic ROI stats
   const DynamicROIStats = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -451,7 +519,7 @@ const UniversalMarketplacePage = () => {
 
           return (
             <div key={item.id} className={`${colorClass} rounded-2xl p-8 text-center border-2`}>
-              <div className={`text-4xl font-bold ${textColorClass} mb-2`}>{item.value || '40%'}</div>
+              <div className={`text-4xl font-bold ${textColorClass} mb-2`}>{item.value}</div>
               <div className="text-gray-600 font-semibold mb-2">{item.title}</div>
               <p className="text-gray-500 text-sm">{item.description}</p>
             </div>
@@ -463,71 +531,79 @@ const UniversalMarketplacePage = () => {
 
   // Component for dynamic Advanced Technology Marketplaces
   const DynamicTechMarketplaces = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
 
     if (!items || items.length === 0) return <div>No content found</div>;
 
-    const aiMlItem = items.find(item => item.order_index === 0);
-    const analyticsItem = items.find(item => item.order_index === 1);
-
-    let aiMlFeatures = [];
-    if (aiMlItem && aiMlItem.features) {
-      try {
-        aiMlFeatures = JSON.parse(aiMlItem.features);
-      } catch (e) {
-        console.error('Error parsing AI/ML features:', e);
-        aiMlFeatures = [];
-      }
-    }
-
+    const itemsList = items.filter(item => item.is_visible);
+    
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
-        <div>
-          <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-            {aiMlItem?.title || 'AI & Machine Learning for Financial Services'}
-          </h3>
-          <p className="text-lg text-gray-600 leading-relaxed mb-8">
-            {aiMlItem?.description || 'Transform your financial operations with AI-powered apps for fraud detection, risk assessment, algorithmic trading, and personalized financial recommendations. Our ML platform is designed to meet the unique requirements of financial institutions.'}
-          </p>
+        {itemsList.map((item, index) => {
+          let itemFeatures = [];
+          if (item.features) {
+            try {
+              itemFeatures = JSON.parse(item.features);
+            } catch (e) {
+              console.error('Error parsing features:', e);
+            }
+          }
+          
+          const isLeftSide = index % 2 === 0;
+          
+          return isLeftSide ? (
+            <div key={item.id}>
+              <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                {item.title}
+              </h3>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                {item.description}
+              </p>
 
-          <div className="space-y-4 mb-8">
-            {aiMlFeatures.map((feature, index) => (
-              <div key={index} className="flex items-center">
-                <CheckCircleIcon className="h-6 w-6 text-green-500 mr-3" />
-                <span className="text-gray-700">{feature}</span>
-              </div>
-            ))}
-          </div>
+              {itemFeatures.length > 0 && (
+                <div className="space-y-4 mb-8">
+                  {itemFeatures.map((feature, idx) => (
+                    <div key={idx} className="flex items-center">
+                      <CheckCircleIcon className="h-6 w-6 text-green-500 mr-3" />
+                      <span className="text-gray-700">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          <button className="text-saree-teal hover:text-saree-teal-dark font-semibold text-lg flex items-center group">
-            {aiMlItem?.value || 'Explore AI Apps'}
-            <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
-
-        <div className="bg-gradient-to-br from-saree-teal-light to-saree-lime-light rounded-3xl p-8 lg:p-12">
-          <div className="text-center">
-            <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-saree-teal to-saree-lime-dark rounded-3xl flex items-center justify-center">
-              <ChartBarSquareIcon className="w-16 h-16 text-white" />
+              {item.value && (
+                <button className="text-saree-teal hover:text-saree-teal-dark font-semibold text-lg flex items-center group">
+                  {item.value}
+                  <ArrowRightIcon className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
             </div>
-            <h4 className="text-2xl font-bold text-gray-900 mb-4">
-              {analyticsItem?.title || 'AI-Powered Financial Analytics'}
-            </h4>
-            <p className="text-gray-600 leading-relaxed">
-              {analyticsItem?.description || 'Advanced machine learning models trained specifically for financial data patterns and risk assessment requirements.'}
-            </p>
-          </div>
-        </div>
+          ) : (
+            <div key={item.id} className="bg-gradient-to-br from-saree-teal-light to-saree-lime-light rounded-3xl p-8 lg:p-12">
+              <div className="text-center">
+                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-saree-teal to-saree-lime-dark rounded-3xl flex items-center justify-center">
+                  <ChartBarSquareIcon className="w-16 h-16 text-white" />
+                </div>
+                <h4 className="text-2xl font-bold text-gray-900 mb-4">
+                  {item.title}
+                </h4>
+                <p className="text-gray-600 leading-relaxed">
+                  {item.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   // Component for dynamic Real-World Use Cases
   const DynamicUseCases = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -609,7 +685,7 @@ const UniversalMarketplacePage = () => {
 
   // Component for dynamic Implementation Journey timeline
   const DynamicImplementationJourney = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -732,7 +808,7 @@ const UniversalMarketplacePage = () => {
 
   // Component for dynamic Resources & Documentation
   const DynamicResourcesDocs = ({ sectionId }) => {
-    const { items, loading, error } = useSectionItems(parseInt(marketplaceId), sectionId);
+    const { items, loading, error } = useSectionItems(parseInt(marketplace?.id), sectionId);
 
     if (loading) return <div>Loading...</div>;
     if (error) return <div>Error loading items: {error}</div>;
@@ -951,7 +1027,9 @@ const UniversalMarketplacePage = () => {
       )}
 
       {/* Hero Section */}
-      {getSectionByOrder(0) && (
+      {(() => {
+        const heroSection = sections.find(s => s.section_type === 'hero' && s.order_index === 0);
+        return heroSection && (
         <section data-section-id="overview" className={`relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden ${navigationItems.length > 0 ? '-mt-32' : ''}`}>
 
           {/* Dot Grid Pattern Overlay */}
@@ -1000,69 +1078,69 @@ const UniversalMarketplacePage = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-2xl mb-8 backdrop-blur-sm">
                 <BanknotesIcon className="w-10 h-10 text-white" />
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-                {getSectionByOrder(0).title}
-              </h1>
-              <p className="text-xl md:text-2xl text-white/95 max-w-4xl mx-auto leading-relaxed mb-8">
-                {getSectionByOrder(0).content}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button className="bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg">
-                  Get Started Today
-                </button>
-                <button className="border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300">
-                  Watch Demo
-                </button>
-              </div>
+              {heroSection && (
+                <>
+                  <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+                    {heroSection.title}
+                  </h1>
+                  <p className="text-xl md:text-2xl text-white/95 max-w-4xl mx-auto leading-relaxed mb-8">
+                    {heroSection.content}
+                  </p>
+                  <HeroButtons marketplaceId={marketplace?.id} sectionId={heroSection.id} />
+                </>
+              )}
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
-      {/* Media Banner Section - Always after hero (order_index = 1) - Using DynamicMarketplaceSection */}
+      {/* Media Banner Section - Only this section uses DynamicMarketplaceSection with itemsBySection */}
       {(() => {
-        // Find media_banner section at order_index 1 (backend ensures it's always at position 1)
         const mediaBannerSection = sections.find(s => 
           s.section_type === 'media_banner' && 
-          s.order_index === 1 && 
           s.is_visible !== 0
         );
+        
         if (!mediaBannerSection) return null;
         
-        // Use MediaBannerItems component to fetch and render items
-        return <MediaBannerItems section={mediaBannerSection} marketplaceId={marketplaceId} />;
+        return (
+          <div data-section-id="media">
+            <DynamicMarketplaceSection
+              section={mediaBannerSection}
+              items={itemsBySection[mediaBannerSection.id] || []}
+              marketplace={marketplace}
+              hasNavigation={navigationItems.length > 0}
+            />
+          </div>
+        );
       })()}
 
       {/* Key Benefits Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const benefitsOrder = 1 + offset; // If media_banner exists, benefits is at 2, otherwise at 1
-        const section1 = getSectionByOrder(benefitsOrder);
-        if (!section1 || section1.section_type === 'media_banner' || section1.section_type !== 'benefits') return null;
+        const benefitsSection = sections.find(s => s.section_type === 'benefits' && s.is_visible !== 0);
+        if (!benefitsSection) return null;
         return (
           <section data-section-id="benefits" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
                 <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                  {section1.title}
+                  {benefitsSection.title}
                 </h2>
                 <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                  {section1.content}
+                  {benefitsSection.content}
                 </p>
               </div>
-
-              <DynamicBenefitCards sectionId={section1.id} />
+              <DynamicBenefitCards sectionId={benefitsSection.id} />
             </div>
           </section>
         );
       })()}
 
-      {/* Industry Segments Section - Financial Focus */}
+      {/* Industry Segments Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const segmentsOrder = 2 + offset; // If media_banner exists, segments is at 3, otherwise at 2
-        const segmentsSection = getSectionByOrder(segmentsOrder);
-        if (!segmentsSection || segmentsSection.section_type !== 'segments') return null;
+        const segmentsSection = sections.find(s => s.section_type === 'segments' && s.is_visible !== 0);
+        if (!segmentsSection) return null;
         return (
           <section data-section-id="segments" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1074,63 +1152,38 @@ const UniversalMarketplacePage = () => {
                   {segmentsSection.content}
                 </p>
               </div>
-
               <DynamicFinancialSegments sectionId={segmentsSection.id} />
-
-            {/* Bottom Stats */}
-            <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-saree-teal mb-2">500+</div>
-                <div className="text-gray-600">Banking Institutions</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-saree-amber mb-2">200+</div>
-                <div className="text-gray-600">Capital Market Firms</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-saree-lime mb-2">300+</div>
-                <div className="text-gray-600">Insurance Companies</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-saree-coral mb-2">150+</div>
-                <div className="text-gray-600">Payment Providers</div>
-              </div>
+              <SegmentStats marketplaceId={marketplace?.id} sectionId={segmentsSection.id} />
             </div>
-          </div>
-        </section>
+          </section>
         );
       })()}
 
       {/* Technology Marketplaces Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const techOrder = 4 + offset;
-        const techSection = getSectionByOrder(techOrder);
-        if (!techSection || techSection.section_type !== 'technology') return null;
+        const techSection = sections.find(s => s.section_type === 'technology' && s.is_visible !== 0);
+        if (!techSection) return null;
         return (
-        <section data-section-id="technology" className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                {techSection.title}
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                {techSection.content}
-              </p>
+          <section data-section-id="technology" className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  {techSection.title}
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  {techSection.content}
+                </p>
+              </div>
+              <DynamicTechMarketplaces sectionId={techSection.id} />
             </div>
-
-            <DynamicTechMarketplaces sectionId={techSection.id} />
-          </div>
-        </section>
+          </section>
         );
       })()}
 
-      {/* Real-World Use Cases & Marketplaces */}
+      {/* Real-World Use Cases */}
       {(() => {
-        const offset = getOrderOffset();
-        const useCasesOrder = 5 + offset;
-        const useCasesSection = getSectionByOrder(useCasesOrder);
-        if (!useCasesSection || useCasesSection.section_type !== 'use_cases') return null;
+        const useCasesSection = sections.find(s => s.section_type === 'use_cases' && s.is_visible !== 0);
+        if (!useCasesSection) return null;
         return (
           <section data-section-id="use-cases" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1142,7 +1195,6 @@ const UniversalMarketplacePage = () => {
                   {useCasesSection.content}
                 </p>
               </div>
-
               <DynamicUseCases sectionId={useCasesSection.id} />
             </div>
           </section>
@@ -1151,10 +1203,8 @@ const UniversalMarketplacePage = () => {
 
       {/* ROI & Business Impact Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const roiOrder = 6 + offset;
-        const roiSection = getSectionByOrder(roiOrder);
-        if (!roiSection || roiSection.section_type !== 'roi') return null;
+        const roiSection = sections.find(s => s.section_type === 'roi' && s.is_visible !== 0);
+        if (!roiSection) return null;
         return (
           <section data-section-id="roi" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1166,7 +1216,6 @@ const UniversalMarketplacePage = () => {
                   {roiSection.content}
                 </p>
               </div>
-
               <DynamicROIStats sectionId={roiSection.id} />
             </div>
           </section>
@@ -1175,10 +1224,8 @@ const UniversalMarketplacePage = () => {
 
       {/* Implementation Journey Roadmap */}
       {(() => {
-        const offset = getOrderOffset();
-        const implOrder = 7 + offset;
-        const implSection = getSectionByOrder(implOrder);
-        if (!implSection || implSection.section_type !== 'implementation') return null;
+        const implSection = sections.find(s => s.section_type === 'implementation' && s.is_visible !== 0);
+        if (!implSection) return null;
         return (
           <section data-section-id="implementation" className="py-20 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1190,19 +1237,16 @@ const UniversalMarketplacePage = () => {
                   {implSection.content}
                 </p>
               </div>
-
               <DynamicImplementationJourney sectionId={implSection.id} />
             </div>
           </section>
         );
       })()}
 
-      {/* Resources & Documentation Section - Mixed Layout */}
+      {/* Resources & Documentation Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const resourcesOrder = 8 + offset;
-        const resourcesSection = getSectionByOrder(resourcesOrder);
-        if (!resourcesSection || resourcesSection.section_type !== 'resources') return null;
+        const resourcesSection = sections.find(s => s.section_type === 'resources' && s.is_visible !== 0);
+        if (!resourcesSection) return null;
         return (
           <section data-section-id="resources" className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1214,7 +1258,6 @@ const UniversalMarketplacePage = () => {
                   {resourcesSection.content}
                 </p>
               </div>
-
               <DynamicResourcesDocs sectionId={resourcesSection.id} />
             </div>
           </section>
@@ -1223,13 +1266,10 @@ const UniversalMarketplacePage = () => {
 
       {/* Call to Action Section */}
       {(() => {
-        const offset = getOrderOffset();
-        const ctaOrder = 9 + offset;
-        const ctaSection = getSectionByOrder(ctaOrder);
-        if (!ctaSection || ctaSection.section_type !== 'cta') return null;
+        const ctaSection = sections.find(s => s.section_type === 'cta' && s.is_visible !== 0);
+        if (!ctaSection) return null;
         return (
           <section data-section-id="get-started" className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
-            {/* Dot Grid Pattern Overlay */}
             <div 
               className="absolute inset-0 opacity-[0.15]"
               style={{
@@ -1237,8 +1277,6 @@ const UniversalMarketplacePage = () => {
                 backgroundSize: '24px 24px'
               }}
             ></div>
-            
-            {/* Hexagon Pattern Overlay */}
             <div 
               className="absolute inset-0 opacity-[0.12]"
               style={{
@@ -1246,7 +1284,6 @@ const UniversalMarketplacePage = () => {
                 backgroundSize: '60px 60px'
               }}
             ></div>
-            
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
                 {ctaSection.title}
@@ -1254,18 +1291,12 @@ const UniversalMarketplacePage = () => {
               <p className="text-xl text-white/95 max-w-3xl mx-auto leading-relaxed mb-8">
                 {ctaSection.content}
               </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg">
-                Start Your Financial Journey
-              </button>
-              <button className="border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300">
-                Schedule a Demo
-              </button>
+              <CTAButtons marketplaceId={marketplace?.id} sectionId={ctaSection.id} />
             </div>
-          </div>
-        </section>
+          </section>
         );
       })()}
+
     </div>
   )
 }

@@ -1862,7 +1862,8 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
     { value: 'technology', label: 'Technology' },
     { value: 'segment', label: 'Segment' },
     { value: 'step', label: 'Step' },
-    { value: 'resource', label: 'Resource' }
+    { value: 'resource', label: 'Resource' },
+    ...(section?.section_type === 'media_banner' ? [{ value: 'media_item', label: 'Media Item' }] : [])
   ];
 
   return (
@@ -2008,6 +2009,7 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
           {editingItem && (
             <SectionItemEditor
               item={editingItem === 'new' ? null : items.find(i => i.id === editingItem)}
+              section={section}
               itemTypes={itemTypes}
               onCreate={handleCreateItem}
               onUpdate={handleUpdateItem}
@@ -2022,7 +2024,7 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
 };
 
 // Section Item Editor Component
-const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, saving }) => {
+const SectionItemEditor = ({ item, section, itemTypes, onCreate, onUpdate, onCancel, saving }) => {
   const [formData, setFormData] = useState({
     item_type: '',
     title: '',
@@ -2033,11 +2035,13 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
     features: ''
   });
   const [featuresList, setFeaturesList] = useState([]);
+  const [contentJSON, setContentJSON] = useState({});
+  const isMediaBanner = section?.section_type === 'media_banner';
 
   useEffect(() => {
     if (item) {
       setFormData({
-        item_type: item.item_type || '',
+        item_type: item.item_type || (isMediaBanner ? 'media_item' : ''),
         title: item.title || '',
         description: item.description || '',
         icon: item.icon || '',
@@ -2045,6 +2049,28 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         label: item.label || '',
         features: item.features || ''
       });
+      
+      // Parse content JSON for media_banner items
+      if (isMediaBanner && item.content) {
+        try {
+          const parsedContent = JSON.parse(item.content);
+          setContentJSON(parsedContent);
+        } catch (e) {
+          console.error('Error parsing content:', e);
+          setContentJSON({
+            media_type: 'image',
+            media_source: 'upload',
+            media_url: ''
+          });
+        }
+      } else if (isMediaBanner) {
+        // Initialize empty media content for new items
+        setContentJSON({
+          media_type: 'image',
+          media_source: 'upload',
+          media_url: ''
+        });
+      }
       
       // Parse features from JSON
       try {
@@ -2060,7 +2086,7 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
       }
     } else {
       setFormData({
-        item_type: '',
+        item_type: isMediaBanner ? 'media_item' : '',
         title: '',
         description: '',
         icon: '',
@@ -2069,15 +2095,45 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         features: ''
       });
       setFeaturesList([]);
+      if (isMediaBanner) {
+        setContentJSON({
+          media_type: 'image',
+          media_source: 'upload',
+          media_url: ''
+        });
+      }
     }
-  }, [item]);
+  }, [item, isMediaBanner]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // For media_banner items, validate and include content JSON
+    let finalData = { ...formData };
+    if (isMediaBanner) {
+      if (!contentJSON.media_type) {
+        alert('Please select a media type (Image or Video)');
+        return;
+      }
+      if (contentJSON.media_type === 'video' && !contentJSON.media_source) {
+        alert('Please select a video source (YouTube or Upload)');
+        return;
+      }
+      if (!contentJSON.media_url || contentJSON.media_url.trim() === '') {
+        alert('Please provide a media URL or upload a file');
+        return;
+      }
+      finalData.content = JSON.stringify(contentJSON);
+      console.log('Media banner item - contentJSON:', contentJSON);
+      console.log('Media banner item - finalData:', finalData);
+    }
+    
     if (item) {
-      onUpdate(item.id, formData);
+      console.log('Updating item with data:', finalData);
+      onUpdate(item.id, finalData);
     } else {
-      onCreate(formData);
+      console.log('Creating item with data:', finalData);
+      onCreate(finalData);
     }
   };
 
@@ -2136,24 +2192,29 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
         <form onSubmit={handleSubmit} className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
           <div className="space-y-6">
             {/* Item Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Item Type *
-              </label>
-              <select
-                value={formData.item_type}
-                onChange={(e) => handleInputChange('item_type', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select item type...</option>
-                {itemTypes.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!isMediaBanner && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Item Type *
+                </label>
+                <select
+                  value={formData.item_type}
+                  onChange={(e) => handleInputChange('item_type', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select item type...</option>
+                  {itemTypes.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {isMediaBanner && (
+              <input type="hidden" value="media_item" />
+            )}
 
             {/* Title */}
             <div>
@@ -2183,6 +2244,109 @@ const SectionItemEditor = ({ item, itemTypes, onCreate, onUpdate, onCancel, savi
                 placeholder="Enter item description..."
               />
             </div>
+
+            {/* Media Banner Fields */}
+            {isMediaBanner && (
+              <>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <p className="text-xs text-purple-900">
+                    <strong>Media Item</strong> - Add photos or videos to the gallery carousel
+                  </p>
+                </div>
+                
+                {/* Media Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Media Type *</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="media_type"
+                        value="image"
+                        checked={contentJSON.media_type === 'image'}
+                        onChange={(e) => setContentJSON(prev => ({ ...prev, media_type: e.target.value, media_source: 'upload', media_url: '' }))}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">📷 Photo</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="media_type"
+                        value="video"
+                        checked={contentJSON.media_type === 'video'}
+                        onChange={(e) => setContentJSON(prev => ({ ...prev, media_type: e.target.value, media_source: 'youtube', media_url: '' }))}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">🎥 Video</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Video Source (only if video) */}
+                {contentJSON.media_type === 'video' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Video Source *</label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="video_source"
+                          value="youtube"
+                          checked={contentJSON.media_source === 'youtube'}
+                          onChange={(e) => setContentJSON(prev => ({ ...prev, media_source: e.target.value, media_url: '' }))}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">YouTube URL</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="video_source"
+                          value="upload"
+                          checked={contentJSON.media_source === 'upload'}
+                          onChange={(e) => setContentJSON(prev => ({ ...prev, media_source: e.target.value, media_url: '' }))}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Upload Video File</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Media URL Input */}
+                {contentJSON.media_source === 'youtube' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
+                    <input
+                      type="url"
+                      value={contentJSON.media_url || ''}
+                      onChange={(e) => setContentJSON(prev => ({ ...prev, media_url: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {contentJSON.media_type === 'video' ? 'Video URL' : 'Image URL'} *
+                    </label>
+                    <input
+                      type="url"
+                      value={contentJSON.media_url || ''}
+                      onChange={(e) => setContentJSON(prev => ({ ...prev, media_url: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={contentJSON.media_type === 'video' ? 'https://example.com/video.mp4' : 'https://example.com/image.jpg'}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the full URL to your {contentJSON.media_type === 'video' ? 'video' : 'image'} file
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Icon */}
             <div>

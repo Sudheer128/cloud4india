@@ -11,7 +11,27 @@ const cmsApi = axios.create({
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   },
+});
+
+// Add request interceptor to prevent caching for GET requests
+cmsApi.interceptors.request.use((config) => {
+  // For GET requests, always add cache-busting parameters
+  if (config.method === 'get' || config.method === 'GET') {
+    const separator = config.url.includes('?') ? '&' : '?';
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    config.url = `${config.url}${separator}_t=${timestamp}&_r=${random}`;
+    
+    // Ensure no-cache headers
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    config.headers['Pragma'] = 'no-cache';
+    config.headers['Expires'] = '0';
+  }
+  return config;
 });
 
 // API Service Functions
@@ -363,6 +383,23 @@ export const getMarketplaceSections = async (id) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching marketplace sections:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get items for a marketplace section
+ * @param {number} marketplaceId - Marketplace ID
+ * @param {number} sectionId - Section ID
+ * @returns {Promise<Array>} Array of section items
+ */
+export const getMarketplaceItems = async (marketplaceId, sectionId) => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/marketplaces/${marketplaceId}/sections/${sectionId}/items?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching marketplace items:', error);
     throw error;
   }
 };
@@ -2095,6 +2132,7 @@ export default {
   duplicateMarketplace,
   toggleMarketplaceVisibility,
   getMarketplaceSections,
+  getMarketplaceItems,
   createMarketplaceSection,
   updateMarketplaceSection,
   deleteMarketplaceSection,
@@ -2144,4 +2182,144 @@ export default {
   toggleMainProductsSectionVisibility,
   createMainProductsSection,
   getAllProductsForSection,
+};
+
+// ==================== Integrity Pages API ====================
+
+/**
+ * Get all integrity pages
+ * @param {boolean} showAll - Include hidden pages
+ * @returns {Promise<Array>} Array of integrity pages
+ */
+export const getIntegrityPages = async (showAll = false) => {
+  try {
+    // Add cache busting to ensure fresh data
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const url = showAll 
+      ? `/integrity-pages?all=true&t=${timestamp}&r=${random}` 
+      : `/integrity-pages?t=${timestamp}&r=${random}`;
+    const response = await cmsApi.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching integrity pages:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single integrity page by slug
+ * @param {string} slug - Page slug
+ * @param {boolean} showAll - Include hidden pages
+ * @returns {Promise<Object>} Integrity page data
+ */
+export const getIntegrityPage = async (slug, showAll = false) => {
+  try {
+    // Add unique timestamp and random number to prevent caching
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const url = showAll 
+      ? `/integrity-pages/${slug}?all=true&t=${timestamp}&r=${random}` 
+      : `/integrity-pages/${slug}?t=${timestamp}&r=${random}`;
+    const response = await cmsApi.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching integrity page:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new integrity page
+ * @param {Object} pageData - Page data (slug, title, content, is_visible)
+ * @returns {Promise<Object>} Created page data
+ */
+export const createIntegrityPage = async (pageData) => {
+  try {
+    const response = await cmsApi.post('/integrity-pages', pageData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating integrity page:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update integrity page
+ * @param {number} id - Page ID
+ * @param {Object} pageData - Page data to update
+ * @returns {Promise<Object>} Update response
+ */
+export const updateIntegrityPage = async (id, pageData) => {
+  try {
+    console.log('📡 API Call - Updating integrity page:', { id, pageData });
+    const response = await cmsApi.put(`/integrity-pages/${id}`, pageData);
+    console.log('📥 API Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ API Error updating integrity page:', error);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Delete integrity page
+ * @param {number} id - Page ID
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteIntegrityPage = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/integrity-pages/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting integrity page:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle integrity page visibility
+ * @param {number} id - Page ID
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleIntegrityPageVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/integrity-pages/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling integrity page visibility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Duplicate integrity page
+ * @param {number} id - Page ID to duplicate
+ * @param {Object} duplicateData - Optional data for duplicate (slug, title)
+ * @returns {Promise<Object>} Duplicate response
+ */
+export const duplicateIntegrityPage = async (id, duplicateData = {}) => {
+  try {
+    const response = await cmsApi.post(`/integrity-pages/${id}/duplicate`, duplicateData);
+    return response.data;
+  } catch (error) {
+    console.error('Error duplicating integrity page:', error);
+    throw error;
+  }
 };

@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import UnifiedAdminLayout from './components/UnifiedAdminLayout'
 import AdminPanel from './pages/AdminPanel'
 import MarketplacesAdmin from './pages/MarketplacesAdmin'
+import MarketplacesAdminNew from './pages/MarketplacesAdminNew'
 import MarketplacesMainAdmin from './pages/MarketplacesMainAdmin'
 import ProductsAdmin from './pages/ProductsAdmin'
 import ProductsAdminNew from './pages/ProductsAdminNew'
@@ -19,6 +20,8 @@ import SolutionsAdminNew from './pages/SolutionsAdminNew'
 import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
 import AboutUsAdmin from './pages/AboutUsAdmin'
 import PricingAdmin from './pages/PricingAdmin'
+import IntegrityAdmin from './pages/IntegrityAdmin'
+import IntegrityPage from './pages/IntegrityPage'
 import UniversalMarketplacePage from './pages/UniversalMarketplacePage'
 import UniversalProductPage from './pages/UniversalProductPage'
 import UniversalSolutionPage from './pages/UniversalSolutionPage'
@@ -43,6 +46,7 @@ function AppContent() {
           <Route path="/home-new" element={<HomeNew />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/integrity/:slug" element={<IntegrityPage />} />
           <Route path="/marketplace" element={<MainMarketplacesPage />} />
           <Route path="/products" element={<MainProductsPage />} />
           <Route path="/solutions" element={<MainSolutionsPage />} />
@@ -56,6 +60,7 @@ function AppContent() {
           }>
             <Route index element={<AdminPanel />} />
             <Route path="marketplace" element={<MarketplacesAdmin />} />
+            <Route path="marketplaces-new/:marketplaceId" element={<MarketplacesAdminNew />} />
             <Route path="marketplace-main" element={<MarketplacesMainAdmin />} />
             <Route path="products" element={<ProductsAdmin />} />
             <Route path="products-new/:productId" element={<ProductsAdminNew />} />
@@ -65,6 +70,7 @@ function AppContent() {
             <Route path="solutions-main" element={<SolutionsMainAdmin />} />
             <Route path="pricing" element={<PricingAdmin />} />
             <Route path="about-us" element={<AboutUsAdmin />} />
+            <Route path="integrity" element={<IntegrityAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />

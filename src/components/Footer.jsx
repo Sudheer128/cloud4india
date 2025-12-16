@@ -1,8 +1,27 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ChevronUpIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
+import { getIntegrityPages } from '../services/cmsApi'
 
 const Footer = () => {
+  const [integrityPages, setIntegrityPages] = useState([])
+  const [loadingIntegrity, setLoadingIntegrity] = useState(true)
+
+  useEffect(() => {
+    const fetchIntegrityPages = async () => {
+      try {
+        const pages = await getIntegrityPages(false) // Only fetch visible pages
+        setIntegrityPages(pages || [])
+      } catch (error) {
+        console.error('Error fetching integrity pages:', error)
+        setIntegrityPages([])
+      } finally {
+        setLoadingIntegrity(false)
+      }
+    }
+    fetchIntegrityPages()
+  }, [])
+
   const footerSections = [
     {
       title: 'Company',
@@ -67,7 +86,7 @@ const Footer = () => {
         </div>
 
         {/* Footer Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 mb-12">
           {footerSections.map((section, index) => (
             <div key={index}>
               <h3 className="text-lg font-semibold mb-6 text-white">{section.title}</h3>
@@ -96,6 +115,33 @@ const Footer = () => {
               </ul>
             </div>
           ))}
+          
+          {/* Integrity Section - Dynamically loaded from CMS */}
+          <div>
+            <h3 className="text-lg font-semibold mb-6 text-white">Integrity</h3>
+            {loadingIntegrity ? (
+              <ul className="space-y-3">
+                <li className="text-gray-400 text-sm">Loading...</li>
+              </ul>
+            ) : integrityPages.length > 0 ? (
+              <ul className="space-y-3">
+                {integrityPages.map((page) => (
+                  <li key={page.id}>
+                    <Link 
+                      to={`/integrity/${page.slug}`} 
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {page.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="space-y-3">
+                <li className="text-gray-500 text-sm">No pages available</li>
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Back to Top */}
@@ -146,10 +192,21 @@ const Footer = () => {
               </a>
             </div>
 
-            {/* Legal Links */}
+            {/* Legal Links - Now handled in Integrity section above */}
             <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-              <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+              {!loadingIntegrity && integrityPages.length > 0 && (
+                <>
+                  {integrityPages.slice(0, 2).map((page) => (
+                    <Link 
+                      key={page.id}
+                      to={`/integrity/${page.slug}`} 
+                      className="hover:text-white transition-colors"
+                    >
+                      {page.title.replace(' Policy', '').replace(' & Conditions', '')}
+                    </Link>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </div>
