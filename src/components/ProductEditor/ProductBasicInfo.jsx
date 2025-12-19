@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import IconSelector from './IconSelector';
 
 const ProductBasicInfo = ({ product, onSave, saving }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     category: '',
-    route: ''
+    route: '',
+    icon: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -26,7 +28,8 @@ const ProductBasicInfo = ({ product, onSave, saving }) => {
         name: product.name || '',
         description: product.description || '',
         category: product.category || '',
-        route: cleanRoute
+        route: cleanRoute,
+        icon: product.icon || ''
       });
     }
 
@@ -155,6 +158,17 @@ const ProductBasicInfo = ({ product, onSave, saving }) => {
           </p>
         </div>
 
+        {/* Product Icon */}
+        <div>
+          <IconSelector
+            value={formData.icon}
+            onChange={(value) => handleChange('icon', value)}
+            optional={true}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Icon displayed in the hero section on the right side. Choose from library or upload a custom icon.
+          </p>
+        </div>
 
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">

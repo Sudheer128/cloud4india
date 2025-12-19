@@ -25,6 +25,12 @@ const UnifiedAdminLayout = () => {
         return 'Products Main Page';
       case '/admin/pricing':
         return 'Pricing Management';
+      case '/admin/about-us':
+        return 'About Us Management';
+      case '/admin/contact-us':
+        return 'Contact Us Management';
+      case '/admin/contact-dashboard':
+        return 'Contact Dashboard';
       default:
         return 'Admin Panel';
     }

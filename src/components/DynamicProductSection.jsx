@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  CheckIcon, 
-  StarIcon, 
-  ServerIcon, 
-  CpuChipIcon, 
-  CircleStackIcon, 
+import {
+  CheckIcon,
+  StarIcon,
+  ServerIcon,
+  CpuChipIcon,
+  CircleStackIcon,
   ShieldCheckIcon,
   ClockIcon,
   CurrencyDollarIcon,
@@ -13,7 +13,9 @@ import {
   GlobeAltIcon,
   ArrowRightIcon,
   EyeIcon,
-  EyeSlashIcon
+  EyeSlashIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 // Icon mapping for dynamic rendering
@@ -35,8 +37,8 @@ const iconMap = {
 };
 
 const DynamicProductSection = ({ section, items, product, hasNavigation = false }) => {
-  // Don't render if section is hidden
-  if (!section.is_visible) {
+  // Don't render if section is hidden (check for 0, false, null, or undefined)
+  if (section.is_visible === 0 || section.is_visible === false || section.is_visible === null || section.is_visible === undefined) {
     return null;
   }
 
@@ -89,19 +91,19 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
         <div className="absolute inset-0 opacity-[0.07]" style={{
           backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px)',
         }}></div>
-        
+
         {/* Hexagon shapes instead of circles */}
         <div className="absolute top-20 right-10 w-48 h-48 opacity-10">
           <svg viewBox="0 0 100 100" className="w-full h-full">
-            <polygon points="50 1 95 25 95 75 50 99 5 75 5 25" fill="none" stroke="white" strokeWidth="2"/>
+            <polygon points="50 1 95 25 95 75 50 99 5 75 5 25" fill="none" stroke="white" strokeWidth="2" />
           </svg>
         </div>
         <div className="absolute bottom-32 left-20 w-64 h-64 opacity-10">
           <svg viewBox="0 0 100 100" className="w-full h-full">
-            <polygon points="50 1 95 25 95 75 50 99 5 75 5 25" fill="none" stroke="white" strokeWidth="3"/>
+            <polygon points="50 1 95 25 95 75 50 99 5 75 5 25" fill="none" stroke="white" strokeWidth="3" />
           </svg>
         </div>
-        
+
         {/* Curved wave overlays */}
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/5 to-transparent"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-saree-amber/10 rounded-full blur-3xl"></div>
@@ -117,47 +119,31 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
                 {badgeItem.title}
               </div>
             )}
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               {product?.name || section.title || titleItem?.title || 'Product Name'}
             </h1>
-            
+
             <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-8">
               {section.description || descriptionItem?.title || product?.description || 'Product description goes here'}
             </p>
-            
+
             {/* Feature list with icons - Dynamic from CMS */}
             {featureBullets.length > 0 && (
-            <div className="space-y-3 mb-8">
+              <div className="space-y-3 mb-8">
                 {featureBullets.map((feature, index) => (
                   <div key={feature.id || index} className="flex items-center gap-3 text-white">
-                <div className="w-6 h-6 bg-saree-amber rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckIcon className="w-4 h-4 text-gray-900" />
-                </div>
+                    <div className="w-6 h-6 bg-saree-amber rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckIcon className="w-4 h-4 text-gray-900" />
+                    </div>
                     <span className="text-base font-medium">{feature.title}</span>
-              </div>
+                  </div>
                 ))}
-                </div>
+              </div>
             )}
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
-              {primaryCTAItem && (
-                primaryCTAItem.value ? (
-                  <a
-                    href={primaryCTAItem.value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-8 py-4 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:scale-105 transform text-center"
-                  >
-                    {primaryCTAItem.title}
-                  </a>
-                ) : (
-                  <button className="px-8 py-4 bg-white text-saree-teal-dark text-base font-bold rounded-lg hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:scale-105 transform">
-                  {primaryCTAItem.title}
-                </button>
-                )
-              )}
-              {secondaryCTAItem && (
+              {secondaryCTAItem ? (
                 secondaryCTAItem.value ? (
                   <a
                     href={secondaryCTAItem.value}
@@ -168,10 +154,15 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
                     {secondaryCTAItem.title}
                   </a>
                 ) : (
-                <button className="px-8 py-4 bg-transparent text-white text-base font-bold rounded-lg border-2 border-white hover:bg-white hover:text-saree-teal-dark transition-all duration-300 shadow-xl">
-                  {secondaryCTAItem.title}
-                </button>
+                  <button className="px-8 py-4 bg-transparent text-white text-base font-bold rounded-lg border-2 border-white hover:bg-white hover:text-saree-teal-dark transition-all duration-300 shadow-xl">
+                    {secondaryCTAItem.title}
+                  </button>
                 )
+              ) : (
+                // Fallback button if no secondaryCTAItem is configured
+                <button className="px-8 py-4 bg-transparent text-white text-base font-bold rounded-lg border-2 border-white hover:bg-white hover:text-saree-teal-dark transition-all duration-300 shadow-xl">
+                  Contact Sales
+                </button>
               )}
             </div>
           </div>
@@ -180,32 +171,51 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
           <div className="space-y-4">
             {/* Main CTA Card - show if primary CTA exists */}
             {primaryCTAItem && (
-            <div className="bg-white rounded-2xl p-8 shadow-2xl transform hover:scale-105 transition-all duration-300">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-saree-teal to-phulkari-turquoise rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                  <ServerIcon className="w-8 h-8 text-white" />
-                </div>
-                <div>
+              <div className="bg-white rounded-2xl p-8 shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-saree-teal to-phulkari-turquoise rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                    {(() => {
+                      // Use product icon if available, otherwise default to ServerIcon
+                      const productIcon = product?.icon;
+                      const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+                      
+                      if (productIcon) {
+                        // Check if it's a library icon
+                        const IconComponent = iconMap[productIcon];
+                        if (IconComponent) {
+                          return <IconComponent className="w-8 h-8 text-white" />;
+                        }
+                        // Check if it's an uploaded icon
+                        if (productIcon.startsWith('/uploads') || productIcon.startsWith('http')) {
+                          const iconUrl = productIcon.startsWith('http') ? productIcon : `${cmsBaseUrl}${productIcon}`;
+                          return <img src={iconUrl} alt="Product icon" className="w-8 h-8 object-contain filter brightness-0 invert" />;
+                        }
+                      }
+                      // Default fallback icon
+                      return <ServerIcon className="w-8 h-8 text-white" />;
+                    })()}
+                  </div>
+                  <div>
                     <h3 className="text-xl font-bold text-gray-900">{primaryCTAItem.description || 'Try It Now'}</h3>
                     <p className="text-sm text-gray-600">{primaryCTAItem.label || 'Start in 60 seconds'}</p>
+                  </div>
                 </div>
+
+                {primaryCTAItem.value ? (
+                  <a
+                    href={primaryCTAItem.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
+                  >
+                    {primaryCTAItem.title} →
+                  </a>
+                ) : (
+                  <button className="w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    {primaryCTAItem.title} →
+                  </button>
+                )}
               </div>
-              
-              {primaryCTAItem.value ? (
-                <a
-                  href={primaryCTAItem.value}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center"
-                >
-                  {primaryCTAItem.title} →
-                </a>
-              ) : (
-              <button className="w-full bg-gradient-to-r from-saree-teal to-phulkari-turquoise text-white px-6 py-3.5 rounded-lg font-bold text-base hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  {primaryCTAItem.title} →
-              </button>
-              )}
-            </div>
             )}
 
             {/* Stats Cards - Dynamic from CMS */}
@@ -217,7 +227,7 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
                     <div key={stat.id || index} className="bg-white/95 backdrop-blur-sm rounded-xl p-4 text-center shadow-lg hover:shadow-xl transition-all">
                       <div className={`text-2xl font-bold ${colors[index % 3]} mb-1`}>{stat.value || stat.title}</div>
                       <div className="text-xs text-gray-600 font-semibold">{stat.label || stat.description}</div>
-              </div>
+                    </div>
                   );
                 })}
               </div>
@@ -236,22 +246,42 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
 const MediaBannerSection = ({ section, items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   // Filter visible media items with valid URLs
+  // Check visibility: is_visible should be !== 0 (consistent with section visibility checks)
   const mediaItems = items.filter(item => {
-    if (!item.is_visible) return false;
+    // Robust visibility check - item is visible if is_visible is not 0, false, null, or undefined
+    if (item.is_visible === 0 || item.is_visible === false || item.is_visible === null || item.is_visible === undefined) {
+      console.log('MediaBannerSection: Item filtered out (not visible):', item.id, item.title, 'is_visible:', item.is_visible);
+      return false;
+    }
     try {
       const content = item.content ? JSON.parse(item.content) : {};
-      return content.media_url && content.media_url.trim() !== '';
+      const hasMediaUrl = content.media_url && content.media_url.trim() !== '';
+      if (!hasMediaUrl) {
+        console.log('MediaBannerSection: Item filtered out (no media_url):', item.id, item.title, 'content:', content);
+      }
+      return hasMediaUrl;
     } catch (e) {
+      console.error('MediaBannerSection: Error parsing item content:', item.id, item.title, e);
       return false;
     }
   });
-  
+
+  // Debug logging
+  console.log('MediaBannerSection - Section:', {
+    sectionId: section.id,
+    sectionTitle: section.title,
+    sectionVisible: section.is_visible,
+    totalItems: items?.length || 0,
+    visibleItems: mediaItems.length
+  });
+
   if (mediaItems.length === 0) {
+    console.warn('MediaBannerSection - No valid media items found. Section will not render. Items received:', items);
     return null; // Don't render if no valid media items
   }
-  
+
   // Process media item to get URL and type
   const getMediaInfo = (item) => {
     let content = {};
@@ -260,15 +290,15 @@ const MediaBannerSection = ({ section, items }) => {
     } catch (e) {
       console.error('Error parsing media content:', e);
     }
-    
+
     const mediaType = content.media_type || 'image';
     const mediaSource = content.media_source || 'upload';
     let mediaUrl = content.media_url || '';
-  let isYouTube = false;
-  
-    if (mediaType === 'video' && (mediaSource === 'youtube' || 
-        mediaUrl.includes('youtube.com') || 
-        mediaUrl.includes('youtu.be'))) {
+    let isYouTube = false;
+
+    if (mediaType === 'video' && (mediaSource === 'youtube' ||
+      mediaUrl.includes('youtube.com') ||
+      mediaUrl.includes('youtu.be'))) {
       // YouTube video - normalize to embed format
       let embedUrl = mediaUrl;
       if (embedUrl.includes('youtube.com/watch?v=')) {
@@ -283,103 +313,156 @@ const MediaBannerSection = ({ section, items }) => {
     } else if (mediaSource === 'upload' && !mediaUrl.startsWith('http')) {
       mediaUrl = `${cmsBaseUrl}${mediaUrl}`;
     }
-    
+
     return { mediaType, mediaUrl, isYouTube, title: item.title, description: item.description };
   };
-  
+
   const currentMedia = getMediaInfo(mediaItems[currentIndex]);
-  
+
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % mediaItems.length);
   };
-  
+
   const prevSlide = () => {
     setCurrentIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
   };
-  
+
   const goToSlide = (index) => {
     setCurrentIndex(index);
   };
-  
+
   return (
     <section className="py-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
+      <div className="w-full px-4 sm:px-6 lg:px-12 max-w-[1600px] mx-auto">
+        {/* Section Header - Only show if not empty */}
         {section.title && (
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
               {section.title}
             </h2>
             {section.description && (
-              <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xl text-gray-600 max-w-4xl mx-auto">
                 {section.description}
               </p>
             )}
           </div>
         )}
-        
-        {/* Carousel Container */}
-        <div className="relative">
-          {/* Current Media Info - Above Media */}
-          {(currentMedia.title || currentMedia.description) && (
-            <div className="mb-3 text-center">
-              {currentMedia.title && (
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{currentMedia.title}</h3>
-              )}
-              {currentMedia.description && (
-                <p className="text-xs text-gray-600">{currentMedia.description}</p>
-              )}
+
+        {/* Split Layout: Content Left, Media Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          {/* Left Content: Title & Description - Compact Width */}
+          <div className="text-left space-y-8 order-2 lg:order-1 lg:col-span-5">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-saree-teal/10 text-saree-teal font-bold text-2xl mb-2 shadow-sm">
+              {currentIndex + 1}
             </div>
-          )}
-          
-          {/* Main Media Display - Smaller Size */}
-          <div className="rounded-xl overflow-hidden shadow-lg bg-white">
-            <div className="relative group" style={{ paddingBottom: '45%' }}>
+
+            <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
+              {currentMedia.title || 'Product in Action'}
+            </h3>
+
+            <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-medium">
+              {currentMedia.description || 'Watch our demonstration to see how our product delivers value.'}
+            </p>
+
+            {/* Mobile Navigation Controls (Visible only on mobile) */}
+            {mediaItems.length > 1 && (
+              <div className="flex gap-4 pt-4 lg:hidden">
+                <button
+                  onClick={prevSlide}
+                  className="p-4 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors shadow-sm"
+                  aria-label="Previous"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="p-4 rounded-full bg-saree-teal hover:bg-saree-teal-dark text-white transition-colors shadow-lg shadow-saree-teal/30"
+                  aria-label="Next"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Right Content: Media Player - Maximized Width */}
+          <div className="relative order-1 lg:order-2 lg:col-span-7">
+            <div className="rounded-3xl overflow-hidden shadow-2xl bg-gray-900 aspect-video group relative ring-1 ring-gray-200/50 transform transition-all duration-500 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.7)]">
               {currentMedia.mediaType === 'video' && currentMedia.isYouTube ? (
                 // YouTube Video
-              <iframe
+                <iframe
                   key={`youtube-${currentIndex}`}
                   src={`${currentMedia.mediaUrl}?autoplay=0&mute=0&controls=1&rel=0`}
                   className="absolute inset-0 w-full h-full"
-                frameBorder="0"
+                  frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+                  allowFullScreen
                   title={currentMedia.title || 'Video'}
                 />
               ) : currentMedia.mediaType === 'video' ? (
-            // Uploaded Video
-              <video
+                // Uploaded Video
+                <video
                   key={`video-${currentIndex}`}
                   src={currentMedia.mediaUrl}
-                controls
+                  controls
                   className="absolute inset-0 w-full h-full object-cover"
-                playsInline
-              >
-                Your browser does not support the video tag.
-              </video>
+                  playsInline
+                >
+                  Your browser does not support the video tag.
+                </video>
               ) : (
-            // Image
-              <img
+                // Image
+                <img
                   key={`image-${currentIndex}`}
                   src={currentMedia.mediaUrl}
                   alt={currentMedia.title || 'Gallery image'}
                   className="absolute inset-0 w-full h-full object-cover"
-                loading="lazy"
+                  loading="lazy"
                 />
               )}
-              
-              {/* Counter Badge - Top Right (only show if multiple items) */}
+
+              {/* Desktop Navigation Arrows (Biq Arrows on Sides) */}
               {mediaItems.length > 1 && (
-                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
-                  <span className="text-xs font-semibold text-white">
-                    {currentIndex + 1} / {mediaItems.length}
-                  </span>
-                </div>
+                <>
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-saree-teal/90 backdrop-blur-md text-white p-5 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center focus:outline-none transform hover:scale-110 hover:rotate-180deg group/btn"
+                    aria-label="Previous"
+                  >
+                    <svg className="w-8 h-8 group-hover/btn:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-saree-teal/90 backdrop-blur-md text-white p-5 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center focus:outline-none transform hover:scale-110 group/btn"
+                    aria-label="Next"
+                  >
+                    <svg className="w-8 h-8 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  {/* Counter Badge */}
+                  <div className="absolute top-6 right-6 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full z-10 border border-white/20">
+                    <span className="text-sm font-bold text-white tracking-widest">
+                      {currentIndex + 1} / {mediaItems.length}
+                    </span>
+                  </div>
+                </>
               )}
-        </div>
+            </div>
+
+            {/* Decorative Glares */}
+            <div className="absolute -z-10 top-12 -right-12 w-full h-full bg-saree-teal/10 rounded-[3rem] blur-3xl hidden lg:block"></div>
+            <div className="absolute -z-10 -bottom-12 -left-12 w-full h-full bg-saree-amber/10 rounded-[3rem] blur-3xl hidden lg:block"></div>
           </div>
         </div>
-        
       </div>
     </section>
   );
@@ -388,7 +471,7 @@ const MediaBannerSection = ({ section, items }) => {
 // Features Section Component
 const FeaturesSection = ({ section, items }) => {
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   return (
     <section className="py-20 bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -400,7 +483,7 @@ const FeaturesSection = ({ section, items }) => {
             {section.description || 'Discover the key features that make this product special'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
             // Check if icon is a custom uploaded path or heroicon name
@@ -417,18 +500,18 @@ const FeaturesSection = ({ section, items }) => {
               { bg: 'from-saree-coral-light to-white', border: 'border-saree-coral', iconBg: 'bg-saree-coral', hover: 'hover:bg-saree-coral-light hover:border-saree-coral-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   {isCustomIcon ? (
-                    <img 
-                      src={customIconUrl} 
+                    <img
+                      src={customIconUrl}
                       alt={item.title}
                       className="w-6 h-6 object-contain"
                     />
                   ) : (
-                  <IconComponent className="w-6 h-6 text-white" />
+                    <IconComponent className="w-6 h-6 text-white" />
                   )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">{item.title}</h3>
@@ -446,6 +529,30 @@ const FeaturesSection = ({ section, items }) => {
 
 // Pricing Section Component
 const PricingSection = ({ section, items }) => {
+  // Helper function to extract price value from old format (backward compatibility)
+  const extractPriceValue = (priceString) => {
+    if (!priceString) return null;
+    // Extract price with currency symbol if present (e.g., "₹1.19/Hour" -> "₹1.19")
+    const match = priceString.match(/(₹?[\d,]+\.?\d*)/);
+    return match ? match[1] : priceString;
+  };
+
+  // Get table headers from section config or use defaults
+  const tableHeaderPlan = section.pricing_table_header_plan || 'Plan';
+  const tableHeaderSpecs = section.pricing_table_header_specs || 'Specifications';
+  const tableHeaderFeatures = section.pricing_table_header_features || 'Features';
+  const tableHeaderHourly = section.pricing_table_header_hourly || 'Price Hourly';
+  const tableHeaderMonthly = section.pricing_table_header_monthly || 'Price Monthly';
+  const tableHeaderQuarterly = section.pricing_table_header_quarterly || 'Price Quarterly';
+  const tableHeaderYearly = section.pricing_table_header_yearly || 'Price Yearly';
+  const tableHeaderAction = section.pricing_table_header_action || 'Action';
+
+  // Get column visibility flags (default to true for backward compatibility)
+  const showHourly = section.show_hourly_column !== undefined ? section.show_hourly_column !== 0 : true;
+  const showMonthly = section.show_monthly_column !== undefined ? section.show_monthly_column !== 0 : true;
+  const showQuarterly = section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true;
+  const showYearly = section.show_yearly_column !== undefined ? section.show_yearly_column !== 0 : true;
+
   return (
     <section className="py-20 bg-gradient-to-br from-saree-amber-light/20 via-white to-saree-lime-light/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -464,11 +571,14 @@ const PricingSection = ({ section, items }) => {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-saree-teal to-saree-amber text-white">
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold text-sm">Plan</th>
-                  <th className="px-6 py-4 text-left font-semibold text-sm">Specifications</th>
-                  <th className="px-6 py-4 text-left font-semibold text-sm">Features</th>
-                  <th className="px-6 py-4 text-left font-semibold text-sm">Pricing</th>
-                  <th className="px-6 py-4 text-center font-semibold text-sm">Action</th>
+                  <th className="px-6 py-4 text-left font-semibold text-sm">{tableHeaderPlan}</th>
+                  <th className="px-6 py-4 text-left font-semibold text-sm">{tableHeaderSpecs}</th>
+                  <th className="px-6 py-4 text-left font-semibold text-sm">{tableHeaderFeatures}</th>
+                  {showHourly && <th className="px-6 py-4 text-center font-semibold text-sm">{tableHeaderHourly}</th>}
+                  {showMonthly && <th className="px-6 py-4 text-center font-semibold text-sm">{tableHeaderMonthly}</th>}
+                  {showQuarterly && <th className="px-6 py-4 text-center font-semibold text-sm">{tableHeaderQuarterly}</th>}
+                  {showYearly && <th className="px-6 py-4 text-center font-semibold text-sm">{tableHeaderYearly}</th>}
+                  <th className="px-6 py-4 text-center font-semibold text-sm">{tableHeaderAction}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -479,7 +589,18 @@ const PricingSection = ({ section, items }) => {
                   } catch (e) {
                     console.error('Error parsing pricing content:', e);
                   }
-                  
+
+                  // Backward compatibility: Extract prices from old format or use new format
+                  let hourlyPrice = content.hourly_price || null;
+                  let monthlyPrice = content.monthly_price || null;
+                  let quarterlyPrice = content.quarterly_price || null;
+                  let yearlyPrice = content.yearly_price || null;
+
+                  // If old format exists and new format doesn't, extract from old price
+                  if (content.price && !hourlyPrice) {
+                    hourlyPrice = extractPriceValue(content.price);
+                  }
+
                   return (
                     <tr key={item.id} className="hover:bg-saree-teal-light transition-colors duration-300 group">
                       <td className="px-6 py-4">
@@ -499,11 +620,30 @@ const PricingSection = ({ section, items }) => {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className={`text-base font-bold ${content.price === 'Absolutely Free' ? 'text-saree-lime' : 'text-saree-amber-dark'}`}>
-                          {content.price || item.description}
-                        </div>
-                      </td>
+                      {showHourly && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-bold text-lg text-gray-900">{hourlyPrice || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">/Hour</div>
+                        </td>
+                      )}
+                      {showMonthly && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-bold text-lg text-gray-900">{monthlyPrice || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">/Month</div>
+                        </td>
+                      )}
+                      {showQuarterly && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-bold text-lg text-gray-900">{quarterlyPrice || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">/Quarter</div>
+                        </td>
+                      )}
+                      {showYearly && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="font-bold text-lg text-gray-900">{yearlyPrice || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">/Year</div>
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-center">
                         {content.buttonUrl ? (
                           <a
@@ -516,8 +656,8 @@ const PricingSection = ({ section, items }) => {
                           </a>
                         ) : (
                           <button className="bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
-                          {content.buttonText || 'Order Now'}
-                        </button>
+                            {content.buttonText || 'Order Now'}
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -535,7 +675,7 @@ const PricingSection = ({ section, items }) => {
 // Specifications Section Component
 const SpecificationsSection = ({ section, items }) => {
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   return (
     <section className="py-20 bg-gradient-to-br from-saree-lime-light/30 via-white to-phulkari-turquoise-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -547,7 +687,7 @@ const SpecificationsSection = ({ section, items }) => {
             {section.description || 'Detailed technical specifications and requirements'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
             const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
@@ -563,25 +703,25 @@ const SpecificationsSection = ({ section, items }) => {
               { bg: 'from-saree-coral-light to-white', border: 'border-saree-coral', iconBg: 'bg-saree-coral', hover: 'hover:bg-saree-coral-light hover:border-saree-coral-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             let content = {};
             try {
               content = item.content ? JSON.parse(item.content) : {};
             } catch (e) {
               console.error('Error parsing spec content:', e);
             }
-            
+
             return (
               <div key={item.id} className={`bg-gradient-to-br ${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   {isCustomIcon ? (
-                    <img 
-                      src={customIconUrl} 
+                    <img
+                      src={customIconUrl}
                       alt={item.title}
                       className="w-6 h-6 object-contain"
                     />
                   ) : (
-                  <IconComponent className="w-6 h-6 text-white" />
+                    <IconComponent className="w-6 h-6 text-white" />
                   )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">{item.title}</h3>
@@ -605,14 +745,14 @@ const SpecificationsSection = ({ section, items }) => {
 // Security Section Component
 const SecuritySection = ({ section, items }) => {
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   let rightSideContent = {};
   try {
     rightSideContent = section.content ? JSON.parse(section.content) : {};
   } catch (e) {
     console.error('Error parsing security content:', e);
   }
-  
+
   return (
     <section className="py-20 bg-gradient-to-br from-phulkari-turquoise-light/20 via-white to-saree-teal-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -624,7 +764,7 @@ const SecuritySection = ({ section, items }) => {
             {section.description || 'Enterprise-grade security features'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="space-y-8">
@@ -638,18 +778,18 @@ const SecuritySection = ({ section, items }) => {
                   { iconBg: 'bg-saree-lime', hover: 'hover:bg-saree-lime-dark' }
                 ];
                 const color = colors[index % colors.length];
-                
+
                 return (
                   <div key={item.id} className="flex items-start group">
                     <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mr-4 flex-shrink-0 ${color.hover} transition-all duration-300 group-hover:scale-110`}>
                       {isCustomIcon ? (
-                        <img 
-                          src={customIconUrl} 
+                        <img
+                          src={customIconUrl}
                           alt={item.title}
                           className="w-6 h-6 object-contain"
                         />
                       ) : (
-                      <IconComponent className="w-6 h-6 text-white" />
+                        <IconComponent className="w-6 h-6 text-white" />
                       )}
                     </div>
                     <div>
@@ -661,24 +801,24 @@ const SecuritySection = ({ section, items }) => {
               })}
             </div>
           </div>
-          
+
           {/* Right side card - only show if section has a content field with features list */}
           {section.content && (() => {
             try {
               const content = JSON.parse(section.content);
               if (content.features && Array.isArray(content.features) && content.features.length > 0) {
                 return (
-          <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal transition-all duration-300">
+                  <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal transition-all duration-300">
                     <h3 className="text-xl font-bold text-gray-900 mb-6">{content.title || 'Security Features'}</h3>
-            <div className="space-y-4">
+                    <div className="space-y-4">
                       {content.features.map((feature, index) => (
-                <div key={index} className="flex items-center group">
-                  <CheckIcon className="w-5 h-5 text-saree-lime mr-3 group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+                        <div key={index} className="flex items-center group">
+                          <CheckIcon className="w-5 h-5 text-saree-lime mr-3 group-hover:scale-110 transition-transform duration-300" />
+                          <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 );
               }
             } catch (e) {
@@ -695,7 +835,7 @@ const SecuritySection = ({ section, items }) => {
 // Support Section Component
 const SupportSection = ({ section, items }) => {
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   return (
     <section className="py-20 bg-gradient-to-br from-saree-rose-light/20 via-white to-saree-amber-light/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -707,7 +847,7 @@ const SupportSection = ({ section, items }) => {
             {section.description || 'Round-the-clock support and guaranteed uptime'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
             const isCustomIcon = item.icon && (item.icon.startsWith('/uploads/') || item.icon.startsWith('http'));
@@ -720,18 +860,18 @@ const SupportSection = ({ section, items }) => {
               { iconBg: 'bg-saree-rose', hover: 'hover:bg-saree-rose-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.id} className="text-center group hover:scale-105 transition-transform duration-300">
                 <div className={`w-16 h-16 ${color.iconBg} rounded-full flex items-center justify-center mx-auto mb-4 ${color.hover} group-hover:scale-110 transition-all duration-300 shadow-lg`}>
                   {isCustomIcon ? (
-                    <img 
-                      src={customIconUrl} 
+                    <img
+                      src={customIconUrl}
                       alt={item.title}
                       className="w-8 h-8 object-contain"
                     />
                   ) : (
-                  <IconComponent className="w-8 h-8 text-white" />
+                    <IconComponent className="w-8 h-8 text-white" />
                   )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-saree-teal transition-colors duration-300">{item.title}</h3>
@@ -758,7 +898,7 @@ const MigrationSection = ({ section, items }) => {
             {section.description || 'Seamless migration with expert guidance'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
             const colors = [
@@ -767,7 +907,7 @@ const MigrationSection = ({ section, items }) => {
               { iconBg: 'bg-saree-lime', hover: 'hover:bg-saree-lime-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.id} className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:shadow-2xl hover:border-saree-teal hover:scale-105 transition-all duration-300 group">
                 <div className={`w-12 h-12 ${color.iconBg} rounded-lg flex items-center justify-center mb-6 ${color.hover} group-hover:scale-110 transition-all duration-300`}>
@@ -787,7 +927,7 @@ const MigrationSection = ({ section, items }) => {
 // Use Cases Section Component
 const UseCasesSection = ({ section, items }) => {
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-  
+
   return (
     <section className="py-20 bg-gradient-to-br from-saree-coral-light/20 via-white to-saree-lime-light/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -811,38 +951,38 @@ const UseCasesSection = ({ section, items }) => {
               { bg: 'from-saree-lime-light to-white', border: 'border-saree-lime', iconBg: 'bg-saree-lime', dotBg: 'bg-saree-lime', hover: 'hover:border-saree-lime-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             let content = {};
             try {
               content = item.content ? JSON.parse(item.content) : {};
             } catch (e) {
               console.error('Error parsing use case content:', e);
             }
-            
+
             return (
               <div key={item.id} className={`bg-gradient-to-r ${color.bg} rounded-2xl p-8 border-2 ${color.border} ${color.hover} hover:shadow-2xl transition-all duration-300 group`}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
                   <div className="text-center lg:text-left">
                     <div className={`w-20 h-20 ${color.iconBg} rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-4 group-hover:scale-110 transition-transform duration-300`}>
                       {isCustomIcon ? (
-                        <img 
-                          src={customIconUrl} 
+                        <img
+                          src={customIconUrl}
                           alt={item.title}
                           className="w-10 h-10 object-contain"
                         />
                       ) : (
-                      <IconComponent className="w-10 h-10 text-white" />
+                        <IconComponent className="w-10 h-10 text-white" />
                       )}
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
                     <p className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors duration-300">{item.description}</p>
                   </div>
-                  
+
                   <div className="text-center">
                     <div className="text-5xl mb-4">→</div>
                     <div className="text-xs text-gray-500 font-medium">PERFECT MATCH</div>
                   </div>
-                  
+
                   <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 group-hover:border-saree-teal transition-colors duration-300">
                     <h4 className="font-semibold text-gray-900 mb-3 text-sm">Why It's Perfect:</h4>
                     <ul className="space-y-2 text-xs text-gray-700">
@@ -894,9 +1034,9 @@ const CTASection = ({ section, items }) => {
                 {primaryCTAItem.title}
               </a>
             ) : (
-            <button className="bg-saree-teal text-white px-8 py-3 rounded-lg font-semibold text-base hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-              {primaryCTAItem.title}
-            </button>
+              <button className="bg-saree-teal text-white px-8 py-3 rounded-lg font-semibold text-base hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                {primaryCTAItem.title}
+              </button>
             )
           )}
           {secondaryCTAItem && (
@@ -910,9 +1050,9 @@ const CTASection = ({ section, items }) => {
                 {secondaryCTAItem.title}
               </a>
             ) : (
-            <button className="border-2 border-saree-amber text-saree-amber-dark px-8 py-3 rounded-lg font-semibold text-base hover:border-saree-amber-dark hover:bg-saree-amber-light transition-all duration-300">
-              {secondaryCTAItem.title}
-            </button>
+              <button className="border-2 border-saree-amber text-saree-amber-dark px-8 py-3 rounded-lg font-semibold text-base hover:border-saree-amber-dark hover:bg-saree-amber-light transition-all duration-300">
+                {secondaryCTAItem.title}
+              </button>
             )
           )}
         </div>
@@ -934,7 +1074,7 @@ const DefaultSection = ({ section, items }) => {
             {section.description || 'Section description'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {items.filter(item => item.is_visible).map((item, index) => {
             const colors = [
@@ -943,12 +1083,12 @@ const DefaultSection = ({ section, items }) => {
               { bg: 'bg-saree-lime-light', border: 'border-saree-lime', hover: 'hover:bg-saree-lime-light hover:border-saree-lime-dark' }
             ];
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.id} className={`${color.bg} p-8 rounded-xl border-2 ${color.border} hover:shadow-2xl ${color.hover} hover:scale-105 transition-all duration-300 group`}>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-saree-teal transition-colors duration-300">{item.title}</h3>
                 <p className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{item.description}</p>
-            </div>
+              </div>
             );
           })}
         </div>

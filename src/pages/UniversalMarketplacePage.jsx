@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMarketplaceData } from '../hooks/useMarketplaceData'
 import DynamicMarketplaceSection from '../components/DynamicMarketplaceSection'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { 
+import {
   ArrowRightIcon,
   StarIcon,
   BuildingOfficeIcon,
@@ -42,6 +42,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useSectionItems } from '../hooks/useSectionItems'
 import { appThemeColors, getGradient, getTextColor, getHoverBorder } from '../utils/appThemeColors'
+import { AVAILABLE_ICONS } from '../components/MarketplaceEditor/IconSelector'
 
 // Rupee Icon - displays ₹ symbol using Unicode character
 const RupeeIconSimple = ({ className }) => (
@@ -71,7 +72,7 @@ const UniversalMarketplacePage = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const isScrollingRef = useRef(false);
   const lastActiveSectionRef = useRef('overview');
-  
+
   // Use the hook exactly like Products/Solutions
   const { sections, itemsBySection, marketplace, loading, error } = useMarketplaceData(appName);
 
@@ -133,7 +134,7 @@ const UniversalMarketplacePage = () => {
   // Generate navigation items from visible sections - simplified like Products/Solutions
   const getNavigationItems = () => {
     if (!sections || sections.length === 0) return [];
-    
+
     // Map section types to readable names and IDs
     const typeToIdMapping = {
       'hero': 'overview',
@@ -147,18 +148,82 @@ const UniversalMarketplacePage = () => {
       'resources': 'resources',
       'cta': 'get-started'
     };
-    
+
+    // Helper to create short navigation labels
+    const getShortLabel = (title, sectionType) => {
+      if (!title) return sectionType;
+
+      // Always show "Overview" for hero section
+      if (sectionType === 'hero') {
+        return 'Overview';
+      }
+
+      // Always show "Gallery" for media_banner section
+      if (sectionType === 'media_banner') {
+        return 'Gallery';
+      }
+
+      // Common patterns to shorten
+      const patterns = {
+        'Ready to Accelerate': 'Get Started',
+        'Ready to Get Started': 'Get Started',
+        'Ready to': 'Get Started',
+        'Perfect For': 'Use Cases',
+        'Expert Support': 'Support',
+        'Easy Migration': 'Migration',
+        'Flexible Pricing': 'Pricing',
+        'Technical Specifications': 'Specs',
+        'Security & Compliance': 'Security',
+        'Key Features': 'Features',
+        'in Action': 'Gallery',
+        'in action': 'Gallery',
+        'Why Choose': 'Benefits',
+        'Advanced Tech': 'Technology',
+        'Implementation Journey': 'Implementation',
+        'Return on Investment': 'ROI',
+        'Resources': 'Resources',
+        'Trusted by': 'Segments'
+      };
+
+      // Check if title matches or contains any pattern
+      for (const [pattern, shortLabel] of Object.entries(patterns)) {
+        if (title.startsWith(pattern) || title.includes(pattern)) {
+          return shortLabel;
+        }
+      }
+
+      // If title is long (>20 chars), intelligently shorten it
+      if (title.length > 20) {
+        // Take first 2-3 meaningful words
+        const words = title.split(' ').filter(w => w.length > 0);
+        if (words.length <= 2) {
+          return title; // Already short enough
+        }
+
+        // Skip common filler words for shortening
+        const fillerWords = ['the', 'and', 'or', 'for', 'with', 'your', 'our', 'in', 'on', 'at'];
+        const meaningfulWords = words.filter(w => !fillerWords.includes(w.toLowerCase()));
+
+        // Take first 2 meaningful words, max 20 chars
+        const shortTitle = meaningfulWords.slice(0, 2).join(' ');
+        return shortTitle.length > 20 ? shortTitle.substring(0, 17) + '...' : shortTitle;
+      }
+
+      return title;
+    };
+
     // Build navigation items dynamically from actual sections
     const navItems = sections
       .filter(section => section.is_visible !== 0)
       .map(section => ({
         id: typeToIdMapping[section.section_type] || `section-${section.id}`,
-        label: section.title || section.section_type,
+        label: getShortLabel(section.title, section.section_type),
+        fullTitle: section.title,
         order: section.order_index,
         type: section.section_type
       }))
       .sort((a, b) => a.order - b.order);
-    
+
     return navItems;
   };
 
@@ -170,16 +235,16 @@ const UniversalMarketplacePage = () => {
     if (element) {
       // Set flag to prevent scroll tracking interference
       isScrollingRef.current = true;
-      
+
       // Update active section immediately
       lastActiveSectionRef.current = sectionId;
       setActiveSection(sectionId);
-      
+
       // Calculate offset dynamically
       // Main navbar: 64px (h-16) + Sub navbar with padding
       const mainNavbar = document.querySelector('header');
       const subNavbar = document.querySelector('.sticky.top-16');
-      
+
       let offset = 64; // Main navbar default
       if (mainNavbar) {
         offset = mainNavbar.offsetHeight;
@@ -187,20 +252,20 @@ const UniversalMarketplacePage = () => {
       if (subNavbar) {
         offset += subNavbar.offsetHeight;
       }
-      
+
       // Add small buffer for better visibility
       offset += 10;
-      
+
       // Get the actual bounding rect to avoid issues with negative margins
       const rect = element.getBoundingClientRect();
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const targetPosition = rect.top + scrollTop - offset;
-      
+
       window.scrollTo({
         top: targetPosition,
         behavior: 'smooth'
       });
-      
+
       // Re-enable scroll tracking after animation completes
       setTimeout(() => {
         isScrollingRef.current = false;
@@ -211,14 +276,14 @@ const UniversalMarketplacePage = () => {
   // Component for CTA section buttons (fetched from section items)
   const CTAButtons = ({ marketplaceId, sectionId }) => {
     const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
-    
+
     if (loading || error || !items) return null;
-    
+
     // Get CTA buttons
-    const ctaButtons = items.filter(item => 
+    const ctaButtons = items.filter(item =>
       item.is_visible && (item.item_type === 'cta_primary' || item.item_type === 'cta_secondary')
     ).sort((a, b) => a.order_index - b.order_index);
-    
+
     if (ctaButtons.length === 0) {
       // Fallback to default buttons if no items in database
       return (
@@ -232,19 +297,19 @@ const UniversalMarketplacePage = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         {ctaButtons.map((button, index) => {
           const isPrimary = button.item_type === 'cta_primary';
           const buttonUrl = button.value || '#';
           const ButtonElement = buttonUrl && buttonUrl !== '#' ? 'a' : 'button';
-          
+
           return (
             <ButtonElement
               key={button.id || index}
               href={buttonUrl !== '#' ? buttonUrl : undefined}
-              className={isPrimary 
+              className={isPrimary
                 ? "bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg"
                 : "border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300"
               }
@@ -260,14 +325,14 @@ const UniversalMarketplacePage = () => {
   // Component for segment stats (fetched from section items)
   const SegmentStats = ({ marketplaceId, sectionId }) => {
     const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
-    
+
     if (loading || error || !items) return null;
-    
+
     // Get stat items
-    const statItems = items.filter(item => 
+    const statItems = items.filter(item =>
       item.is_visible && item.item_type === 'stat'
     ).sort((a, b) => a.order_index - b.order_index);
-    
+
     if (statItems.length === 0) {
       // Fallback to default stats if no items in database
       return (
@@ -291,9 +356,9 @@ const UniversalMarketplacePage = () => {
         </div>
       );
     }
-    
+
     const colors = ['text-saree-teal', 'text-saree-amber', 'text-saree-lime', 'text-saree-coral'];
-    
+
     return (
       <div className={`mt-16 grid gap-8 ${statItems.length === 4 ? 'grid-cols-2 md:grid-cols-4' : statItems.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
         {statItems.map((stat, index) => (
@@ -311,14 +376,14 @@ const UniversalMarketplacePage = () => {
   // Component for hero CTA buttons (fetched from section items)
   const HeroButtons = ({ marketplaceId, sectionId }) => {
     const { items, loading, error } = useSectionItems(marketplaceId ? parseInt(marketplaceId) : null, sectionId);
-    
+
     if (loading || error || !items) return null;
-    
+
     // Get CTA buttons (cta_primary and cta_secondary types)
-    const ctaButtons = items.filter(item => 
+    const ctaButtons = items.filter(item =>
       item.is_visible && (item.item_type === 'cta_primary' || item.item_type === 'cta_secondary')
     ).sort((a, b) => a.order_index - b.order_index);
-    
+
     if (ctaButtons.length === 0) {
       // Fallback to default buttons if no items in database
       return (
@@ -332,19 +397,19 @@ const UniversalMarketplacePage = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         {ctaButtons.map((button, index) => {
           const isPrimary = button.item_type === 'cta_primary';
           const buttonUrl = button.value || '#';
           const ButtonElement = buttonUrl && buttonUrl !== '#' ? 'a' : 'button';
-          
+
           return (
             <ButtonElement
               key={button.id || index}
               href={buttonUrl !== '#' ? buttonUrl : undefined}
-              className={isPrimary 
+              className={isPrimary
                 ? "bg-white text-saree-teal px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 shadow-lg"
                 : "border-2 border-white text-white bg-white/10 backdrop-blur-sm px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/20 transition-all duration-300"
               }
@@ -539,7 +604,7 @@ const UniversalMarketplacePage = () => {
     if (!items || items.length === 0) return <div>No content found</div>;
 
     const itemsList = items.filter(item => item.is_visible);
-    
+
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
         {itemsList.map((item, index) => {
@@ -551,9 +616,9 @@ const UniversalMarketplacePage = () => {
               console.error('Error parsing features:', e);
             }
           }
-          
+
           const isLeftSide = index % 2 === 0;
-          
+
           return isLeftSide ? (
             <div key={item.id}>
               <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
@@ -1010,11 +1075,10 @@ const UniversalMarketplacePage = () => {
                     <button
                       key={item.id}
                       onClick={() => scrollToSection(item.id)}
-                      className={`px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 border-l-0 border-r-0 border-t-0 focus:outline-none focus:ring-0 ${
-                        activeSection === item.id
-                          ? 'border-saree-teal text-saree-teal'
-                          : 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
-                      }`}
+                      className={`px-5 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 border-l-0 border-r-0 border-t-0 focus:outline-none focus:ring-0 ${activeSection === item.id
+                        ? 'border-saree-teal text-saree-teal'
+                        : 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -1030,85 +1094,129 @@ const UniversalMarketplacePage = () => {
       {(() => {
         const heroSection = sections.find(s => s.section_type === 'hero' && s.order_index === 0);
         return heroSection && (
-        <section data-section-id="overview" className={`relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden ${navigationItems.length > 0 ? '-mt-32' : ''}`}>
+          <section data-section-id="overview" className={`relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden ${navigationItems.length > 0 ? '-mt-32' : ''}`}>
 
-          {/* Dot Grid Pattern Overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.15]"
-            style={{
-              backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`,
-              backgroundSize: '24px 24px'
-            }}
-          ></div>
-          
-          {/* Hexagon Pattern Overlay (additional sophistication) */}
-          <div 
-            className="absolute inset-0 opacity-[0.12]"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='1'/%3E%3C/svg%3E")`,
-              backgroundSize: '60px 60px'
-            }}
-          ></div>
-          
-          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 ${navigationItems.length > 0 ? 'pt-14' : ''}`}>
-            {/* Breadcrumb Navigation - Inside Hero */}
-            <nav className="flex items-center text-sm mb-8">
-              <Link 
-                to="/marketplace" 
-                className="text-white/90 hover:text-white font-medium transition-colors"
-              >
-                Marketplace
-              </Link>
-              <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <Link 
-                to={`/marketplace?category=${marketplace?.category || ''}`}
-                className="text-white/90 hover:text-white font-medium transition-colors"
-              >
-                {marketplace?.category || 'Category'}
-              </Link>
-              <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <span className="text-white font-semibold">{marketplace?.name || appName}</span>
-            </nav>
+            {/* Dot Grid Pattern Overlay */}
+            <div
+              className="absolute inset-0 opacity-[0.15]"
+              style={{
+                backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`,
+                backgroundSize: '24px 24px'
+              }}
+            ></div>
 
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-2xl mb-8 backdrop-blur-sm">
-                <BanknotesIcon className="w-10 h-10 text-white" />
+            {/* Hexagon Pattern Overlay (additional sophistication) */}
+            <div
+              className="absolute inset-0 opacity-[0.12]"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='1'/%3E%3C/svg%3E")`,
+                backgroundSize: '60px 60px'
+              }}
+            ></div>
+
+            <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 ${navigationItems.length > 0 ? 'pt-14' : ''}`}>
+              {/* Breadcrumb Navigation - Inside Hero */}
+              <nav className="flex items-center text-sm mb-8">
+                <Link
+                  to="/marketplace"
+                  className="text-white/90 hover:text-white font-medium transition-colors"
+                >
+                  Marketplace
+                </Link>
+                <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <Link
+                  to={`/marketplace?category=${marketplace?.category || ''}`}
+                  className="text-white/90 hover:text-white font-medium transition-colors"
+                >
+                  {marketplace?.category || 'Category'}
+                </Link>
+                <svg className="w-4 h-4 mx-2 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <span className="text-white font-semibold">{marketplace?.name || appName}</span>
+              </nav>
+
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-2xl mb-8 backdrop-blur-sm">
+                  {(() => {
+                    // Render icon from database if available
+                    if (heroSection?.icon) {
+                      // Check if it's a library icon
+                      const iconObj = AVAILABLE_ICONS.find(i => i.name === heroSection.icon);
+                      if (iconObj) {
+                        const IconComponent = iconObj.icon;
+                        return <IconComponent className="w-10 h-10 text-white" />;
+                      }
+                      // Check if it's an uploaded icon (starts with /uploads)
+                      if (heroSection.icon.startsWith('/uploads')) {
+                        const cmsUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+                        return (
+                          <img 
+                            src={`${cmsUrl}${heroSection.icon}`} 
+                            alt="Marketplace icon" 
+                            className="w-10 h-10 object-contain"
+                          />
+                        );
+                      }
+                    }
+                    // Default fallback icon
+                    return <BanknotesIcon className="w-10 h-10 text-white" />;
+                  })()}
+                </div>
+                {heroSection && (
+                  <>
+                    <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+                      {heroSection.title}
+                    </h1>
+                    <p className="text-xl md:text-2xl text-white/95 max-w-4xl mx-auto leading-relaxed mb-8">
+                      {heroSection.content}
+                    </p>
+                    <HeroButtons marketplaceId={marketplace?.id} sectionId={heroSection.id} />
+                  </>
+                )}
               </div>
-              {heroSection && (
-                <>
-                  <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-                    {heroSection.title}
-                  </h1>
-                  <p className="text-xl md:text-2xl text-white/95 max-w-4xl mx-auto leading-relaxed mb-8">
-                    {heroSection.content}
-                  </p>
-                  <HeroButtons marketplaceId={marketplace?.id} sectionId={heroSection.id} />
-                </>
-              )}
             </div>
-          </div>
-        </section>
+          </section>
         );
       })()}
 
       {/* Media Banner Section - Only this section uses DynamicMarketplaceSection with itemsBySection */}
       {(() => {
-        const mediaBannerSection = sections.find(s => 
-          s.section_type === 'media_banner' && 
+        const mediaBannerSection = sections.find(s =>
+          s.section_type === 'media_banner' &&
           s.is_visible !== 0
         );
-        
+
         if (!mediaBannerSection) return null;
-        
+
         return (
           <div data-section-id="media">
             <DynamicMarketplaceSection
               section={mediaBannerSection}
               items={itemsBySection[mediaBannerSection.id] || []}
+              marketplace={marketplace}
+              hasNavigation={navigationItems.length > 0}
+            />
+          </div>
+        );
+      })()}
+
+      {/* Pricing Section - Uses DynamicMarketplaceSection */}
+      {(() => {
+        const pricingSection = sections.find(s =>
+          s.section_type === 'pricing' &&
+          s.is_visible !== 0
+        );
+
+        if (!pricingSection) return null;
+
+        return (
+          <div data-section-id="pricing">
+            <DynamicMarketplaceSection
+              section={pricingSection}
+              items={itemsBySection[pricingSection.id] || []}
               marketplace={marketplace}
               hasNavigation={navigationItems.length > 0}
             />
@@ -1270,14 +1378,14 @@ const UniversalMarketplacePage = () => {
         if (!ctaSection) return null;
         return (
           <section data-section-id="get-started" className="relative py-20 bg-gradient-to-br from-saree-teal via-saree-teal to-saree-teal-dark overflow-hidden">
-            <div 
+            <div
               className="absolute inset-0 opacity-[0.15]"
               style={{
                 backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)`,
                 backgroundSize: '24px 24px'
               }}
             ></div>
-            <div 
+            <div
               className="absolute inset-0 opacity-[0.12]"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='1'/%3E%3C/svg%3E")`,

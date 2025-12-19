@@ -19,6 +19,8 @@ import SolutionsAdmin from './pages/SolutionsAdmin'
 import SolutionsAdminNew from './pages/SolutionsAdminNew'
 import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
 import AboutUsAdmin from './pages/AboutUsAdmin'
+import ContactUsAdmin from './pages/ContactUsAdmin'
+import ContactDashboard from './pages/ContactDashboard'
 import PricingAdmin from './pages/PricingAdmin'
 import IntegrityAdmin from './pages/IntegrityAdmin'
 import IntegrityPage from './pages/IntegrityPage'
@@ -29,6 +31,7 @@ import MainMarketplacesPage from './pages/MainMarketplacesPage'
 import MainProductsPage from './pages/MainProductsPage'
 import MainSolutionsPage from './pages/MainSolutionsPage'
 import Pricing from './pages/Pricing'
+import ContactUs from './pages/ContactUs'
 import Footer from './components/Footer'
 
 function AppContent() {
@@ -46,6 +49,7 @@ function AppContent() {
           <Route path="/home-new" element={<HomeNew />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/integrity/:slug" element={<IntegrityPage />} />
           <Route path="/marketplace" element={<MainMarketplacesPage />} />
           <Route path="/products" element={<MainProductsPage />} />
@@ -70,6 +74,8 @@ function AppContent() {
             <Route path="solutions-main" element={<SolutionsMainAdmin />} />
             <Route path="pricing" element={<PricingAdmin />} />
             <Route path="about-us" element={<AboutUsAdmin />} />
+            <Route path="contact-us" element={<ContactUsAdmin />} />
+            <Route path="contact-dashboard" element={<ContactDashboard />} />
             <Route path="integrity" element={<IntegrityAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />

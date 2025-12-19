@@ -20,9 +20,18 @@ const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fadeIn">
-            <button className="bg-gray-800 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-900 transition-all duration-300 hover:shadow-xl">
-              {heroData?.primary_button_text || 'Get started for free'}
-            </button>
+            {heroData?.primary_button_link ? (
+              <a 
+                href={heroData.primary_button_link}
+                className="bg-gray-800 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-900 transition-all duration-300 hover:shadow-xl inline-block text-center"
+              >
+                {heroData?.primary_button_text || 'Get started for free'}
+              </a>
+            ) : (
+              <button className="bg-gray-800 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-900 transition-all duration-300 hover:shadow-xl">
+                {heroData?.primary_button_text || 'Get started for free'}
+              </button>
+            )}
           </div>
         </div>
       </div>

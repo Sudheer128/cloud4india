@@ -106,6 +106,10 @@ const Header = () => {
                   Pricing
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
+                <Link to="/contact-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                  Contact Us
+                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                </Link>
               </nav>
             </div>
             
@@ -216,6 +220,13 @@ const Header = () => {
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
                 Pricing
+              </Link>
+              <Link 
+                to="/contact-us" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+              >
+                Contact Us
               </Link>
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <a 

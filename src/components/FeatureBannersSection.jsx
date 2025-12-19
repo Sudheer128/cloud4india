@@ -13,8 +13,8 @@ const FeatureBannersSection = () => {
       category: 'Event',
       title: 'Join us at Cloud4India Summit 2025—India\'s largest cloud infrastructure event',
       subtitle: 'Connect with industry leaders and explore the future of cloud computing',
-      gradient: 'from-phulkari-fuchsia via-phulkari-red to-phulkari-gold',
-      accentGradient: 'from-phulkari-fuchsia to-phulkari-red',
+      gradient: 'from-aws-navy via-aws-blue to-phulkari-turquoise-dark',
+      accentGradient: 'from-aws-blue to-phulkari-turquoise',
       ctaText: 'Register Now',
       ctaLink: '#'
     },
@@ -66,7 +66,7 @@ const FeatureBannersSection = () => {
   // Auto-rotate every 3 seconds
   useEffect(() => {
     if (displayBanners.length === 0) return;
-    
+
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % displayBanners.length);
     }, 3000);
@@ -110,32 +110,30 @@ const FeatureBannersSection = () => {
 
   const BannerCard = ({ banner, position, slideIndex, totalSlides }) => {
     const isCenter = position === 'center';
-    
+
     // Different border radius based on position
-    const borderRadiusClass = position === 'left' 
+    const borderRadiusClass = position === 'left'
       ? 'rounded-r-3xl' // Only right side rounded for left card
-      : position === 'right' 
-      ? 'rounded-l-3xl' // Only left side rounded for right card
-      : 'rounded-3xl'; // All sides rounded for center card
-    
+      : position === 'right'
+        ? 'rounded-l-3xl' // Only left side rounded for right card
+        : 'rounded-3xl'; // All sides rounded for center card
+
     return (
-      <div 
-        className={`absolute transition-all duration-700 ease-in-out ${
-          position === 'left' 
-            ? 'left-0 w-[10%] opacity-50 hover:opacity-70 top-[35px]' 
+      <div
+        className={`absolute transition-all duration-700 ease-in-out ${position === 'left'
+            ? 'left-0 w-[10%] opacity-50 hover:opacity-70 top-[35px]'
             : position === 'center'
-            ? 'left-[11%] w-[78%] z-10 top-0'
-            : 'right-0 w-[10%] opacity-50 hover:opacity-70 top-[35px]'
-        }`}
+              ? 'left-[11%] w-[78%] z-10 top-0'
+              : 'right-0 w-[10%] opacity-50 hover:opacity-70 top-[35px]'
+          }`}
       >
-        <div className={`relative ${borderRadiusClass} overflow-hidden shadow-2xl ${
-          isCenter ? 'h-[500px] cursor-default' : 'h-[420px]'
-        }`}>
+        <div className={`relative ${borderRadiusClass} overflow-hidden shadow-2xl ${isCenter ? 'h-[500px] cursor-default' : 'h-[420px]'
+          }`}>
           {/* Gradient Background */}
           <div className={`relative h-full bg-gradient-to-br ${banner.gradient} transition-all duration-700`}>
             {/* Angular Accent Shape - Top Left */}
             <div className={`absolute top-0 left-0 w-[600px] h-[600px] bg-gradient-to-br ${banner.accentGradient} opacity-60 transform -translate-x-1/4 -translate-y-1/4 rotate-45`}></div>
-            
+
             {/* Angular Accent Shape - Bottom Right */}
             <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-black/20 transform translate-x-1/4 translate-y-1/4 -rotate-12"></div>
 
@@ -198,10 +196,10 @@ const FeatureBannersSection = () => {
         <div className="relative h-[500px]">
           {/* Left Card (Previous) - 12% visible */}
           <BannerCard banner={prevBanner} position="left" slideIndex={currentIndex} totalSlides={displayBanners.length} />
-          
+
           {/* Center Card (Current) - Full view */}
           <BannerCard banner={currentBanner} position="center" slideIndex={currentIndex} totalSlides={displayBanners.length} />
-          
+
           {/* Right Card (Next) - 12% visible */}
           <BannerCard banner={nextBanner} position="right" slideIndex={currentIndex} totalSlides={displayBanners.length} />
 
@@ -211,11 +209,10 @@ const FeatureBannersSection = () => {
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`transition-all duration-300 rounded-full ${
-                  currentIndex === index
+                className={`transition-all duration-300 rounded-full ${currentIndex === index
                     ? 'bg-white w-12 h-3'
                     : 'bg-white/50 hover:bg-white/70 w-3 h-3'
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

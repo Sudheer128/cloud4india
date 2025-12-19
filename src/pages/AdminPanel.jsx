@@ -1408,14 +1408,16 @@ const HeroEditor = ({ hero, onUpdate }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    primary_button_text: ''
+    primary_button_text: '',
+    primary_button_link: ''
   });
   useEffect(() => {
     if (hero) {
       setFormData({
         title: hero.title || '',
         description: hero.description || '',
-        primary_button_text: hero.primary_button_text || ''
+        primary_button_text: hero.primary_button_text || '',
+        primary_button_link: hero.primary_button_link || ''
       });
     }
   }, [hero]);
@@ -1461,6 +1463,17 @@ const HeroEditor = ({ hero, onUpdate }) => {
               onChange={(e) => setFormData({...formData, primary_button_text: e.target.value})}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Primary Button URL</label>
+          <input
+            type="text"
+            value={formData.primary_button_link}
+            onChange={(e) => setFormData({...formData, primary_button_link: e.target.value})}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="e.g., /signup, https://portal.cloud4india.com/login, or #section-id"
+          />
         </div>
 
         <button

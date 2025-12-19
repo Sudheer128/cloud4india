@@ -20,12 +20,21 @@ const HeroSectionNew = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fadeIn">
-            <button 
-              onClick={() => window.location.href = 'https://portal.cloud4india.com/login?redirectUrl=/'}
-              className="bg-white text-[rgb(18_167_167_/_var(--tw-bg-opacity,_1))] px-8 py-4 rounded-lg text-lg font-semibold shadow-md transition-all duration-300 transform hover:scale-105 hover:bg-white/90"
-            >
-              Get started for free
-            </button>
+            {heroData?.primary_button_link ? (
+              <a 
+                href={heroData.primary_button_link}
+                className="bg-white text-[rgb(18_167_167_/_var(--tw-bg-opacity,_1))] px-8 py-4 rounded-lg text-lg font-semibold shadow-md transition-all duration-300 transform hover:scale-105 hover:bg-white/90 inline-block text-center"
+              >
+                {heroData?.primary_button_text || 'Get started for free'}
+              </a>
+            ) : (
+              <button 
+                onClick={() => window.location.href = 'https://portal.cloud4india.com/login?redirectUrl=/'}
+                className="bg-white text-[rgb(18_167_167_/_var(--tw-bg-opacity,_1))] px-8 py-4 rounded-lg text-lg font-semibold shadow-md transition-all duration-300 transform hover:scale-105 hover:bg-white/90"
+              >
+                {heroData?.primary_button_text || 'Get started for free'}
+              </button>
+            )}
           </div>
         </div>
       </div>

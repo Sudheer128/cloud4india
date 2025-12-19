@@ -202,9 +202,9 @@ const SectionManager = ({ productId, onManageItems }) => {
     console.log('Swapping with:', sectionAbove.title, 'from', sectionAbove.order_index, 'to', section.order_index);
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
       
-      // Swap orders
+      // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/products/${productId}/sections/${section.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -221,7 +221,10 @@ const SectionManager = ({ productId, onManageItems }) => {
         })
       });
       
-      console.log('Response 1:', response1.status);
+      if (!response1.ok) {
+        const errorData = await response1.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update section');
+      }
       
       const response2 = await fetch(`${baseUrl}/api/products/${productId}/sections/${sectionAbove.id}`, {
         method: 'PUT',
@@ -239,25 +242,22 @@ const SectionManager = ({ productId, onManageItems }) => {
         })
       });
       
-      console.log('Response 2:', response2.status);
-      
-      if (response1.ok && response2.ok) {
-        console.log('Swap successful, updating UI...');
-        
-        // Immediately update local state for smooth UI
-        const updatedSections = sections.map(s => {
-          if (s.id === section.id) {
-            return { ...s, order_index: sectionAbove.order_index };
-          }
-          if (s.id === sectionAbove.id) {
-            return { ...s, order_index: section.order_index };
-          }
-          return s;
-        });
-        setSections(updatedSections);
-      } else {
-        throw new Error('Failed to update sections');
+      if (!response2.ok) {
+        const errorData = await response2.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update section');
       }
+      
+      // Immediately update local state for smooth UI
+      const updatedSections = sections.map(s => {
+        if (s.id === section.id) {
+          return { ...s, order_index: sectionAbove.order_index };
+        }
+        if (s.id === sectionAbove.id) {
+          return { ...s, order_index: section.order_index };
+        }
+        return s;
+      });
+      setSections(updatedSections);
     } catch (err) {
       console.error('Error moving section:', err);
       alert('Error moving section: ' + err.message);
@@ -279,9 +279,9 @@ const SectionManager = ({ productId, onManageItems }) => {
     console.log('Swapping with:', sectionBelow.title, 'from', sectionBelow.order_index, 'to', section.order_index);
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
       
-      // Swap orders
+      // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/products/${productId}/sections/${section.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -298,7 +298,10 @@ const SectionManager = ({ productId, onManageItems }) => {
         })
       });
       
-      console.log('Response 1:', response1.status);
+      if (!response1.ok) {
+        const errorData = await response1.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update section');
+      }
       
       const response2 = await fetch(`${baseUrl}/api/products/${productId}/sections/${sectionBelow.id}`, {
         method: 'PUT',
@@ -316,25 +319,22 @@ const SectionManager = ({ productId, onManageItems }) => {
         })
       });
       
-      console.log('Response 2:', response2.status);
-      
-      if (response1.ok && response2.ok) {
-        console.log('Swap successful, updating UI...');
-        
-        // Immediately update local state for smooth UI
-        const updatedSections = sections.map(s => {
-          if (s.id === section.id) {
-            return { ...s, order_index: sectionBelow.order_index };
-          }
-          if (s.id === sectionBelow.id) {
-            return { ...s, order_index: section.order_index };
-          }
-          return s;
-        });
-        setSections(updatedSections);
-      } else {
-        throw new Error('Failed to update sections');
+      if (!response2.ok) {
+        const errorData = await response2.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update section');
       }
+      
+      // Immediately update local state for smooth UI
+      const updatedSections = sections.map(s => {
+        if (s.id === section.id) {
+          return { ...s, order_index: sectionBelow.order_index };
+        }
+        if (s.id === sectionBelow.id) {
+          return { ...s, order_index: section.order_index };
+        }
+        return s;
+      });
+      setSections(updatedSections);
     } catch (err) {
       console.error('Error moving section:', err);
       alert('Error moving section: ' + err.message);
@@ -343,7 +343,7 @@ const SectionManager = ({ productId, onManageItems }) => {
 
   const handleToggleVisibility = async (section) => {
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
       
       // Build request body with all required fields
       const requestBody = {
@@ -643,7 +643,21 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
     media_type: section?.media_type || 'video',
     media_source: section?.media_source || 'youtube',
     media_url: section?.media_url || '',
-    content: section?.content || ''
+    content: section?.content || '',
+    // Pricing table headers
+    pricing_table_header_plan: section?.pricing_table_header_plan || 'Plan',
+    pricing_table_header_specs: section?.pricing_table_header_specs || 'Specifications',
+    pricing_table_header_features: section?.pricing_table_header_features || 'Features',
+    pricing_table_header_hourly: section?.pricing_table_header_hourly || 'Price Hourly',
+    pricing_table_header_monthly: section?.pricing_table_header_monthly || 'Price Monthly',
+    pricing_table_header_quarterly: section?.pricing_table_header_quarterly || 'Price Quarterly',
+    pricing_table_header_yearly: section?.pricing_table_header_yearly || 'Price Yearly',
+    pricing_table_header_action: section?.pricing_table_header_action || 'Action',
+    // Column visibility (default to true for backward compatibility)
+    show_hourly_column: section?.show_hourly_column !== undefined ? section.show_hourly_column : 1,
+    show_monthly_column: section?.show_monthly_column !== undefined ? section.show_monthly_column : 1,
+    show_quarterly_column: section?.show_quarterly_column !== undefined ? section.show_quarterly_column : 1,
+    show_yearly_column: section?.show_yearly_column !== undefined ? section.show_yearly_column : 1
   });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -668,13 +682,14 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
   const selectedTypeConfig = SECTION_TYPES.find(t => t.value === formData.section_type) || {};
   const isMediaBanner = formData.section_type === 'media_banner';
   const isSecurity = formData.section_type === 'security';
+  const isPricing = formData.section_type === 'pricing';
 
   const handleFileUpload = async (file, type) => {
     setUploading(true);
     setUploadError('');
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
       const formDataObj = new FormData();
       formDataObj.append(type === 'image' ? 'image' : 'video', file);
       
@@ -772,6 +787,150 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
           placeholder="Brief description for this section"
         />
       </div>
+
+      {/* Pricing Table Headers Configuration (only for pricing sections) */}
+      {isPricing && (
+        <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg space-y-4">
+          <div className="flex items-start gap-2">
+            <div className="text-blue-600 text-xl">💰</div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 mb-1">Pricing Table Headers</p>
+              <p className="text-xs text-gray-600 mb-3">
+                Customize the column headers displayed in the pricing table. These headers appear at the top of each column.
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Plan</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_plan}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_plan: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Plan"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Specifications</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_specs}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_specs: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Specifications"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Features</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_features}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_features: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Features"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Hourly</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_hourly}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_hourly: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Price Hourly"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Monthly</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_monthly}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_monthly: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Price Monthly"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_quarterly}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_quarterly: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Price Quarterly"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Yearly</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_yearly}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_yearly: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Price Yearly"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Action</label>
+              <input
+                type="text"
+                value={formData.pricing_table_header_action}
+                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_action: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                placeholder="Action"
+              />
+            </div>
+          </div>
+          
+          {/* Column Visibility Toggles */}
+          <div className="mt-4 pt-4 border-t border-blue-300">
+            <p className="text-sm font-semibold text-gray-900 mb-3">Column Visibility</p>
+            <p className="text-xs text-gray-600 mb-3">
+              Show or hide pricing columns. Hide columns that you don't use (e.g., if you only have hourly and monthly pricing).
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.show_hourly_column === 1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, show_hourly_column: e.target.checked ? 1 : 0 }))}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show Hourly Column</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.show_monthly_column === 1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, show_monthly_column: e.target.checked ? 1 : 0 }))}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show Monthly Column</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.show_quarterly_column === 1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, show_quarterly_column: e.target.checked ? 1 : 0 }))}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show Quarterly Column</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.show_yearly_column === 1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, show_yearly_column: e.target.checked ? 1 : 0 }))}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Show Yearly Column</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Security Section - Features Box (Right Side) */}
       {isSecurity && (

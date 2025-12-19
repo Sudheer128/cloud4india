@@ -37,11 +37,25 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
       if (item.content) {
         try {
           parsedContent = JSON.parse(item.content);
+          
+          // Backward compatibility: Auto-migrate old price field to hourly_price
+          if (parsedContent.price && !parsedContent.hourly_price) {
+            // Extract price value from old format (e.g., "₹1.19/Hour" -> "₹1.19")
+            const priceMatch = parsedContent.price.match(/[\d,]+\.?\d*/);
+            if (priceMatch) {
+              parsedContent = {
+                ...parsedContent,
+                hourly_price: parsedContent.price.includes('₹') ? `₹${priceMatch[0]}` : priceMatch[0],
+                // Keep old price for reference, but don't use it
+                _old_price: parsedContent.price
+              };
+            }
+          }
         } catch (e) {
           parsedContent = {};
         }
       }
-      
+
       // Parse features field if exists (stored as JSON string)
       if (item.features) {
         try {
@@ -50,7 +64,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
           parsedContent.features = [];
         }
       }
-      
+
       // For media_banner, ensure media fields are initialized
       if (sectionType === 'media_banner' && Object.keys(parsedContent).length === 0) {
         parsedContent = {
@@ -59,7 +73,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
           media_url: ''
         };
       }
-      
+
       setContentJSON(parsedContent);
     } else {
       setFormData(prev => ({
@@ -99,7 +113,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
       // Build final content and features based on section type
       let finalContent = formData.content;
       let featuresField = null;
-      
+
       // For complex types, stringify JSON to content field
       if (['pricing', 'specifications', 'use_cases', 'media_banner'].includes(sectionType)) {
         // Validate media_banner items have required fields
@@ -124,7 +138,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
         console.log('Saving media_banner item with contentJSON:', contentJSON);
         console.log('Stringified content:', finalContent);
       }
-      
+
       // For items with features array, store in features field as JSON string
       if (['benefit', 'ai_ml_section', 'use_case_card', 'featured_resource', 'segment', 'technology'].includes(formData.item_type) && contentJSON.features) {
         featuresField = JSON.stringify(contentJSON.features);
@@ -232,34 +246,54 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
       const isPrimary = formData.item_type === 'cta_primary';
       return (
         <>
-          <div className="bg-blue-50 p-3 rounded-lg mb-4">
-            <p className="text-xs text-blue-900">
-              <strong>{isPrimary ? 'Primary CTA' : 'Secondary CTA'}</strong> - 
-              {isPrimary ? ' Amber button on the left' : ' White border button on the right'}
-            </p>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${isPrimary ? 'bg-amber-500' : 'bg-white border-2 border-white'}`}>
+                <span className="text-white text-lg font-bold">{isPrimary ? '1' : '2'}</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-900 mb-1">
+                  {isPrimary ? 'Primary Button' : 'Secondary Button'}
+                </p>
+                <p className="text-xs text-gray-700">
+                  {isPrimary 
+                    ? 'Amber/Orange solid button displayed on the left side of the hero section'
+                    : 'White bordered button displayed on the right side of the hero section'}
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Button Text *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="e.g., Launch Console, Get Started"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Button URL *</label>
-            <input
-              type="url"
-              value={formData.value || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="https://portal.cloud4india.com/console"
-              required
-            />
-            <p className="text-xs text-gray-500 mt-1">Where the button redirects when clicked</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Button Name/Text <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Launch Console, Get Started, Watch Demo"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1.5">The text displayed on the button</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Redirect URL <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="url"
+                value={formData.value || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://portal.cloud4india.com/console"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                The URL where users will be redirected when they click this button
+              </p>
+            </div>
           </div>
           {isPrimary && (
             <>
@@ -323,29 +357,68 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             <strong>Pricing Plan</strong> creates a row in the pricing table with specs, features, price, and button
           </p>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">App Name *</label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="e.g., Tesla T4, SSD Standard"
+            placeholder="e.g., LAMP, LEMP, WordPress"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
-          <input
-            type="text"
-            value={contentJSON.price || ''}
-            onChange={(e) => setContentJSON(prev => ({ ...prev, price: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="e.g., ₹15,000/month, ₹99/month"
-            required
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Hourly *</label>
+            <input
+              type="text"
+              value={contentJSON.hourly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, hourly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹1.19"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per hour</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Monthly *</label>
+            <input
+              type="text"
+              value={contentJSON.monthly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, monthly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹512"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per month</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Quarterly</label>
+            <input
+              type="text"
+              value={contentJSON.quarterly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, quarterly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹1,459"
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per quarter (optional)</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Yearly</label>
+            <input
+              type="text"
+              value={contentJSON.yearly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, yearly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹5,530"
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per year (optional)</p>
+          </div>
         </div>
 
         <div>
@@ -409,7 +482,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             <strong>Specification Card</strong> displays a category with a list of technical details
           </p>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Category Name *</label>
           <input
@@ -453,7 +526,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             <strong>Use Case Card</strong> shows a use case with its benefits
           </p>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Use Case Title *</label>
           <input
@@ -504,31 +577,31 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
   const handleFileUpload = async (file) => {
     setUploading(true);
     setUploadError('');
-    
+
     try {
       const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
       const formDataObj = new FormData();
       const isVideo = contentJSON.media_type === 'video';
       formDataObj.append(isVideo ? 'video' : 'image', file);
-      
+
       const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image';
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         body: formDataObj
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
       }
-      
+
       setContentJSON(prev => ({
         ...prev,
         media_url: data.filePath,
         media_source: 'upload'
       }));
-      
+
       setUploadError('');
       alert('Media uploaded successfully!');
     } catch (error) {
@@ -548,7 +621,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             <strong>Media Item</strong> - Add photos or videos to the gallery carousel
           </p>
         </div>
-        
+
         {/* Title (optional - for overlay) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
@@ -561,7 +634,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
           />
           <p className="text-xs text-gray-500 mt-1">Shown as overlay on the media (optional)</p>
         </div>
-        
+
         {/* Description (optional - for overlay) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
@@ -573,7 +646,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             placeholder="Brief description shown below title"
           />
         </div>
-        
+
         {/* Media Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Media Type *</label>
@@ -602,7 +675,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             </label>
           </div>
         </div>
-        
+
         {/* Video Source (only if video) */}
         {contentJSON.media_type === 'video' && (
           <div>
@@ -633,7 +706,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             </div>
           </div>
         )}
-        
+
         {/* Media Input */}
         {contentJSON.media_source === 'youtube' ? (
           <div>
@@ -702,7 +775,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
               {' '}appears in the final Get Started section
             </p>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Button Text *</label>
             <input
@@ -792,30 +865,30 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {formData.item_type === 'segment' ? 'Trusted By Stat (optional)' :
-               ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'Duration/Timeline' :
-               formData.item_type === 'ai_ml_section' ? 'Button Text (optional)' :
-               'Button Text (optional)'}
+                ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'Duration/Timeline' :
+                  formData.item_type === 'ai_ml_section' ? 'Button Text (optional)' :
+                    'Button Text (optional)'}
             </label>
             <input
               type="text"
               value={['resource', 'featured_resource'].includes(formData.item_type) ? formData.label || '' : formData.value || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                [['resource', 'featured_resource'].includes(formData.item_type) ? 'label' : 'value']: e.target.value 
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                [['resource', 'featured_resource'].includes(formData.item_type) ? 'label' : 'value']: e.target.value
               }))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               placeholder={
                 formData.item_type === 'segment' ? 'e.g., 500+ Institutions' :
-                ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'e.g., Week 1-2, Day 1' :
-                formData.item_type === 'ai_ml_section' ? 'e.g., Explore AI Apps' :
-                'e.g., Read Documentation'
+                  ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'e.g., Week 1-2, Day 1' :
+                    formData.item_type === 'ai_ml_section' ? 'e.g., Explore AI Apps' :
+                      'e.g., Read Documentation'
               }
             />
             <p className="text-xs text-gray-500 mt-1">
               {formData.item_type === 'segment' ? 'Shown as "Trusted by" stat at the bottom' :
-               ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'Timeline/duration shown on the card' :
-               formData.item_type === 'ai_ml_section' ? 'Button text shown below the features checklist (e.g., "Explore AI Apps →")' :
-               'Button label shown on the card'}
+                ['implementation', 'timeline_phase'].includes(formData.item_type) ? 'Timeline/duration shown on the card' :
+                  formData.item_type === 'ai_ml_section' ? 'Button text shown below the features checklist (e.g., "Explore AI Apps →")' :
+                    'Button label shown on the card'}
             </p>
           </div>
         )}
@@ -839,35 +912,33 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
         {needsIcon && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
-            
+
             {/* Icon Tabs: Select from Library or Custom URL */}
             <div className="mb-3">
               <div className="flex gap-2 border-b border-gray-200">
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, iconType: 'library' }))}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    (!formData.iconType || formData.iconType === 'library')
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${(!formData.iconType || formData.iconType === 'library')
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   📚 Icon Library
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, iconType: 'upload' }))}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    formData.iconType === 'upload'
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${formData.iconType === 'upload'
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   📤 Upload Custom Icon
                 </button>
               </div>
             </div>
-            
+
             {/* Icon Preview */}
             {formData.icon && (!formData.iconType || formData.iconType === 'library') && (
               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
@@ -887,7 +958,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                 })()}
               </div>
             )}
-            
+
             {/* Icon Library Grid */}
             {(!formData.iconType || formData.iconType === 'library') && (
               <>
@@ -900,11 +971,10 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                         key={iconObj.name}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, icon: iconObj.name, iconType: 'library' }))}
-                        className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                          isSelected 
-                            ? 'border-blue-600 bg-blue-50' 
+                        className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${isSelected
+                            ? 'border-blue-600 bg-blue-50'
                             : 'border-gray-300 bg-white hover:border-blue-300'
-                        }`}
+                          }`}
                         title={iconObj.label}
                       >
                         <IconComponent className={`w-8 h-8 mx-auto ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
@@ -918,7 +988,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                 <p className="mt-2 text-xs text-gray-500">Click an icon to select it • 13 icons available</p>
               </>
             )}
-            
+
             {/* Upload Custom Icon */}
             {formData.iconType === 'upload' && (
               <div className="space-y-3">
@@ -935,7 +1005,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                     💡 Get free icons from: <a href="https://heroicons.com" target="_blank" className="underline">heroicons.com</a>
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Upload Icon File</label>
                   <input
@@ -944,24 +1014,24 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                     onChange={async (e) => {
                       const file = e.target.files[0];
                       if (!file) return;
-                      
+
                       // Validate file size
                       if (file.size > 50 * 1024) {
                         alert('Icon file too large. Maximum 50KB');
                         return;
                       }
-                      
+
                       // Upload icon
                       try {
                         const formDataObj = new FormData();
                         formDataObj.append('image', file);
-                        
+
                         const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
                         const response = await fetch(`${baseUrl}/api/upload/image`, {
                           method: 'POST',
                           body: formDataObj
                         });
-                        
+
                         const data = await response.json();
                         if (response.ok) {
                           setFormData(prev => ({ ...prev, icon: data.filePath }));
@@ -979,17 +1049,17 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                     SVG or PNG with transparent background • Max 50KB
                   </p>
                 </div>
-                
+
                 {/* Custom Icon Preview */}
                 {formData.icon && formData.icon.startsWith('/uploads') && (
                   <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <p className="text-xs text-gray-600 mb-2">Preview:</p>
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
-                        <img 
-                          src={`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}${formData.icon}`} 
-                          alt="Custom icon" 
-                          className="w-8 h-8" 
+                        <img
+                          src={`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}${formData.icon}`}
+                          alt="Custom icon"
+                          className="w-8 h-8"
                         />
                       </div>
                       <div>
@@ -1039,54 +1109,54 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
             <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
-        
+
         <div className="p-6">
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Display Order (Read-only) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
-          <input
-            type="number"
-            value={formData.order_index}
-            readOnly
-            disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-          />
-          <p className="text-xs text-gray-500 mt-1">Order cannot be changed • Lower numbers appear first</p>
-        </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Display Order (Read-only) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+              <input
+                type="number"
+                value={formData.order_index}
+                readOnly
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">Order cannot be changed • Lower numbers appear first</p>
+            </div>
 
-        {/* Dynamic Form Fields */}
-        {renderFormFields()}
+            {/* Dynamic Form Fields */}
+            {renderFormFields()}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircleIcon className="w-5 h-5" />
-                {item ? 'Update' : 'Create'} Item
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon className="w-5 h-5" />
+                    {item ? 'Update' : 'Create'} Item
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -35,6 +35,10 @@ const IntegrityPage = () => {
   }, [page?.description, page?.content])
 
   useEffect(() => {
+    let lastFetchTime = 0
+    let refreshTimeout = null
+    const MIN_REFRESH_INTERVAL = 5000 // Minimum 5 seconds between refreshes
+
     const fetchPage = async (forceRefresh = false) => {
       try {
         setLoading(true)
@@ -50,6 +54,7 @@ const IntegrityPage = () => {
         })
         setPage(data)
         setError(null)
+        lastFetchTime = Date.now()
       } catch (err) {
         console.error('Error fetching integrity page:', err)
         setError('Page not found')
@@ -80,20 +85,38 @@ const IntegrityPage = () => {
       }
     }
     
-    // Listen for focus event to refresh when user comes back to tab
-    const handleFocus = () => {
-      if (slug && document.visibilityState === 'visible') {
-        // Refresh when tab becomes visible (user might have updated in admin)
-        console.log('🔄 Tab focused, refreshing page data...')
-        fetchPage(true)
-      }
-    }
+    // Track when page was hidden to avoid refreshing on quick Alt+Tab
+    let hiddenTime = null
+    const MIN_HIDDEN_TIME = 2000 // Page must be hidden for at least 2 seconds before refresh on return
 
-    // Listen for page visibility changes
+    // Listen for page visibility changes (more reliable than focus events)
+    // Only refresh if page was hidden for a meaningful amount of time
     const handleVisibilityChange = () => {
-      if (slug && document.visibilityState === 'visible') {
-        console.log('🔄 Page visible, refreshing data...')
-        fetchPage(true)
+      if (!slug) return
+
+      if (document.visibilityState === 'hidden') {
+        // Page is being hidden - record the time
+        hiddenTime = Date.now()
+      } else if (document.visibilityState === 'visible') {
+        // Page is becoming visible
+        const timeSinceLastFetch = Date.now() - lastFetchTime
+        const wasHiddenFor = hiddenTime ? Date.now() - hiddenTime : 0
+        
+        // Only refresh if:
+        // 1. Page was hidden for at least MIN_HIDDEN_TIME (not just a quick Alt+Tab)
+        // 2. It's been at least MIN_REFRESH_INTERVAL since last fetch
+        if (wasHiddenFor >= MIN_HIDDEN_TIME && timeSinceLastFetch >= MIN_REFRESH_INTERVAL) {
+          // Clear any pending refresh
+          if (refreshTimeout) {
+            clearTimeout(refreshTimeout)
+          }
+          // Debounce: wait a bit before refreshing to avoid rapid successive refreshes
+          refreshTimeout = setTimeout(() => {
+            console.log('🔄 Page visible after being hidden, refreshing data...', { wasHiddenFor })
+            fetchPage(true)
+          }, 1000)
+        }
+        hiddenTime = null
       }
     }
 
@@ -109,15 +132,16 @@ const IntegrityPage = () => {
     }
 
     window.addEventListener('integrity-page-updated', handleRefresh)
-    window.addEventListener('focus', handleFocus)
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('storage', handleStorageChange)
 
     return () => {
       window.removeEventListener('integrity-page-updated', handleRefresh)
-      window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('storage', handleStorageChange)
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout)
+      }
     }
   }, [slug])
 

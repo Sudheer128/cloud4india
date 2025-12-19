@@ -12,7 +12,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
   const [error, setError] = useState(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
-  
+
   // Fetch products and categories from API
   useEffect(() => {
     const fetchData = async () => {
@@ -57,10 +57,10 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
     if (!acc[category]) {
       acc[category] = []
     }
-    
+
     // Generate product ID from route (e.g., '/products/1' -> '1')
     let productId = product.route?.replace('/products/', '') || product.id?.toString()
-    
+
     acc[category].push({
       id: productId,
       name: product.name,
@@ -71,7 +71,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
       redirect_url: product.redirect_url,
       color: product.color
     })
-    
+
     return acc
   }, {})
 
@@ -86,11 +86,11 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
   };
 
   const availableCategories = getAvailableCategories();
-  
+
   // Use categories from API if available, otherwise fallback to extracting from products
   const displayCategories = useMemo(() => {
     let finalCategories = [];
-    
+
     if (categories.length > 0) {
       // Use categories from API - they should already be sorted by order_index from the API
       // But we'll sort again to be sure
@@ -100,12 +100,12 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
         }
         return 0;
       });
-      
+
       // Add any categories from products that aren't in the API list
       const categoriesFromProducts = Object.keys(productsData).filter(cat => cat !== 'Uncategorized');
       const existingCategoryNames = new Set(categories.map(c => c.id));
       const missingCategories = categoriesFromProducts.filter(cat => !existingCategoryNames.has(cat));
-      
+
       if (missingCategories.length > 0) {
         // Add missing categories at the end, sorted alphabetically
         const missingFormatted = missingCategories
@@ -120,7 +120,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
         ...categoriesFromProducts,
         ...availableCategories.filter(cat => !categoriesFromProducts.includes(cat))
       ]));
-      
+
       // Create a map of all categories with their order_index
       const categoryMap = new Map();
       allCategories.forEach(cat => {
@@ -130,12 +130,12 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
           order_index: 9999
         });
       });
-      
+
       // Sort categories alphabetically
       finalCategories = Array.from(categoryMap.values())
         .sort((a, b) => a.label.localeCompare(b.label));
     }
-    
+
     return finalCategories;
   }, [categories, productsData, availableCategories]);
 
@@ -153,7 +153,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
       const firstCategoryWithProducts = displayCategories.find(category => {
         return productsData[category.id] && productsData[category.id].length > 0
       })
-      
+
       // If found, set it; otherwise set the first category
       if (firstCategoryWithProducts) {
         setActiveCategory(firstCategoryWithProducts.id)
@@ -162,7 +162,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
       }
     }
   }, [displayCategories, activeCategory, loading, productsData])
-  
+
   // Static products data (fallback - will be removed)
   const staticProductsData = {
     'Frameworks': [
@@ -372,13 +372,13 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
         onClick={onClose}
       />
-      
+
       {/* Dropdown - Top positioned with reasonable height */}
-      <div 
+      <div
         ref={dropdownRef}
         className="fixed top-16 left-0 right-0 bg-white z-[80] shadow-2xl border-t border-gray-200
                    max-h-[75vh] sm:max-h-[80vh] md:max-h-[85vh]
@@ -402,21 +402,12 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-4 md:gap-8 flex-1 min-h-0 overflow-hidden">
-            
+
             {/* Left Sidebar - Categories (Desktop Only) */}
             <div className="hidden lg:block w-72 flex-shrink-0">
               <div className="border-r border-gray-200 pr-6 h-full overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Explore Products</h3>
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                    aria-label="Close"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-                
+
+
                 {/* Desktop Category List */}
                 <nav className="space-y-0.5">
                   {loading ? (
@@ -428,11 +419,10 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
                       <button
                         key={category.id}
                         onClick={() => setActiveCategory(category.id)}
-                        className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${
-                          activeCategory === category.id
+                        className={`w-full text-left px-4 py-3 rounded-md text-sm font-medium transition-all ${activeCategory === category.id
                             ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
                             : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {category.label}
                       </button>
@@ -441,7 +431,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
                     <div className="px-4 py-3 text-sm text-gray-500">No categories available</div>
                   )}
                 </nav>
-                
+
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <Link
                     to="/products"
@@ -482,7 +472,7 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
                   <p className="text-gray-500 text-xs sm:text-sm mt-1">No products available in this category.</p>
                 )}
               </div>
-              
+
               {loading ? (
                 <div className="flex items-center justify-center flex-1 min-h-[150px]">
                   <div className="text-center">
@@ -500,12 +490,12 @@ const ProductsDropdown = ({ isOpen, onClose }) => {
                     {displayProducts.map((product) => {
                       // Determine navigation URL based on enable_single_page flag
                       const shouldUseSinglePage = product.enable_single_page !== undefined ? Boolean(product.enable_single_page) : true;
-                      const navigationUrl = !shouldUseSinglePage && product.redirect_url 
-                        ? product.redirect_url 
+                      const navigationUrl = !shouldUseSinglePage && product.redirect_url
+                        ? product.redirect_url
                         : `/products/${toSlug(product.name)}`;
-                      
+
                       const isExternalUrl = navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://');
-                      
+
                       const cardContent = (
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">

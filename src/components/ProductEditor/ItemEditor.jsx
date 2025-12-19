@@ -33,7 +33,22 @@ const ItemEditor = ({ item, sectionType, sectionId, productId, onSave, onCancel 
       // Parse JSON content if exists
       if (item.content) {
         try {
-          setContentJSON(JSON.parse(item.content));
+          const parsed = JSON.parse(item.content);
+          setContentJSON(parsed);
+          
+          // Backward compatibility: Auto-migrate old price field to hourly_price
+          if (parsed.price && !parsed.hourly_price) {
+            // Extract price value from old format (e.g., "₹1.19/Hour" -> "₹1.19")
+            const priceMatch = parsed.price.match(/[\d,]+\.?\d*/);
+            if (priceMatch) {
+              setContentJSON({
+                ...parsed,
+                hourly_price: parsed.price.includes('₹') ? `₹${priceMatch[0]}` : priceMatch[0],
+                // Keep old price for reference, but don't use it
+                _old_price: parsed.price
+              });
+            }
+          }
         } catch (e) {
           setContentJSON({});
         }
@@ -267,16 +282,55 @@ const ItemEditor = ({ item, sectionType, sectionId, productId, onSave, onCancel 
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Price *</label>
-          <input
-            type="text"
-            value={contentJSON.price || ''}
-            onChange={(e) => setContentJSON(prev => ({ ...prev, price: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="e.g., ₹15,000/month, ₹99/month"
-            required
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Hourly *</label>
+            <input
+              type="text"
+              value={contentJSON.hourly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, hourly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹1.19"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per hour</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Monthly *</label>
+            <input
+              type="text"
+              value={contentJSON.monthly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, monthly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹512"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per month</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Quarterly</label>
+            <input
+              type="text"
+              value={contentJSON.quarterly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, quarterly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹1,459"
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per quarter (optional)</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price Yearly</label>
+            <input
+              type="text"
+              value={contentJSON.yearly_price || ''}
+              onChange={(e) => setContentJSON(prev => ({ ...prev, yearly_price: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="e.g., ₹5,530"
+            />
+            <p className="text-xs text-gray-500 mt-1">Price per year (optional)</p>
+          </div>
         </div>
 
         <div>

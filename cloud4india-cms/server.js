@@ -192,6 +192,10 @@ const addMarketplaceMediaBannerColumns = () => {
       { 
         name: 'media_url', 
         sql: "ALTER TABLE marketplace_sections ADD COLUMN media_url TEXT;" 
+      },
+      { 
+        name: 'icon', 
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN icon TEXT;" 
       }
     ];
     
@@ -283,6 +287,222 @@ const addDescriptionColumnToProductSections = () => {
         console.log(`   ✅ Added column description to product_sections`);
       }
       resolve();
+    });
+  });
+};
+
+// Add pricing table header columns to product_sections if they don't exist
+const addPricingTableHeaderColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'pricing_table_header_plan', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_plan TEXT DEFAULT 'Plan';" },
+      { name: 'pricing_table_header_specs', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_specs TEXT DEFAULT 'Specifications';" },
+      { name: 'pricing_table_header_features', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_features TEXT DEFAULT 'Features';" },
+      { name: 'pricing_table_header_hourly', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_hourly TEXT DEFAULT 'Price Hourly';" },
+      { name: 'pricing_table_header_monthly', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_monthly TEXT DEFAULT 'Price Monthly';" },
+      { name: 'pricing_table_header_quarterly', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_quarterly TEXT DEFAULT 'Price Quarterly';" },
+      { name: 'pricing_table_header_yearly', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
+      { name: 'pricing_table_header_action', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in product_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to product_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to product_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add pricing column visibility columns to product_sections if they don't exist
+const addProductPricingColumnVisibilityColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'show_hourly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_hourly_column INTEGER DEFAULT 1;" },
+      { name: 'show_monthly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_monthly_column INTEGER DEFAULT 1;" },
+      { name: 'show_quarterly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
+      { name: 'show_yearly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in product_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to product_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to product_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add pricing table header columns to marketplace_sections if they don't exist
+const addMarketplacePricingTableHeaderColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'pricing_table_header_app_name', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_app_name TEXT DEFAULT 'App Name';" },
+      { name: 'pricing_table_header_specs', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_specs TEXT DEFAULT 'Specifications';" },
+      { name: 'pricing_table_header_features', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_features TEXT DEFAULT 'Features';" },
+      { name: 'pricing_table_header_hourly', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_hourly TEXT DEFAULT 'Price Hourly';" },
+      { name: 'pricing_table_header_monthly', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_monthly TEXT DEFAULT 'Price Monthly';" },
+      { name: 'pricing_table_header_quarterly', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_quarterly TEXT DEFAULT 'Price Quarterly';" },
+      { name: 'pricing_table_header_yearly', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
+      { name: 'pricing_table_header_action', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in marketplace_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to marketplace_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to marketplace_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add pricing column visibility columns to marketplace_sections if they don't exist
+const addMarketplacePricingColumnVisibilityColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'show_hourly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_hourly_column INTEGER DEFAULT 1;" },
+      { name: 'show_monthly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_monthly_column INTEGER DEFAULT 1;" },
+      { name: 'show_quarterly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
+      { name: 'show_yearly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in marketplace_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to marketplace_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to marketplace_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add pricing table header columns to solution_sections if they don't exist
+const addSolutionPricingTableHeaderColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'pricing_table_header_plan', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_plan TEXT DEFAULT 'Plan';" },
+      { name: 'pricing_table_header_specs', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_specs TEXT DEFAULT 'Specifications';" },
+      { name: 'pricing_table_header_features', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_features TEXT DEFAULT 'Features';" },
+      { name: 'pricing_table_header_hourly', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_hourly TEXT DEFAULT 'Price Hourly';" },
+      { name: 'pricing_table_header_monthly', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_monthly TEXT DEFAULT 'Price Monthly';" },
+      { name: 'pricing_table_header_quarterly', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_quarterly TEXT DEFAULT 'Price Quarterly';" },
+      { name: 'pricing_table_header_yearly', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
+      { name: 'pricing_table_header_action', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in solution_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to solution_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to solution_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
+    });
+  });
+};
+
+// Add pricing column visibility columns to solution_sections if they don't exist
+const addSolutionPricingColumnVisibilityColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'show_hourly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_hourly_column INTEGER DEFAULT 1;" },
+      { name: 'show_monthly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_monthly_column INTEGER DEFAULT 1;" },
+      { name: 'show_quarterly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
+      { name: 'show_yearly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
+    ];
+    
+    let completed = 0;
+    const total = columns.length;
+    
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in solution_sections`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to solution_sections: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to solution_sections`);
+        }
+        
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
     });
   });
 };
@@ -564,6 +784,13 @@ db.serialize(() => {
     FOREIGN KEY (solution_id) REFERENCES solutions (id) ON DELETE SET NULL
   )`);
 
+  // Add icon column to solutions table (for hero section icon)
+  db.run(`ALTER TABLE solutions ADD COLUMN icon TEXT DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      console.error('Error adding icon column to solutions:', err);
+    }
+  });
+
   // ========== PRODUCTS TABLES (Mirroring Marketplaces Structure) ==========
   
   // Products table (mirrors marketplaces table)
@@ -676,6 +903,13 @@ db.serialize(() => {
   db.run(`ALTER TABLE products ADD COLUMN redirect_url TEXT DEFAULT NULL`, (err) => {
     if (err && !err.message.includes('duplicate column')) {
       console.error('Error adding redirect_url column to products:', err);
+    }
+  });
+
+  // Add icon column to products table (for hero section icon)
+  db.run(`ALTER TABLE products ADD COLUMN icon TEXT DEFAULT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      console.error('Error adding icon column to products:', err);
     }
   });
 
@@ -2281,7 +2515,13 @@ app.post('/api/marketplaces/:id/sections', (req, res) => {
 // Update section
 app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content, is_visible, media_type, media_source, media_url } = req.body;
+  const { 
+    section_type, title, content, is_visible, media_type, media_source, media_url, icon,
+    pricing_table_header_app_name, pricing_table_header_specs, pricing_table_header_features,
+    pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
+    pricing_table_header_yearly, pricing_table_header_action,
+    show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
+  } = req.body;
   
   // First, get the existing section to check for file cleanup
   db.get('SELECT * FROM marketplace_sections WHERE id = ? AND marketplace_id = ?', [sectionId, id], (err, existingSection) => {
@@ -2380,6 +2620,60 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
     if (media_url !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
       updateFields.push('media_url = ?');
       values.push(finalMediaUrl);
+    }
+    if (icon !== undefined) {
+      updateFields.push('icon = ?');
+      values.push(icon);
+    }
+    // Update pricing table header fields if provided
+    if (pricing_table_header_app_name !== undefined) {
+      updateFields.push('pricing_table_header_app_name = ?');
+      values.push(pricing_table_header_app_name);
+    }
+    if (pricing_table_header_specs !== undefined) {
+      updateFields.push('pricing_table_header_specs = ?');
+      values.push(pricing_table_header_specs);
+    }
+    if (pricing_table_header_features !== undefined) {
+      updateFields.push('pricing_table_header_features = ?');
+      values.push(pricing_table_header_features);
+    }
+    if (pricing_table_header_hourly !== undefined) {
+      updateFields.push('pricing_table_header_hourly = ?');
+      values.push(pricing_table_header_hourly);
+    }
+    if (pricing_table_header_monthly !== undefined) {
+      updateFields.push('pricing_table_header_monthly = ?');
+      values.push(pricing_table_header_monthly);
+    }
+    if (pricing_table_header_quarterly !== undefined) {
+      updateFields.push('pricing_table_header_quarterly = ?');
+      values.push(pricing_table_header_quarterly);
+    }
+    if (pricing_table_header_yearly !== undefined) {
+      updateFields.push('pricing_table_header_yearly = ?');
+      values.push(pricing_table_header_yearly);
+    }
+    if (pricing_table_header_action !== undefined) {
+      updateFields.push('pricing_table_header_action = ?');
+      values.push(pricing_table_header_action);
+    }
+    // Update pricing column visibility fields if provided
+    if (show_hourly_column !== undefined) {
+      updateFields.push('show_hourly_column = ?');
+      values.push(show_hourly_column ? 1 : 0);
+    }
+    if (show_monthly_column !== undefined) {
+      updateFields.push('show_monthly_column = ?');
+      values.push(show_monthly_column ? 1 : 0);
+    }
+    if (show_quarterly_column !== undefined) {
+      updateFields.push('show_quarterly_column = ?');
+      values.push(show_quarterly_column ? 1 : 0);
+    }
+    if (show_yearly_column !== undefined) {
+      updateFields.push('show_yearly_column = ?');
+      values.push(show_yearly_column ? 1 : 0);
     }
     
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -3058,7 +3352,7 @@ function createMainProductSection(productId, productName, productDescription, ca
 
 // Create new product
 app.post('/api/products', (req, res) => {
-  const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null } = req.body;
+  const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null, icon = null } = req.body;
   
   // Your 4 perfect colors (only these will be used)
   const gradientColors = [
@@ -3082,8 +3376,8 @@ app.post('/api/products', (req, res) => {
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
     
-    db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, enable_single_page, redirect_url], 
+    db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [name, description, category, color, border_color, route, nextOrder, enable_single_page, redirect_url, icon], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -3107,7 +3401,7 @@ app.post('/api/products', (req, res) => {
 // Update product
 app.put('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  const { name, description, category, color, border_color, route, enable_single_page, redirect_url } = req.body;
+  const { name, description, category, color, border_color, route, enable_single_page, redirect_url, icon } = req.body;
   
   // Get current product to check if name changed
   db.get('SELECT name, route FROM products WHERE id = ?', [id], (err, currentProduct) => {
@@ -3195,11 +3489,12 @@ app.put('/api/products/:id', (req, res) => {
         ${sanitizedRoute !== undefined ? 'route = ?,' : ''}
         enable_single_page = COALESCE(?, enable_single_page),
         redirect_url = ?,
+        icon = ?,
         updated_at = CURRENT_TIMESTAMP
         WHERE id = ?`, 
         sanitizedRoute !== undefined
-          ? [name, description, category, color, border_color, sanitizedRoute, enable_single_page, redirect_url, id]
-          : [name, description, category, color, border_color, enable_single_page, redirect_url, id], 
+          ? [name, description, category, color, border_color, sanitizedRoute, enable_single_page, redirect_url, icon, id]
+          : [name, description, category, color, border_color, enable_single_page, redirect_url, icon, id], 
         function(err) {
           if (err) {
             res.status(500).json({ error: err.message });
@@ -3675,7 +3970,14 @@ app.post('/api/products/:id/sections', (req, res) => {
 // Update section
 app.put('/api/products/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, content, description, is_visible, order_index, media_type, media_source, media_url } = req.body;
+  const { 
+    section_type, title, content, description, is_visible, order_index, 
+    media_type, media_source, media_url,
+    pricing_table_header_plan, pricing_table_header_specs, pricing_table_header_features,
+    pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
+    pricing_table_header_yearly, pricing_table_header_action,
+    show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
+  } = req.body;
   
   // First, get the existing section to check for file cleanup
   db.get('SELECT * FROM product_sections WHERE id = ? AND product_id = ?', [sectionId, id], (err, existingSection) => {
@@ -3785,6 +4087,56 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
     if (media_url !== undefined || (section_type !== undefined && section_type === 'media_banner')) {
       updateFields.push('media_url = ?');
       values.push(finalMediaUrl);
+    }
+    // Update pricing table header fields if provided
+    if (pricing_table_header_plan !== undefined) {
+      updateFields.push('pricing_table_header_plan = ?');
+      values.push(pricing_table_header_plan);
+    }
+    if (pricing_table_header_specs !== undefined) {
+      updateFields.push('pricing_table_header_specs = ?');
+      values.push(pricing_table_header_specs);
+    }
+    if (pricing_table_header_features !== undefined) {
+      updateFields.push('pricing_table_header_features = ?');
+      values.push(pricing_table_header_features);
+    }
+    if (pricing_table_header_hourly !== undefined) {
+      updateFields.push('pricing_table_header_hourly = ?');
+      values.push(pricing_table_header_hourly);
+    }
+    if (pricing_table_header_monthly !== undefined) {
+      updateFields.push('pricing_table_header_monthly = ?');
+      values.push(pricing_table_header_monthly);
+    }
+    if (pricing_table_header_quarterly !== undefined) {
+      updateFields.push('pricing_table_header_quarterly = ?');
+      values.push(pricing_table_header_quarterly);
+    }
+    if (pricing_table_header_yearly !== undefined) {
+      updateFields.push('pricing_table_header_yearly = ?');
+      values.push(pricing_table_header_yearly);
+    }
+    if (pricing_table_header_action !== undefined) {
+      updateFields.push('pricing_table_header_action = ?');
+      values.push(pricing_table_header_action);
+    }
+    // Update pricing column visibility fields if provided
+    if (show_hourly_column !== undefined) {
+      updateFields.push('show_hourly_column = ?');
+      values.push(show_hourly_column ? 1 : 0);
+    }
+    if (show_monthly_column !== undefined) {
+      updateFields.push('show_monthly_column = ?');
+      values.push(show_monthly_column ? 1 : 0);
+    }
+    if (show_quarterly_column !== undefined) {
+      updateFields.push('show_quarterly_column = ?');
+      values.push(show_quarterly_column ? 1 : 0);
+    }
+    if (show_yearly_column !== undefined) {
+      updateFields.push('show_yearly_column = ?');
+      values.push(show_yearly_column ? 1 : 0);
     }
     
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -7241,7 +7593,7 @@ app.get('/api/solutions/:id', (req, res) => {
 
 // Create new solution
 app.post('/api/solutions', (req, res) => {
-  const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null } = req.body;
+  const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null, icon = null } = req.body;
   
   const gradientColors = [
     { start: 'blue', end: 'blue-100' },
@@ -7261,8 +7613,8 @@ app.post('/api/solutions', (req, res) => {
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
     
-    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url], 
+    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url, icon], 
       function(err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -7287,7 +7639,7 @@ app.post('/api/solutions', (req, res) => {
 // Update solution
 app.put('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
-  const { name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url } = req.body;
+  const { name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, icon } = req.body;
   
   db.run(`UPDATE solutions SET 
     name = ?, 
@@ -7300,9 +7652,10 @@ app.put('/api/solutions/:id', (req, res) => {
     gradient_end = COALESCE(?, gradient_end),
     enable_single_page = COALESCE(?, enable_single_page),
     redirect_url = ?,
+    icon = ?,
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`, 
-    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, id], 
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, icon, id], 
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -7437,8 +7790,8 @@ app.post('/api/solutions/:id/duplicate', async (req, res) => {
       
       console.log(`[DUPLICATE] Creating new solution with name: ${duplicateName}, order: ${nextOrder}`);
       
-      db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end, originalSolution.enable_single_page, originalSolution.redirect_url], 
+      db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end, originalSolution.enable_single_page, originalSolution.redirect_url, originalSolution.icon], 
         function(err) {
           if (err) {
             console.error('[DUPLICATE] Error inserting new solution:', err);
@@ -8376,7 +8729,14 @@ app.post('/api/solutions/:id/sections', (req, res) => {
 // Update solution section
 app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url } = req.body;
+  const { 
+    section_type, title, description, content, order_index, is_visible, 
+    media_type, media_source, media_url,
+    pricing_table_header_plan, pricing_table_header_specs, pricing_table_header_features,
+    pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
+    pricing_table_header_yearly, pricing_table_header_action,
+    show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
+  } = req.body;
   
   // Build dynamic query based on provided fields
   let updateFields = [];
@@ -8417,6 +8777,56 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   if (media_url !== undefined) {
     updateFields.push('media_url = ?');
     values.push(media_url);
+  }
+  // Update pricing table header fields if provided
+  if (pricing_table_header_plan !== undefined) {
+    updateFields.push('pricing_table_header_plan = ?');
+    values.push(pricing_table_header_plan);
+  }
+  if (pricing_table_header_specs !== undefined) {
+    updateFields.push('pricing_table_header_specs = ?');
+    values.push(pricing_table_header_specs);
+  }
+  if (pricing_table_header_features !== undefined) {
+    updateFields.push('pricing_table_header_features = ?');
+    values.push(pricing_table_header_features);
+  }
+  if (pricing_table_header_hourly !== undefined) {
+    updateFields.push('pricing_table_header_hourly = ?');
+    values.push(pricing_table_header_hourly);
+  }
+  if (pricing_table_header_monthly !== undefined) {
+    updateFields.push('pricing_table_header_monthly = ?');
+    values.push(pricing_table_header_monthly);
+  }
+  if (pricing_table_header_quarterly !== undefined) {
+    updateFields.push('pricing_table_header_quarterly = ?');
+    values.push(pricing_table_header_quarterly);
+  }
+  if (pricing_table_header_yearly !== undefined) {
+    updateFields.push('pricing_table_header_yearly = ?');
+    values.push(pricing_table_header_yearly);
+  }
+  if (pricing_table_header_action !== undefined) {
+    updateFields.push('pricing_table_header_action = ?');
+    values.push(pricing_table_header_action);
+  }
+  // Update pricing column visibility fields if provided
+  if (show_hourly_column !== undefined) {
+    updateFields.push('show_hourly_column = ?');
+    values.push(show_hourly_column ? 1 : 0);
+  }
+  if (show_monthly_column !== undefined) {
+    updateFields.push('show_monthly_column = ?');
+    values.push(show_monthly_column ? 1 : 0);
+  }
+  if (show_quarterly_column !== undefined) {
+    updateFields.push('show_quarterly_column = ?');
+    values.push(show_quarterly_column ? 1 : 0);
+  }
+  if (show_yearly_column !== undefined) {
+    updateFields.push('show_yearly_column = ?');
+    values.push(show_yearly_column ? 1 : 0);
   }
   
   // Always update updated_at
@@ -8926,6 +9336,769 @@ app.post('/api/integrity-pages/:id/duplicate', (req, res) => {
   });
 });
 
+// ============================================
+// CONTACT US PAGE API ENDPOINTS
+// ============================================
+
+// Get all contact page content
+app.get('/api/contact', (req, res) => {
+  const { all } = req.query;
+  const showAll = all === 'true';
+  const contactData = {};
+  
+  // Get hero section
+  db.get('SELECT * FROM contact_hero_section WHERE id = 1', (err, hero) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    contactData.hero = hero || {};
+    
+    // Get contact info items
+    const itemsQuery = showAll
+      ? 'SELECT * FROM contact_info_items ORDER BY order_index ASC'
+      : 'SELECT * FROM contact_info_items WHERE is_visible = 1 ORDER BY order_index ASC';
+    
+    db.all(itemsQuery, (err, items) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      contactData.items = items || [];
+      
+      // Get social media links
+      const socialLinksQuery = showAll
+        ? 'SELECT * FROM contact_social_links ORDER BY order_index ASC'
+        : 'SELECT * FROM contact_social_links WHERE is_visible = 1 ORDER BY order_index ASC';
+      
+      db.all(socialLinksQuery, (err, socialLinks) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        contactData.socialLinks = socialLinks || [];
+        res.json(contactData);
+      });
+    });
+  });
+});
+
+// Update hero section
+app.put('/api/contact/hero', (req, res) => {
+  const { title, highlighted_text, description } = req.body;
+  
+  db.run(`UPDATE contact_hero_section SET 
+    title = COALESCE(?, title),
+    highlighted_text = COALESCE(?, highlighted_text),
+    description = COALESCE(?, description),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = 1`, 
+    [title, highlighted_text, description], 
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        // Insert if doesn't exist
+        db.run(`INSERT INTO contact_hero_section (id, title, highlighted_text, description) VALUES (1, ?, ?, ?)`, 
+          [title || 'Get in Touch', highlighted_text || 'Touch', description || 'Have questions? We\'d love to hear from you. Send us a message and we\'ll respond as soon as possible.'], 
+          function(err) {
+            if (err) {
+              res.status(500).json({ error: err.message });
+              return;
+            }
+            res.json({ message: 'Hero section created successfully', id: this.lastID });
+          });
+      } else {
+        res.json({ message: 'Hero section updated successfully', changes: this.changes });
+      }
+    });
+});
+
+// Get all contact info items
+app.get('/api/contact/items', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM contact_info_items ORDER BY order_index ASC'
+    : 'SELECT * FROM contact_info_items WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, items) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(items || []);
+  });
+});
+
+// Create contact info item
+app.post('/api/contact/items', (req, res) => {
+  const { icon_type, title, content, sub_content, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO contact_info_items (icon_type, title, content, sub_content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
+    [icon_type || 'map', title, content, sub_content || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Contact info item created successfully' });
+    });
+});
+
+// Update contact info item
+app.put('/api/contact/items/:id', (req, res) => {
+  const { id } = req.params;
+  const { icon_type, title, content, sub_content, order_index, is_visible } = req.body;
+  db.run(`UPDATE contact_info_items SET 
+    icon_type = COALESCE(?, icon_type),
+    title = COALESCE(?, title),
+    content = COALESCE(?, content),
+    sub_content = COALESCE(?, sub_content),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [icon_type, title, content, sub_content, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Contact info item updated successfully', changes: this.changes });
+    });
+});
+
+// Delete contact info item
+app.delete('/api/contact/items/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM contact_info_items WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Contact info item deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle contact info item visibility
+app.put('/api/contact/items/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM contact_info_items WHERE id = ?', [id], (err, item) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!item) {
+      res.status(404).json({ error: 'Contact info item not found' });
+      return;
+    }
+    const newVisibility = item.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE contact_info_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+// Social Media Links Endpoints
+// Get all social media links
+app.get('/api/contact/social-links', (req, res) => {
+  const { all } = req.query;
+  const query = all === 'true'
+    ? 'SELECT * FROM contact_social_links ORDER BY order_index ASC'
+    : 'SELECT * FROM contact_social_links WHERE is_visible = 1 ORDER BY order_index ASC';
+  db.all(query, (err, links) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(links || []);
+  });
+});
+
+// Update social media link
+app.put('/api/contact/social-links/:id', (req, res) => {
+  const { id } = req.params;
+  const { platform, url, icon_name, order_index, is_visible } = req.body;
+  db.run(`UPDATE contact_social_links SET 
+    platform = COALESCE(?, platform),
+    url = COALESCE(?, url),
+    icon_name = COALESCE(?, icon_name),
+    order_index = COALESCE(?, order_index),
+    is_visible = COALESCE(?, is_visible),
+    updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [platform, url, icon_name, order_index, is_visible, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Social media link updated successfully', changes: this.changes });
+    });
+});
+
+// Create social media link
+app.post('/api/contact/social-links', (req, res) => {
+  const { platform, url, icon_name, order_index, is_visible } = req.body;
+  db.run(`INSERT INTO contact_social_links (platform, url, icon_name, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
+    [platform, url, icon_name || platform, order_index || 0, is_visible !== undefined ? is_visible : 1],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Social media link created successfully' });
+    });
+});
+
+// Delete social media link
+app.delete('/api/contact/social-links/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM contact_social_links WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Social media link deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle social media link visibility
+app.put('/api/contact/social-links/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT is_visible FROM contact_social_links WHERE id = ?', [id], (err, link) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!link) {
+      res.status(404).json({ error: 'Social media link not found' });
+      return;
+    }
+    const newVisibility = link.is_visible === 1 ? 0 : 1;
+    db.run('UPDATE contact_social_links SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ message: 'Visibility toggled successfully', is_visible: newVisibility });
+      });
+  });
+});
+
+// ============================================
+// CONTACT FORM SUBMISSIONS API ENDPOINTS
+// ============================================
+
+// Submit contact form (only verified submissions)
+app.post('/api/contact/submit', (req, res) => {
+  const { name, email, phone, subject, message, phone_verified, verification_timestamp, ip_address, user_agent } = req.body;
+  
+  // Only accept verified submissions
+  if (!phone_verified) {
+    res.status(400).json({ error: 'Phone number must be verified before submission' });
+    return;
+  }
+
+  db.run(`INSERT INTO contact_submissions 
+    (name, email, phone, subject, message, phone_verified, verification_timestamp, ip_address, user_agent, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'leads')`,
+    [name, email, phone, subject, message, phone_verified ? 1 : 0, verification_timestamp, ip_address, user_agent],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ 
+        id: this.lastID, 
+        message: 'Contact form submitted successfully',
+        submission_id: this.lastID
+      });
+    });
+});
+
+// Get all contact submissions with filters
+app.get('/api/contact/submissions', (req, res) => {
+  const { status, page = 1, limit = 20, search, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
+  
+  let query = 'SELECT * FROM contact_submissions WHERE 1=1';
+  const params = [];
+  
+  if (status) {
+    query += ' AND status = ?';
+    params.push(status);
+  }
+  
+  if (search) {
+    query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ?)';
+    const searchTerm = `%${search}%`;
+    params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+  }
+  
+  // Validate sortBy to prevent SQL injection
+  const allowedSortBy = ['created_at', 'name', 'email', 'phone', 'status'];
+  const sortColumn = allowedSortBy.includes(sortBy) ? sortBy : 'created_at';
+  const sortDir = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  
+  query += ` ORDER BY ${sortColumn} ${sortDir}`;
+  
+  // Get total count
+  const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+  db.get(countQuery, params, (err, countResult) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const total = countResult.total;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    query += ' LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), offset);
+    
+    db.all(query, params, (err, submissions) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({
+        submissions: submissions || [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: total,
+          totalPages: Math.ceil(total / parseInt(limit))
+        }
+      });
+    });
+  });
+});
+
+// Get statistics for dashboard (MUST be before /:id route)
+app.get('/api/contact/submissions/stats', (req, res) => {
+  db.all(`SELECT 
+    status,
+    COUNT(*) as count
+    FROM contact_submissions
+    GROUP BY status`, (err, stats) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    const statsObj = {
+      leads: 0,
+      contacted: 0,
+      re_contact: 0,
+      final_customer: 0,
+      total: 0
+    };
+    
+    stats.forEach(stat => {
+      statsObj[stat.status] = stat.count;
+      statsObj.total += stat.count;
+    });
+    
+    res.json(statsObj);
+  });
+});
+
+// Get single contact submission
+app.get('/api/contact/submissions/:id', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT * FROM contact_submissions WHERE id = ?', [id], (err, submission) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!submission) {
+      res.status(404).json({ error: 'Submission not found' });
+      return;
+    }
+    res.json(submission);
+  });
+});
+
+// Update contact submission status
+app.put('/api/contact/submissions/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status, admin_notes } = req.body;
+  
+  const allowedStatuses = ['leads', 'contacted', 're_contact', 'final_customer'];
+  if (!allowedStatuses.includes(status)) {
+    res.status(400).json({ error: 'Invalid status' });
+    return;
+  }
+  
+  let updateQuery = `UPDATE contact_submissions SET status = ?, updated_at = CURRENT_TIMESTAMP`;
+  const params = [status];
+  
+  // Update timestamps based on status
+  if (status === 'contacted' && !req.body.contacted_at) {
+    updateQuery += ', contacted_at = CURRENT_TIMESTAMP';
+  } else if (status === 're_contact' && !req.body.re_contacted_at) {
+    updateQuery += ', re_contacted_at = CURRENT_TIMESTAMP';
+  } else if (status === 'final_customer' && !req.body.converted_at) {
+    updateQuery += ', converted_at = CURRENT_TIMESTAMP';
+  }
+  
+  if (admin_notes !== undefined) {
+    updateQuery += ', admin_notes = ?';
+    params.push(admin_notes);
+  }
+  
+  updateQuery += ' WHERE id = ?';
+  params.push(id);
+  
+  db.run(updateQuery, params, function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Submission not found' });
+      return;
+    }
+    res.json({ message: 'Status updated successfully', changes: this.changes });
+  });
+});
+
+// Update admin notes
+app.put('/api/contact/submissions/:id/notes', (req, res) => {
+  const { id } = req.params;
+  const { admin_notes } = req.body;
+  
+  db.run('UPDATE contact_submissions SET admin_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [admin_notes, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+      res.json({ message: 'Notes updated successfully', changes: this.changes });
+    });
+});
+
+// Delete contact submission
+app.delete('/api/contact/submissions/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM contact_submissions WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Submission deleted successfully', changes: this.changes });
+  });
+});
+
+// ============================================
+// OTP VERIFICATION (Phone.Email API)
+// ============================================
+
+// In-memory OTP storage (for testing - use Redis in production)
+const otpStorage = {};
+
+// Send OTP via Phone.Email API
+app.post('/api/contact/send-otp', async (req, res) => {
+  const { phone } = req.body;
+  
+  if (!phone) {
+    res.status(400).json({ error: 'Phone number is required' });
+    return;
+  }
+
+  try {
+    // Check if phone is already verified (within last 24 hours)
+    db.get(`SELECT * FROM verified_phone_numbers 
+      WHERE phone = ? AND expires_at > datetime('now')`, 
+      [phone], async (err, verified) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        if (verified) {
+          res.json({ 
+            message: 'Phone number already verified',
+            verified: true,
+            expires_at: verified.expires_at
+          });
+          return;
+        }
+        
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Store OTP (valid for 1 minute as per requirement)
+        otpStorage[sessionId] = {
+          phone: phone,
+          otp: otp,
+          expiresAt: Date.now() + 60000, // 1 minute
+          createdAt: Date.now()
+        };
+        
+        // Clean up expired OTPs
+        Object.keys(otpStorage).forEach(key => {
+          if (otpStorage[key].expiresAt < Date.now()) {
+            delete otpStorage[key];
+          }
+        });
+        
+        // TODO: Integrate Phone.Email API here
+        // Uncomment and configure when you have Phone.Email API key
+        /*
+        const PHONE_EMAIL_API_KEY = process.env.PHONE_EMAIL_API_KEY;
+        if (PHONE_EMAIL_API_KEY) {
+          try {
+            const phoneEmailResponse = await fetch('https://api.phone.email/send-otp', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${PHONE_EMAIL_API_KEY}`
+              },
+              body: JSON.stringify({ 
+                phone: phone,
+                message: `Your OTP is ${otp}. Valid for 1 minute.`
+              })
+            });
+            
+            const phoneEmailData = await phoneEmailResponse.json();
+            if (!phoneEmailResponse.ok) {
+              throw new Error(phoneEmailData.error || 'Failed to send OTP via Phone.Email');
+            }
+            
+            // Use Phone.Email session_id if provided
+            if (phoneEmailData.session_id) {
+              sessionId = phoneEmailData.session_id;
+            }
+          } catch (apiError) {
+            console.error('Phone.Email API error:', apiError);
+            // Fall back to test mode if API fails
+          }
+        }
+        */
+        
+        // Log OTP for testing (REMOVE IN PRODUCTION!)
+        console.log(`\n🔐 OTP for ${phone}: ${otp}`);
+        console.log(`⏰ Valid for 1 minute. Session ID: ${sessionId}\n`);
+        
+        res.json({ 
+          message: 'OTP sent successfully',
+          phone: phone,
+          session_id: sessionId,
+          // Remove this in production - only for testing
+          test_mode: !process.env.PHONE_EMAIL_API_KEY,
+          test_otp: otp // Always return OTP in test mode for development
+        });
+      });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// Verify OTP
+app.post('/api/contact/verify-otp', async (req, res) => {
+  const { phone, otp, session_id } = req.body;
+  
+  if (!phone || !otp) {
+    res.status(400).json({ error: 'Phone number and OTP are required' });
+    return;
+  }
+
+  if (!session_id) {
+    res.status(400).json({ error: 'Session ID is required' });
+    return;
+  }
+
+  try {
+    let isValid = false;
+    
+    // Check stored OTP (test mode)
+    const storedOTP = otpStorage[session_id];
+    if (storedOTP) {
+      // Check if OTP expired
+      if (storedOTP.expiresAt < Date.now()) {
+        delete otpStorage[session_id];
+        res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+        return;
+      }
+      
+      // Verify phone matches
+      if (storedOTP.phone !== phone) {
+        res.status(400).json({ error: 'Phone number mismatch' });
+        return;
+      }
+      
+      // Verify OTP
+      if (storedOTP.otp === otp) {
+        isValid = true;
+        // Remove OTP after successful verification
+        delete otpStorage[session_id];
+      }
+    }
+    
+    // TODO: Verify with Phone.Email API if API key is configured
+    /*
+    const PHONE_EMAIL_API_KEY = process.env.PHONE_EMAIL_API_KEY;
+    if (PHONE_EMAIL_API_KEY && !isValid) {
+      try {
+        const phoneEmailResponse = await fetch('https://api.phone.email/verify-otp', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${PHONE_EMAIL_API_KEY}`
+          },
+          body: JSON.stringify({ 
+            phone: phone,
+            otp: otp,
+            session_id: session_id
+          })
+        });
+        
+        const phoneEmailData = await phoneEmailResponse.json();
+        if (phoneEmailResponse.ok && phoneEmailData.verified) {
+          isValid = true;
+        }
+      } catch (apiError) {
+        console.error('Phone.Email API error:', apiError);
+      }
+    }
+    */
+    
+    if (!isValid) {
+      res.status(400).json({ error: 'Invalid OTP. Please check and try again.' });
+      return;
+    }
+    
+    // Store verified phone number (valid for 24 hours)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    
+    db.run(`INSERT OR REPLACE INTO verified_phone_numbers (phone, expires_at) VALUES (?, ?)`,
+      [phone, expiresAt], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        res.json({ 
+          verified: true,
+          message: 'Phone number verified successfully',
+          expires_at: expiresAt,
+          verification_timestamp: new Date().toISOString()
+        });
+      });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+// Check if phone is verified
+app.get('/api/contact/check-verification/:phone', (req, res) => {
+  const { phone } = req.params;
+  
+  db.get(`SELECT * FROM verified_phone_numbers 
+    WHERE phone = ? AND expires_at > datetime('now')`, 
+    [phone], (err, verified) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      res.json({ 
+        verified: !!verified,
+        expires_at: verified ? verified.expires_at : null
+      });
+    });
+});
+
+// Verify Phone.Email user_json_url
+app.post('/api/contact/verify-phone-email', async (req, res) => {
+  const { user_json_url } = req.body;
+  
+  if (!user_json_url) {
+    res.status(400).json({ error: 'user_json_url is required' });
+    return;
+  }
+
+  try {
+    // Fetch user data from Phone.Email
+    const https = require('https');
+    const url = require('url');
+    
+    const parsedUrl = url.parse(user_json_url);
+    
+    const phoneEmailData = await new Promise((resolve, reject) => {
+      https.get(user_json_url, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            const jsonData = JSON.parse(data);
+            resolve(jsonData);
+          } catch (parseError) {
+            reject(new Error('Failed to parse Phone.Email response'));
+          }
+        });
+      }).on('error', (err) => {
+        reject(err);
+      });
+    });
+    
+    // Extract phone data
+    const user_country_code = phoneEmailData.user_country_code || '';
+    const user_phone_number = phoneEmailData.user_phone_number || '';
+    const fullPhone = `${user_country_code}${user_phone_number}`;
+    
+    if (!user_phone_number) {
+      res.status(400).json({ error: 'Invalid phone data from Phone.Email' });
+      return;
+    }
+    
+    // Store verified phone number (valid for 24 hours)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    
+    db.run(`INSERT OR REPLACE INTO verified_phone_numbers (phone, expires_at) VALUES (?, ?)`,
+      [fullPhone, expiresAt], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        res.json({ 
+          verified: true,
+          message: 'Phone number verified successfully via Phone.Email',
+          expires_at: expiresAt,
+          verification_timestamp: new Date().toISOString(),
+          phone_data: {
+            user_country_code: user_country_code,
+            user_phone_number: user_phone_number,
+            user_first_name: phoneEmailData.user_first_name || '',
+            user_last_name: phoneEmailData.user_last_name || '',
+            full_phone: fullPhone
+          }
+        });
+      });
+  } catch (error) {
+    console.error('Error verifying Phone.Email:', error);
+    res.status(500).json({ error: 'Failed to verify phone number. Please try again.' });
+  }
+});
+
 // Start server
 
 app.listen(PORT, async () => {
@@ -8958,6 +10131,12 @@ app.listen(PORT, async () => {
   // Always ensure product_sections has required columns (critical for duplication)
   await addProductMediaBannerColumns();
   await addDescriptionColumnToProductSections();
+  await addPricingTableHeaderColumns();
+  await addProductPricingColumnVisibilityColumns();
+  await addSolutionPricingTableHeaderColumns();
+  await addSolutionPricingColumnVisibilityColumns();
+  await addMarketplacePricingTableHeaderColumns();
+  await addMarketplacePricingColumnVisibilityColumns();
   
   // Always ensure product_items has required columns (critical for item duplication)
   await addProductItemsColumns();

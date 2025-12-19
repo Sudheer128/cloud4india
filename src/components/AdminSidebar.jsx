@@ -9,7 +9,9 @@ import {
   InformationCircleIcon,
   CurrencyDollarIcon,
   DocumentTextIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  EnvelopeIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -80,6 +82,20 @@ const AdminSidebar = () => {
       icon: InformationCircleIcon,
       path: '/admin/about-us',
       matchPaths: ['/admin/about-us']
+    },
+    {
+      id: 'contact-us',
+      label: 'Contact Us',
+      icon: EnvelopeIcon,
+      path: '/admin/contact-us',
+      matchPaths: ['/admin/contact-us']
+    },
+    {
+      id: 'contact-dashboard',
+      label: 'Contact Dashboard',
+      icon: ChartBarIcon,
+      path: '/admin/contact-dashboard',
+      matchPaths: ['/admin/contact-dashboard']
     },
     {
       id: 'integrity',

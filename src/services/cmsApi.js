@@ -2323,3 +2323,380 @@ export const duplicateIntegrityPage = async (id, duplicateData = {}) => {
     throw error;
   }
 };
+
+// ============================================
+// CONTACT US PAGE API FUNCTIONS
+// ============================================
+
+/**
+ * Get all Contact Us page content
+ * @param {boolean} all - If true, includes hidden items
+ * @returns {Promise<Object>} Contact page data
+ */
+export const getContactUsContent = async (all = false) => {
+  try {
+    const timestamp = new Date().getTime();
+    const url = all ? `/contact?all=true&t=${timestamp}` : `/contact?t=${timestamp}`;
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Contact Us content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update Contact Us hero section
+ * @param {Object} heroData - Hero section data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactHero = async (heroData) => {
+  try {
+    const response = await cmsApi.put('/contact/hero', heroData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating Contact Us hero:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all contact info items
+ * @param {boolean} all - If true, includes hidden items
+ * @returns {Promise<Array>} Contact info items
+ */
+export const getContactInfoItems = async (all = false) => {
+  try {
+    const timestamp = new Date().getTime();
+    const url = all ? `/contact/items?all=true&t=${timestamp}` : `/contact/items?t=${timestamp}`;
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching contact info items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create contact info item
+ * @param {Object} itemData - Contact info item data
+ * @returns {Promise<Object>} Created item
+ */
+export const createContactInfoItem = async (itemData) => {
+  try {
+    const response = await cmsApi.post('/contact/items', itemData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating contact info item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update contact info item
+ * @param {number} id - Item ID
+ * @param {Object} itemData - Updated item data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactInfoItem = async (id, itemData) => {
+  try {
+    const response = await cmsApi.put(`/contact/items/${id}`, itemData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating contact info item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete contact info item
+ * @param {number} id - Item ID
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteContactInfoItem = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/contact/items/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting contact info item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle contact info item visibility
+ * @param {number} id - Item ID
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleContactInfoItemVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/contact/items/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling contact info item visibility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all social media links
+ * @param {boolean} all - If true, includes hidden links
+ * @returns {Promise<Array>} Social media links
+ */
+export const getContactSocialLinks = async (all = false) => {
+  try {
+    const timestamp = new Date().getTime();
+    const url = all ? `/contact/social-links?all=true&t=${timestamp}` : `/contact/social-links?t=${timestamp}`;
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching social media links:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create social media link
+ * @param {Object} linkData - Social media link data
+ * @returns {Promise<Object>} Created link
+ */
+export const createContactSocialLink = async (linkData) => {
+  try {
+    const response = await cmsApi.post('/contact/social-links', linkData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating social media link:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update social media link
+ * @param {number} id - Link ID
+ * @param {Object} linkData - Updated link data
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactSocialLink = async (id, linkData) => {
+  try {
+    const response = await cmsApi.put(`/contact/social-links/${id}`, linkData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating social media link:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete social media link
+ * @param {number} id - Link ID
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteContactSocialLink = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/contact/social-links/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting social media link:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle social media link visibility
+ * @param {number} id - Link ID
+ * @returns {Promise<Object>} Toggle response
+ */
+export const toggleContactSocialLinkVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/contact/social-links/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling social media link visibility:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// CONTACT FORM SUBMISSIONS API FUNCTIONS
+// ============================================
+
+/**
+ * Submit contact form
+ * @param {Object} formData - Contact form data
+ * @returns {Promise<Object>} Submission response
+ */
+export const submitContactForm = async (formData) => {
+  try {
+    const response = await cmsApi.post('/contact/submit', formData);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting contact form:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get contact submissions with filters
+ * @param {Object} filters - Filter options (status, page, limit, search, sortBy, sortOrder)
+ * @returns {Promise<Object>} Submissions with pagination
+ */
+export const getContactSubmissions = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/contact/submissions?${queryString}` : '/contact/submissions';
+    const response = await cmsApi.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching contact submissions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get single contact submission
+ * @param {number} id - Submission ID
+ * @returns {Promise<Object>} Submission data
+ */
+export const getContactSubmission = async (id) => {
+  try {
+    const response = await cmsApi.get(`/contact/submissions/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching contact submission:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update contact submission status
+ * @param {number} id - Submission ID
+ * @param {string} status - New status (leads, contacted, re_contact, final_customer)
+ * @param {string} admin_notes - Optional admin notes
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactSubmissionStatus = async (id, status, admin_notes = null) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/status`, { status, admin_notes });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating submission status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update admin notes
+ * @param {number} id - Submission ID
+ * @param {string} admin_notes - Admin notes
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactSubmissionNotes = async (id, admin_notes) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/notes`, { admin_notes });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating submission notes:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete contact submission
+ * @param {number} id - Submission ID
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteContactSubmission = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/contact/submissions/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting submission:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get contact submissions statistics
+ * @returns {Promise<Object>} Statistics object
+ */
+export const getContactSubmissionsStats = async () => {
+  try {
+    const response = await cmsApi.get('/contact/submissions/stats');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching submission stats:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// OTP VERIFICATION API FUNCTIONS
+// ============================================
+
+/**
+ * Send OTP to phone number
+ * @param {string} phone - Phone number
+ * @returns {Promise<Object>} OTP response
+ */
+export const sendOTP = async (phone) => {
+  try {
+    const response = await cmsApi.post('/contact/send-otp', { phone });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    throw error;
+  }
+};
+
+/**
+ * Verify OTP
+ * @param {string} phone - Phone number
+ * @param {string} otp - OTP code
+ * @param {string} session_id - Session ID from send OTP
+ * @returns {Promise<Object>} Verification response
+ */
+export const verifyOTP = async (phone, otp, session_id) => {
+  try {
+    const response = await cmsApi.post('/contact/verify-otp', { phone, otp, session_id });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if phone number is verified
+ * @param {string} phone - Phone number
+ * @returns {Promise<Object>} Verification status
+ */
+export const checkPhoneVerification = async (phone) => {
+  try {
+    const response = await cmsApi.get(`/contact/check-verification/${encodeURIComponent(phone)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking verification:', error);
+    throw error;
+  }
+};
+
+/**
+ * Verify Phone.Email user_json_url
+ * @param {string} user_json_url - Phone.Email user JSON URL
+ * @returns {Promise<Object>} Verification response with phone data
+ */
+export const verifyPhoneEmail = async (user_json_url) => {
+  try {
+    const response = await cmsApi.post('/contact/verify-phone-email', { user_json_url });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying Phone.Email:', error);
+    throw error;
+  }
+};

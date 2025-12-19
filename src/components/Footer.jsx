@@ -29,6 +29,7 @@ const Footer = () => {
         { text: 'Home', href: '/' },
         { text: 'About Us', href: '/about-us' },
         { text: 'Pricing', href: '/pricing' },
+        { text: 'Contact Us', href: '/contact-us' },
         { text: 'Marketplace', href: '/marketplace' },
         { text: 'Products', href: '/products' },
         { text: 'Solutions', href: '/solutions' }
