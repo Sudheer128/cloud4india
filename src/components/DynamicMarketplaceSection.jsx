@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
+import DurationSelectPopup from './PriceEstimator/DurationSelectPopup';
 
 // Media Banner Section Component - Carousel Gallery for Multiple Photos/Videos
 const MediaBannerSection = ({ section, items }) => {
@@ -241,16 +243,19 @@ const MediaBannerSection = ({ section, items }) => {
 };
 
 // Pricing Section Component
-const PricingSection = ({ section, items }) => {
-  // Helper function to extract price value from old format (backward compatibility)
+// Pricing Section Component with Cart Integration
+const PricingSection = ({ section, items, marketplace }) => {
+  const { addItem } = useCart();
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedPrices, setSelectedPrices] = useState({});
+
   const extractPriceValue = (priceString) => {
     if (!priceString) return null;
-    // Extract price with currency symbol if present (e.g., "₹1.19/Hour" -> "₹1.19")
     const match = priceString.match(/(₹?[\d,]+\.?\d*)/);
     return match ? match[1] : priceString;
   };
 
-  // Get table headers from section config or use defaults
   const tableHeaderAppName = section.pricing_table_header_app_name || 'App Name';
   const tableHeaderSpecs = section.pricing_table_header_specs || 'Specifications';
   const tableHeaderFeatures = section.pricing_table_header_features || 'Features';
@@ -260,11 +265,53 @@ const PricingSection = ({ section, items }) => {
   const tableHeaderYearly = section.pricing_table_header_yearly || 'Price Yearly';
   const tableHeaderAction = section.pricing_table_header_action || 'Action';
 
-  // Get column visibility flags (default to true for backward compatibility)
   const showHourly = section.show_hourly_column !== undefined ? section.show_hourly_column !== 0 : true;
   const showMonthly = section.show_monthly_column !== undefined ? section.show_monthly_column !== 0 : true;
   const showQuarterly = section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true;
   const showYearly = section.show_yearly_column !== undefined ? section.show_yearly_column !== 0 : true;
+
+  const handleActionClick = (item, content) => {
+    let hourlyPrice = content.hourly_price || null;
+    let monthlyPrice = content.monthly_price || null;
+    let quarterlyPrice = content.quarterly_price || null;
+    let yearlyPrice = content.yearly_price || null;
+
+    if (content.price && !hourlyPrice) {
+      hourlyPrice = extractPriceValue(content.price);
+    }
+
+    setSelectedItem({
+      id: item.id,
+      title: item.title,
+      name: marketplace?.name || section.title || 'Marketplace App',
+      content: content
+    });
+    setSelectedPrices({
+      hourly_price: hourlyPrice,
+      monthly_price: monthlyPrice,
+      quarterly_price: quarterlyPrice,
+      yearly_price: yearlyPrice
+    });
+    setPopupOpen(true);
+  };
+
+  const handleAddToCart = (duration, price) => {
+    if (!selectedItem) return;
+
+    addItem({
+      item_id: selectedItem.id,
+      item_type: 'marketplace',
+      item_name: selectedItem.name,
+      item_description: selectedItem.content?.description || '',
+      plan_name: selectedItem.title,
+      duration: duration,
+      unit_price: price,
+      quantity: 1,
+      specifications: selectedItem.content?.specifications || [],
+      features: selectedItem.content?.features || [],
+      category: marketplace?.category || ''
+    });
+  };
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-amber-light/20 via-white to-saree-lime-light/20">
@@ -278,7 +325,6 @@ const PricingSection = ({ section, items }) => {
           </p>
         </div>
 
-        {/* Pricing Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -303,13 +349,11 @@ const PricingSection = ({ section, items }) => {
                     console.error('Error parsing pricing content:', e);
                   }
 
-                  // Backward compatibility: Extract prices from old format or use new format
                   let hourlyPrice = content.hourly_price || null;
                   let monthlyPrice = content.monthly_price || null;
                   let quarterlyPrice = content.quarterly_price || null;
                   let yearlyPrice = content.yearly_price || null;
 
-                  // If old format exists and new format doesn't, extract from old price
                   if (content.price && !hourlyPrice) {
                     hourlyPrice = extractPriceValue(content.price);
                   }
@@ -358,20 +402,12 @@ const PricingSection = ({ section, items }) => {
                         </td>
                       )}
                       <td className="px-6 py-4 text-center">
-                        {content.buttonUrl ? (
-                          <a
-                            href={content.buttonUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
-                          >
-                            {content.buttonText || 'Order Now'}
-                          </a>
-                        ) : (
-                          <button className="bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
-                            {content.buttonText || 'Order Now'}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleActionClick(item, content)}
+                          className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                        >
+                          {content.buttonText || 'Order Now'}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -381,6 +417,14 @@ const PricingSection = ({ section, items }) => {
           </div>
         </div>
       </div>
+
+      <DurationSelectPopup
+        isOpen={popupOpen}
+        onClose={() => setPopupOpen(false)}
+        onConfirm={handleAddToCart}
+        item={selectedItem}
+        prices={selectedPrices}
+      />
     </section>
   );
 };
@@ -396,7 +440,7 @@ const DynamicMarketplaceSection = ({ section, items, marketplace, hasNavigation 
     case 'media_banner':
       return <MediaBannerSection section={section} items={items} />;
     case 'pricing':
-      return <PricingSection section={section} items={items} />;
+      return <PricingSection section={section} items={items} marketplace={marketplace} />;
     default:
       return null; // Other section types are handled by UniversalMarketplacePage
   }

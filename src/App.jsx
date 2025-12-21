@@ -33,6 +33,13 @@ import MainSolutionsPage from './pages/MainSolutionsPage'
 import Pricing from './pages/Pricing'
 import ContactUs from './pages/ContactUs'
 import Footer from './components/Footer'
+import { CartProvider } from './context/CartContext'
+import BottomCartBar from './components/PriceEstimator/BottomCartBar'
+import PriceEstimator from './pages/PriceEstimator'
+import CartSummary from './pages/CartSummary'
+import QuotationsAdmin from './pages/QuotationsAdmin'
+import QuotationView from './pages/QuotationView'
+import PriceEstimatorAdmin from './pages/PriceEstimatorAdmin'
 
 function AppContent() {
   const location = useLocation();
@@ -54,6 +61,9 @@ function AppContent() {
           <Route path="/marketplace" element={<MainMarketplacesPage />} />
           <Route path="/products" element={<MainProductsPage />} />
           <Route path="/solutions" element={<MainSolutionsPage />} />
+          <Route path="/price-estimator" element={<PriceEstimator />} />
+          <Route path="/cart" element={<CartSummary />} />
+          <Route path="/quote/:token" element={<QuotationView />} />
           {/* Login route */}
           <Route path="/login" element={<Login />} />
           {/* Admin routes with unified layout - Protected */}
@@ -77,6 +87,8 @@ function AppContent() {
             <Route path="contact-us" element={<ContactUsAdmin />} />
             <Route path="contact-dashboard" element={<ContactDashboard />} />
             <Route path="integrity" element={<IntegrityAdmin />} />
+            <Route path="quotations" element={<QuotationsAdmin />} />
+            <Route path="price-estimator-config" element={<PriceEstimatorAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />
@@ -84,16 +96,19 @@ function AppContent() {
         </Routes>
       </main>
       {showHeaderFooter && <Footer />}
+      {showHeaderFooter && <BottomCartBar />}
     </div>
   );
 }
 
 function App() {
   return (
-    <Router>
-      <ScrollToTop />
-      <AppContent />
-    </Router>
+    <CartProvider>
+      <Router>
+        <ScrollToTop />
+        <AppContent />
+      </Router>
+    </CartProvider>
   )
 }
 

@@ -5,6 +5,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const { initPriceEstimatorRoutes } = require('./price-estimator-routes');
+const { initExportRoutes } = require('./export-routes');
 
 const app = express();
 const PORT = process.env.PORT || 4002;
@@ -104,10 +106,10 @@ app.post('/api/upload/image', uploadImage.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file uploaded' });
     }
-    
+
     // Return the file path relative to server
     const filePath = `/uploads/images/${req.file.filename}`;
-    res.json({ 
+    res.json({
       success: true,
       filePath: filePath,
       filename: req.file.filename,
@@ -125,10 +127,10 @@ app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No video file uploaded' });
     }
-    
+
     // Return the file path relative to server
     const filePath = `/uploads/videos/${req.file.filename}`;
-    res.json({ 
+    res.json({
       success: true,
       filePath: filePath,
       filename: req.file.filename,
@@ -153,19 +155,19 @@ const runMigrations = async () => {
     console.log('🔄 Running database migrations...');
     const { runAllMigrations } = require('./migration-runner');
     await runAllMigrations();
-    
+
     // Add media banner columns to marketplace_sections if they don't exist
     await addMarketplaceMediaBannerColumns();
-    
+
     // Add content and media banner columns to product_sections if they don't exist
     await addProductMediaBannerColumns();
-    
+
     // Add content and is_visible columns to section_items if they don't exist
     await addSectionItemsVisibilityColumn();
-    
+
     // Add eyebrow column to integrity_pages if it doesn't exist
     await addIntegrityPagesEyebrowColumn();
-    
+
     console.log('✅ Database migrations completed');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
@@ -177,31 +179,31 @@ const runMigrations = async () => {
 const addMarketplaceMediaBannerColumns = () => {
   return new Promise((resolve) => {
     const columns = [
-      { 
-        name: 'is_visible', 
-        sql: "ALTER TABLE marketplace_sections ADD COLUMN is_visible INTEGER DEFAULT 1;" 
+      {
+        name: 'is_visible',
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN is_visible INTEGER DEFAULT 1;"
       },
-      { 
-        name: 'media_type', 
-        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_type TEXT;" 
+      {
+        name: 'media_type',
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_type TEXT;"
       },
-      { 
-        name: 'media_source', 
-        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_source TEXT;" 
+      {
+        name: 'media_source',
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_source TEXT;"
       },
-      { 
-        name: 'media_url', 
-        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_url TEXT;" 
+      {
+        name: 'media_url',
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN media_url TEXT;"
       },
-      { 
-        name: 'icon', 
-        sql: "ALTER TABLE marketplace_sections ADD COLUMN icon TEXT;" 
+      {
+        name: 'icon',
+        sql: "ALTER TABLE marketplace_sections ADD COLUMN icon TEXT;"
       }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -214,7 +216,7 @@ const addMarketplaceMediaBannerColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to marketplace_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -230,27 +232,27 @@ const addProductMediaBannerColumns = () => {
     // Note: These columns are already included in CREATE TABLE, but this function exists
     // for backward compatibility if tables were created before the columns were added
     const columns = [
-      { 
-        name: 'content', 
-        sql: "ALTER TABLE product_sections ADD COLUMN content TEXT;" 
+      {
+        name: 'content',
+        sql: "ALTER TABLE product_sections ADD COLUMN content TEXT;"
       },
-      { 
-        name: 'media_type', 
-        sql: "ALTER TABLE product_sections ADD COLUMN media_type TEXT;" 
+      {
+        name: 'media_type',
+        sql: "ALTER TABLE product_sections ADD COLUMN media_type TEXT;"
       },
-      { 
-        name: 'media_source', 
-        sql: "ALTER TABLE product_sections ADD COLUMN media_source TEXT;" 
+      {
+        name: 'media_source',
+        sql: "ALTER TABLE product_sections ADD COLUMN media_source TEXT;"
       },
-      { 
-        name: 'media_url', 
-        sql: "ALTER TABLE product_sections ADD COLUMN media_url TEXT;" 
+      {
+        name: 'media_url',
+        sql: "ALTER TABLE product_sections ADD COLUMN media_url TEXT;"
       }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -263,7 +265,7 @@ const addProductMediaBannerColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to product_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -304,10 +306,10 @@ const addPricingTableHeaderColumns = () => {
       { name: 'pricing_table_header_yearly', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
       { name: 'pricing_table_header_action', sql: "ALTER TABLE product_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -319,7 +321,7 @@ const addPricingTableHeaderColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to product_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -338,10 +340,10 @@ const addProductPricingColumnVisibilityColumns = () => {
       { name: 'show_quarterly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
       { name: 'show_yearly_column', sql: "ALTER TABLE product_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -353,7 +355,7 @@ const addProductPricingColumnVisibilityColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to product_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -376,10 +378,10 @@ const addMarketplacePricingTableHeaderColumns = () => {
       { name: 'pricing_table_header_yearly', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
       { name: 'pricing_table_header_action', sql: "ALTER TABLE marketplace_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -391,7 +393,7 @@ const addMarketplacePricingTableHeaderColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to marketplace_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -410,10 +412,10 @@ const addMarketplacePricingColumnVisibilityColumns = () => {
       { name: 'show_quarterly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
       { name: 'show_yearly_column', sql: "ALTER TABLE marketplace_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -425,7 +427,7 @@ const addMarketplacePricingColumnVisibilityColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to marketplace_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -448,10 +450,10 @@ const addSolutionPricingTableHeaderColumns = () => {
       { name: 'pricing_table_header_yearly', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_yearly TEXT DEFAULT 'Price Yearly';" },
       { name: 'pricing_table_header_action', sql: "ALTER TABLE solution_sections ADD COLUMN pricing_table_header_action TEXT DEFAULT 'Action';" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -463,7 +465,7 @@ const addSolutionPricingTableHeaderColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to solution_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -482,10 +484,10 @@ const addSolutionPricingColumnVisibilityColumns = () => {
       { name: 'show_quarterly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_quarterly_column INTEGER DEFAULT 1;" },
       { name: 'show_yearly_column', sql: "ALTER TABLE solution_sections ADD COLUMN show_yearly_column INTEGER DEFAULT 1;" }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -497,7 +499,7 @@ const addSolutionPricingColumnVisibilityColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to solution_sections`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -511,27 +513,27 @@ const addSolutionPricingColumnVisibilityColumns = () => {
 const addProductItemsColumns = () => {
   return new Promise((resolve) => {
     const columns = [
-      { 
-        name: 'content', 
-        sql: "ALTER TABLE product_items ADD COLUMN content TEXT;" 
+      {
+        name: 'content',
+        sql: "ALTER TABLE product_items ADD COLUMN content TEXT;"
       },
-      { 
-        name: 'value', 
-        sql: "ALTER TABLE product_items ADD COLUMN value TEXT;" 
+      {
+        name: 'value',
+        sql: "ALTER TABLE product_items ADD COLUMN value TEXT;"
       },
-      { 
-        name: 'label', 
-        sql: "ALTER TABLE product_items ADD COLUMN label TEXT;" 
+      {
+        name: 'label',
+        sql: "ALTER TABLE product_items ADD COLUMN label TEXT;"
       },
-      { 
-        name: 'features', 
-        sql: "ALTER TABLE product_items ADD COLUMN features TEXT;" 
+      {
+        name: 'features',
+        sql: "ALTER TABLE product_items ADD COLUMN features TEXT;"
       }
     ];
-    
+
     let completed = 0;
     const total = columns.length;
-    
+
     columns.forEach((col) => {
       db.run(col.sql, (err) => {
         if (err) {
@@ -544,7 +546,7 @@ const addProductItemsColumns = () => {
         } else {
           console.log(`   ✅ Added column ${col.name} to product_items`);
         }
-        
+
         completed++;
         if (completed === total) {
           resolve();
@@ -567,7 +569,7 @@ const addSectionItemsVisibilityColumn = () => {
       } else {
         console.log(`   ✅ Added column is_visible to section_items`);
       }
-      
+
       // Add content column to section_items table (for media items)
       db.run("ALTER TABLE section_items ADD COLUMN content TEXT;", (err) => {
         if (err) {
@@ -687,7 +689,7 @@ db.serialize(() => {
   )`);
 
   // ========== SOLUTIONS TABLES (Mirroring Marketplaces Structure) ==========
-  
+
   // Solutions table (mirrors marketplaces table)
   db.run(`CREATE TABLE IF NOT EXISTS solutions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -792,7 +794,7 @@ db.serialize(() => {
   });
 
   // ========== PRODUCTS TABLES (Mirroring Marketplaces Structure) ==========
-  
+
   // Products table (mirrors marketplaces table)
   db.run(`CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -899,7 +901,7 @@ db.serialize(() => {
       console.error('Error adding enable_single_page column to products:', err);
     }
   });
-  
+
   db.run(`ALTER TABLE products ADD COLUMN redirect_url TEXT DEFAULT NULL`, (err) => {
     if (err && !err.message.includes('duplicate column')) {
       console.error('Error adding redirect_url column to products:', err);
@@ -921,7 +923,7 @@ db.serialize(() => {
       console.error('Error adding enable_single_page column:', err);
     }
   });
-  
+
   db.run(`ALTER TABLE marketplaces ADD COLUMN redirect_url TEXT DEFAULT NULL`, (err) => {
     if (err && !err.message.includes('duplicate column')) {
       console.error('Error adding redirect_url column:', err);
@@ -935,7 +937,7 @@ db.serialize(() => {
       console.error('Error checking hero_section count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default hero data...');
       db.run(`INSERT INTO hero_section (
@@ -963,7 +965,7 @@ db.serialize(() => {
       console.error('Error checking why_items count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default why items...');
       const whyItems = [
@@ -1012,7 +1014,7 @@ db.serialize(() => {
       console.error('Error checking solutions count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default solutions...');
       const defaultSolutions = [
@@ -1046,8 +1048,8 @@ db.serialize(() => {
       defaultSolutions.forEach((solution, index) => {
         const gradient = gradientColors[index % gradientColors.length];
         db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-          [solution.name, solution.description, solution.category, solution.color, solution.border_color, solution.route, solution.order_index, gradient.start, gradient.end], 
-          function(err) {
+          [solution.name, solution.description, solution.category, solution.color, solution.border_color, solution.route, solution.order_index, gradient.start, gradient.end],
+          function (err) {
             if (err) {
               console.error('Error inserting solution:', err.message);
             } else {
@@ -1057,14 +1059,14 @@ db.serialize(() => {
                 addSampleSolutionContent(solutionId, solution.name);
               }
               // Auto-create main solutions section
-              createMainSolutionSection(solutionId, solution.name, solution.description, solution.category, () => {});
+              createMainSolutionSection(solutionId, solution.name, solution.description, solution.category, () => { });
             }
           });
       });
       console.log('Default solutions inserted.');
     } else {
       console.log(`Solutions table already has ${row.count} items, skipping default insert.`);
-      
+
       // Create main_solutions_sections entries for existing solutions that don't have them
       console.log('Checking for existing solutions without main_solutions_sections entries...');
       db.all('SELECT id, name, description, category, is_visible FROM solutions WHERE is_visible = 1', (err, solutions) => {
@@ -1072,7 +1074,7 @@ db.serialize(() => {
           console.error('Error fetching existing solutions:', err.message);
           return;
         }
-        
+
         if (solutions && solutions.length > 0) {
           let processed = 0;
           solutions.forEach((solution) => {
@@ -1085,7 +1087,7 @@ db.serialize(() => {
                 }
                 return;
               }
-              
+
               if (!existing) {
                 // Create missing entry
                 createMainSolutionSection(solution.id, solution.name, solution.description, solution.category, () => {
@@ -1112,37 +1114,37 @@ db.serialize(() => {
     // Hero section
     db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
       [solutionId, 'hero', `Welcome to ${solutionName}`, `Transform your business with ${solutionName}. ${getSolutionDescription(solutionName)}`, 0],
-      function(err) {
+      function (err) {
         if (err) console.error('Error inserting hero section:', err.message);
         const heroSectionId = this.lastID;
-        
+
         // Benefits section
         db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
           [solutionId, 'benefits', 'Key Benefits', 'Discover the advantages of choosing our solution for your business needs.', 1],
-          function(err) {
+          function (err) {
             if (err) console.error('Error inserting benefits section:', err.message);
             const benefitsSectionId = this.lastID;
             addSampleBenefitsItems(benefitsSectionId, solutionId, solutionName);
           });
-        
+
         // Use cases section
         db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
           [solutionId, 'use_cases', 'Use Cases', 'Explore real-world applications and scenarios where our solution delivers value.', 2],
-          function(err) {
+          function (err) {
             if (err) console.error('Error inserting use cases section:', err.message);
             const useCasesSectionId = this.lastID;
             addSampleUseCaseItems(useCasesSectionId, solutionId, solutionName);
           });
-        
+
         // CTA section
         db.run(`INSERT INTO solution_sections (solution_id, section_type, title, content, order_index) VALUES (?, ?, ?, ?, ?)`,
           [solutionId, 'cta', 'Ready to Get Started?', 'Start your journey with us today and experience the difference.', 3],
-          function(err) {
+          function (err) {
             if (err) console.error('Error inserting CTA section:', err.message);
           });
       });
   }
-  
+
   function getSolutionDescription(name) {
     const descriptions = {
       'Startups Cloud': 'Perfect for early-stage companies looking to scale quickly without breaking the bank. Our cost-efficient infrastructure grows with your business.',
@@ -1151,7 +1153,7 @@ db.serialize(() => {
     };
     return descriptions[name] || 'A comprehensive solution designed to meet your business needs.';
   }
-  
+
   function addSampleBenefitsItems(sectionId, solutionId, solutionName) {
     const benefits = {
       'Startups Cloud': [
@@ -1170,7 +1172,7 @@ db.serialize(() => {
         { title: 'High Availability', description: '99.99% uptime SLA with redundant infrastructure and disaster recovery.', icon: 'CheckCircleIcon', features: ['Multi-zone deployment', 'Auto-failover', 'Backup & recovery'] }
       ]
     };
-    
+
     const solutionBenefits = benefits[solutionName] || benefits['Startups Cloud'];
     solutionBenefits.forEach((benefit, index) => {
       db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1180,7 +1182,7 @@ db.serialize(() => {
         });
     });
   }
-  
+
   function addSampleUseCaseItems(sectionId, solutionId, solutionName) {
     const useCases = {
       'Startups Cloud': [
@@ -1196,7 +1198,7 @@ db.serialize(() => {
         { title: 'Payment Processing', description: 'Secure payment gateway infrastructure for financial transactions.', icon: 'CreditCardIcon', features: ['PCI DSS compliant', 'Real-time processing', 'Fraud detection'] }
       ]
     };
-    
+
     const solutionUseCases = useCases[solutionName] || useCases['Startups Cloud'];
     solutionUseCases.forEach((useCase, index) => {
       db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1213,7 +1215,7 @@ db.serialize(() => {
       console.error('Error checking solution_categories count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default solution categories...');
       const categories = [
@@ -1239,7 +1241,7 @@ db.serialize(() => {
       console.error('Error checking main_solutions_content count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default main solutions content...');
       db.run(`INSERT INTO main_solutions_content (id, title, subtitle, description) VALUES (1, 'Our Solutions', 'Cloud Solutions - Made in India', 'Explore our comprehensive cloud solutions designed to transform your business operations.')`, (err) => {
@@ -1257,7 +1259,7 @@ db.serialize(() => {
       console.error('Error checking marketplaces count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default marketplaces...');
       const marketplaces = [
@@ -1345,7 +1347,7 @@ db.serialize(() => {
       console.error('Error checking marketplace_categories count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Inserting default marketplace categories...');
       const categories = [
@@ -1382,35 +1384,35 @@ db.serialize(() => {
 // Extract YouTube video ID from various URL formats
 const extractYouTubeVideoId = (url) => {
   if (!url) return null;
-  
+
   // Handle various YouTube URL formats
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
     /youtube\.com\/watch\?.*&v=([^&\n?#]+)/,
   ];
-  
+
   for (const pattern of patterns) {
     const match = url.match(pattern);
     if (match && match[1]) {
       return match[1];
     }
   }
-  
+
   return null;
 };
 
 // Validate and normalize YouTube URL
 const validateYouTubeUrl = (url) => {
   if (!url) return { valid: false, error: 'YouTube URL is required' };
-  
+
   const videoId = extractYouTubeVideoId(url);
   if (!videoId) {
     return { valid: false, error: 'Invalid YouTube URL format' };
   }
-  
+
   // Return normalized embed URL
-  return { 
-    valid: true, 
+  return {
+    valid: true,
     videoId: videoId,
     embedUrl: `https://www.youtube.com/embed/${videoId}`,
     originalUrl: url
@@ -1424,18 +1426,18 @@ const deleteUploadedFile = (filePath) => {
       resolve({ success: true, message: 'No file to delete' });
       return;
     }
-    
+
     // Remove leading slash and get relative path
     const relativePath = filePath.replace(/^\//, '');
     const fullPath = path.join(__dirname, relativePath);
-    
+
     // Security check: ensure path is within uploads directory
     const uploadsPath = path.join(__dirname, 'uploads');
     if (!fullPath.startsWith(uploadsPath)) {
       resolve({ success: false, error: 'Invalid file path' });
       return;
     }
-    
+
     fs.unlink(fullPath, (err) => {
       if (err) {
         if (err.code === 'ENOENT') {
@@ -1464,11 +1466,11 @@ const getMarketplaceMediaBannerOrderIndex = (marketplaceId) => {
         reject(err);
         return;
       }
-      
+
       // Hero should be at 0, so media_banner should be at 1
       // But if sections exist after hero, we need to shift them
       const targetOrder = 1;
-      
+
       // Check if order_index 1 is already taken
       db.get(`
         SELECT id FROM marketplace_sections 
@@ -1478,7 +1480,7 @@ const getMarketplaceMediaBannerOrderIndex = (marketplaceId) => {
           reject(err);
           return;
         }
-        
+
         if (existing) {
           // Shift all sections with order_index >= 1 by +1
           db.run(`
@@ -1512,11 +1514,11 @@ const getProductMediaBannerOrderIndex = (productId) => {
         reject(err);
         return;
       }
-      
+
       // Hero should be at 0, so media_banner should be at 1
       // But if sections exist after hero, we need to shift them
       const targetOrder = 1;
-      
+
       // Check if order_index 1 is already taken
       db.get(`
         SELECT id FROM product_sections 
@@ -1526,7 +1528,7 @@ const getProductMediaBannerOrderIndex = (productId) => {
           reject(err);
           return;
         }
-        
+
         if (existing) {
           // Shift all sections with order_index >= 1 by +1
           db.run(`
@@ -1589,13 +1591,13 @@ app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
 // Delete uploaded file endpoint
 app.delete('/api/upload/:type/:filename', (req, res) => {
   const { type, filename } = req.params;
-  
+
   if (type !== 'images' && type !== 'videos') {
     return res.status(400).json({ error: 'Invalid file type. Must be "images" or "videos"' });
   }
 
   const filePath = path.join(uploadsDir, type, filename);
-  
+
   // Security: Prevent directory traversal
   if (!filePath.startsWith(path.join(uploadsDir, type))) {
     return res.status(400).json({ error: 'Invalid file path' });
@@ -1608,7 +1610,7 @@ app.delete('/api/upload/:type/:filename', (req, res) => {
       }
       return res.status(500).json({ error: 'Error deleting file: ' + err.message });
     }
-    
+
     res.json({
       success: true,
       message: 'File deleted successfully'
@@ -1637,7 +1639,7 @@ app.use((error, req, res, next) => {
 // Get all homepage content
 app.get('/api/homepage', (req, res) => {
   const homepageData = {};
-  
+
   // Get hero section
   db.get('SELECT * FROM hero_section ORDER BY updated_at DESC LIMIT 1', (err, hero) => {
     if (err) {
@@ -1645,7 +1647,7 @@ app.get('/api/homepage', (req, res) => {
       return;
     }
     homepageData.hero = hero;
-    
+
     // Get why items
     db.all('SELECT * FROM why_items ORDER BY order_index ASC', (err, whyItems) => {
       if (err) {
@@ -1653,23 +1655,23 @@ app.get('/api/homepage', (req, res) => {
         return;
       }
       homepageData.whyItems = whyItems;
-      
+
       // Get homepage sections config
       db.all('SELECT * FROM homepage_sections_config ORDER BY id ASC', (err, sectionsConfig) => {
         if (err) {
           // If table doesn't exist yet, continue without it
           homepageData.sectionsConfig = null;
-      res.json(homepageData);
+          res.json(homepageData);
           return;
         }
-        
+
         // Convert array to object keyed by section_name
         const configsObj = {};
         sectionsConfig.forEach(config => {
           configsObj[config.section_name] = config;
         });
         homepageData.sectionsConfig = configsObj;
-        
+
         res.json(homepageData);
       });
     });
@@ -1679,7 +1681,7 @@ app.get('/api/homepage', (req, res) => {
 // Update hero section
 app.put('/api/hero', (req, res) => {
   const { title, description, primary_button_text, primary_button_link } = req.body;
-  
+
   db.run(`UPDATE hero_section SET 
     title = ?, 
     description = ?, 
@@ -1688,9 +1690,9 @@ app.put('/api/hero', (req, res) => {
     secondary_button_text = '', 
     secondary_button_link = '',
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = 1`, 
-    [title, description, primary_button_text, primary_button_link], 
-    function(err) {
+    WHERE id = 1`,
+    [title, description, primary_button_text, primary_button_link],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -1703,7 +1705,7 @@ app.put('/api/hero', (req, res) => {
 app.put('/api/homepage/sections/:sectionName', (req, res) => {
   const { sectionName } = req.params;
   const { heading, description, button_text, filter_text, search_placeholder } = req.body;
-  
+
   db.run(`
     UPDATE homepage_sections_config SET 
       heading = ?, 
@@ -1713,18 +1715,18 @@ app.put('/api/homepage/sections/:sectionName', (req, res) => {
       search_placeholder = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE section_name = ?
-  `, [heading, description, button_text, filter_text, search_placeholder, sectionName], function(err) {
+  `, [heading, description, button_text, filter_text, search_placeholder, sectionName], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       // Config doesn't exist, create it
       db.run(`
         INSERT INTO homepage_sections_config (section_name, heading, description, button_text, filter_text, search_placeholder)
         VALUES (?, ?, ?, ?, ?, ?)
-      `, [sectionName, heading, description, button_text, filter_text, search_placeholder], function(insertErr) {
+      `, [sectionName, heading, description, button_text, filter_text, search_placeholder], function (insertErr) {
         if (insertErr) {
           res.status(500).json({ error: insertErr.message });
           return;
@@ -1734,33 +1736,33 @@ app.put('/api/homepage/sections/:sectionName', (req, res) => {
     } else {
       res.json({ message: 'Section configuration updated successfully', changes: this.changes });
     }
-    });
+  });
 });
 
 // Create new why item
 app.post('/api/why-items', (req, res) => {
   const { title, content, link } = req.body;
-  
+
   // Get the next order index
   db.get('SELECT MAX(order_index) as max_order FROM why_items', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || -1) + 1;
-    
-    db.run(`INSERT INTO why_items (title, content, link, order_index) VALUES (?, ?, ?, ?)`, 
-      [title, content, link, nextOrder], 
-      function(err) {
+
+    db.run(`INSERT INTO why_items (title, content, link, order_index) VALUES (?, ?, ?, ?)`,
+      [title, content, link, nextOrder],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Why item created successfully', 
+        res.json({
+          message: 'Why item created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -1770,15 +1772,15 @@ app.post('/api/why-items', (req, res) => {
 app.put('/api/why-items/:id', (req, res) => {
   const { id } = req.params;
   const { title, content, link } = req.body;
-  
+
   db.run(`UPDATE why_items SET 
     title = ?, 
     content = ?, 
     link = ?,
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`, 
-    [title, content, link, id], 
-    function(err) {
+    WHERE id = ?`,
+    [title, content, link, id],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -1790,8 +1792,8 @@ app.put('/api/why-items/:id', (req, res) => {
 // Delete why item
 app.delete('/api/why-items/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run(`DELETE FROM why_items WHERE id = ?`, [id], function(err) {
+
+  db.run(`DELETE FROM why_items WHERE id = ?`, [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -1810,14 +1812,14 @@ app.post('/api/cleanup-duplicates', (req, res) => {
       FROM why_items 
       GROUP BY title
     )
-  `, function(err) {
+  `, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ 
-      message: 'Duplicate why items cleaned up successfully', 
-      changes: this.changes 
+    res.json({
+      message: 'Duplicate why items cleaned up successfully',
+      changes: this.changes
     });
   });
 });
@@ -1832,14 +1834,14 @@ app.post('/api/cleanup-marketplace-duplicates', (req, res) => {
       FROM marketplaces 
       GROUP BY name
     )
-  `, function(err) {
+  `, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ 
-      message: 'Duplicate marketplaces cleaned up successfully', 
-      changes: this.changes 
+    res.json({
+      message: 'Duplicate marketplaces cleaned up successfully',
+      changes: this.changes
     });
   });
 });
@@ -1847,7 +1849,7 @@ app.post('/api/cleanup-marketplace-duplicates', (req, res) => {
 // Get marketplace by route slug
 app.get('/api/marketplaces/by-route/:route', (req, res) => {
   const { route } = req.params;
-  
+
   db.get('SELECT * FROM marketplaces WHERE route = ? AND is_visible = 1', [route], (err, marketplace) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -1864,7 +1866,7 @@ app.get('/api/marketplaces/by-route/:route', (req, res) => {
 // Get marketplace sections by route slug
 app.get('/api/marketplaces/by-route/:route/sections', (req, res) => {
   const { route } = req.params;
-  
+
   // First get the marketplace ID from route
   db.get('SELECT id FROM marketplaces WHERE route = ? AND is_visible = 1', [route], (err, marketplace) => {
     if (err) {
@@ -1875,7 +1877,7 @@ app.get('/api/marketplaces/by-route/:route/sections', (req, res) => {
       res.status(404).json({ error: 'Marketplace not found' });
       return;
     }
-    
+
     // Then get sections for this marketplace
     db.all(`
       SELECT * FROM marketplace_sections 
@@ -1900,14 +1902,14 @@ function createMainMarketplaceSection(marketplaceId, marketplaceName, marketplac
       callback(); // Continue even if this fails
       return;
     }
-    
+
     const nextOrder = (result.max_order || 0) + 1;
-    
+
     // Insert new main page section
     db.run(`
       INSERT INTO main_marketplaces_sections (marketplace_id, title, description, is_visible, order_index) 
       VALUES (?, ?, ?, 1, ?)
-    `, [marketplaceId, marketplaceName, marketplaceDescription, nextOrder], function(err) {
+    `, [marketplaceId, marketplaceName, marketplaceDescription, nextOrder], function (err) {
       if (err) {
         console.error('Error creating main marketplaces section:', err.message);
       } else {
@@ -1921,29 +1923,29 @@ function createMainMarketplaceSection(marketplaceId, marketplaceName, marketplac
 // Helper function to create main solutions section (similar to marketplaces)
 function createMainSolutionSection(solutionId, solutionName, solutionDescription, solutionCategory, callback) {
   // Get the next order index for main solutions sections first
-    db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
-      if (err) {
+  db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
+    if (err) {
       console.error('[createMainSolutionSection] Error getting max order:', err.message);
-        callback(); // Continue even if this fails
-        return;
-      }
-      
-      const nextOrder = (result.max_order || 0) + 1;
-      
+      callback(); // Continue even if this fails
+      return;
+    }
+
+    const nextOrder = (result.max_order || 0) + 1;
+
     // Use INSERT OR IGNORE to prevent duplicates (requires unique constraint on solution_id)
     // If a duplicate is attempted, it will be silently ignored
-      db.run(`
+    db.run(`
       INSERT OR IGNORE INTO main_solutions_sections (solution_id, title, description, category, is_visible, order_index, button_text) 
         VALUES (?, ?, ?, ?, 1, ?, 'Explore Solution')
-      `, [solutionId, solutionName, solutionDescription, solutionCategory || null, nextOrder], function(err) {
-        if (err) {
+      `, [solutionId, solutionName, solutionDescription, solutionCategory || null, nextOrder], function (err) {
+      if (err) {
         console.error('[createMainSolutionSection] Error creating main solutions section:', err.message);
       } else if (this.changes > 0) {
         console.log(`✅ Created main solutions section for: ${solutionName} (ID: ${solutionId})`);
-        } else {
+      } else {
         console.log(`⏭️  Main solutions section already exists for: ${solutionName} (ID: ${solutionId})`);
-        }
-        callback(); // Always call callback to continue
+      }
+      callback(); // Always call callback to continue
     });
   });
 }
@@ -1960,14 +1962,14 @@ app.get('/api/migrations', (req, res) => {
       res.status(500).json({ error: 'Migration table not found or error reading migrations' });
       return;
     }
-    
+
     const stats = {
       total: migrations.length,
       completed: migrations.filter(m => m.status === 'completed').length,
       failed: migrations.filter(m => m.status === 'failed').length,
       last_migration: migrations[0] || null
     };
-    
+
     res.json({
       status: 'success',
       statistics: stats,
@@ -1984,10 +1986,10 @@ app.post('/api/migrations/run', async (req, res) => {
     res.json({ status: 'success', message: 'Migrations completed successfully' });
   } catch (error) {
     console.error('❌ Manual migration failed:', error.message);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Migration failed', 
-      error: error.message 
+    res.status(500).json({
+      status: 'error',
+      message: 'Migration failed',
+      error: error.message
     });
   }
 });
@@ -2052,7 +2054,7 @@ app.get('/api/marketplaces/:id', (req, res) => {
 // Create new marketplace
 app.post('/api/marketplaces', (req, res) => {
   const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null } = req.body;
-  
+
   // Your 4 perfect colors (only these will be used)
   const gradientColors = [
     { start: 'blue', end: 'blue-100' },      // Financial Services
@@ -2060,30 +2062,30 @@ app.post('/api/marketplaces', (req, res) => {
     { start: 'green', end: 'green-100' },    // Retail
     { start: 'orange', end: 'orange-100' }   // Healthcare
   ];
-  
+
   // Get the next order index and count existing marketplaces for gradient assignment
   db.get('SELECT MAX(order_index) as max_order, COUNT(*) as total_count FROM marketplaces', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || -1) + 1;
     const totalCount = result.total_count || 0;
-    
+
     // Assign gradient color based on total count (cycles through palette)
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
-    
-    db.run(`INSERT INTO marketplaces (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url], 
-      function(err) {
+
+    db.run(`INSERT INTO marketplaces (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Marketplace created successfully', 
+        res.json({
+          message: 'Marketplace created successfully',
           id: this.lastID,
           changes: this.changes,
           gradient: gradient
@@ -2096,7 +2098,7 @@ app.post('/api/marketplaces', (req, res) => {
 app.put('/api/marketplaces/:id', (req, res) => {
   const { id } = req.params;
   const { name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url } = req.body;
-  
+
   // First update the marketplaces table
   db.run(`UPDATE marketplaces SET 
     name = ?, 
@@ -2110,14 +2112,14 @@ app.put('/api/marketplaces/:id', (req, res) => {
     enable_single_page = COALESCE(?, enable_single_page),
     redirect_url = ?,
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`, 
-    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, id], 
-    function(err) {
+    WHERE id = ?`,
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, id],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       // Also update the related main_marketplaces_sections entry if it exists
       // This ensures the homepage shows updated data immediately
       db.run(`UPDATE main_marketplaces_sections SET 
@@ -2125,9 +2127,9 @@ app.put('/api/marketplaces/:id', (req, res) => {
         description = COALESCE(?, description),
         category = COALESCE(?, category),
         updated_at = CURRENT_TIMESTAMP
-        WHERE marketplace_id = ?`, 
+        WHERE marketplace_id = ?`,
         [name, description, category, id],
-        function(updateErr) {
+        function (updateErr) {
           if (updateErr) {
             console.error('Error updating main_marketplaces_sections:', updateErr);
             // Don't fail the request if this update fails, just log it
@@ -2140,30 +2142,30 @@ app.put('/api/marketplaces/:id', (req, res) => {
 // Delete marketplace
 app.delete('/api/marketplaces/:id', (req, res) => {
   const { id } = req.params;
-  
+
   // First delete all section items for this marketplace's sections
   db.run(`DELETE FROM section_items WHERE section_id IN (SELECT id FROM marketplace_sections WHERE marketplace_id = ?)`, [id], (err) => {
     if (err) {
       console.error('Error deleting section items:', err.message);
       // Continue with deletion even if section items fail
     }
-    
+
     // Then delete all sections for this marketplace
     db.run(`DELETE FROM marketplace_sections WHERE marketplace_id = ?`, [id], (err) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       // Delete the corresponding main_marketplaces_sections entry (card on marketplace main page)
       db.run(`DELETE FROM main_marketplaces_sections WHERE marketplace_id = ?`, [id], (deleteMainErr) => {
         if (deleteMainErr) {
           console.error('Error deleting main_marketplaces_sections entry:', deleteMainErr.message);
           // Continue with marketplace deletion even if main section deletion fails
         }
-        
+
         // Finally delete the marketplace
-        db.run(`DELETE FROM marketplaces WHERE id = ?`, [id], function(err) {
+        db.run(`DELETE FROM marketplaces WHERE id = ?`, [id], function (err) {
           if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -2178,7 +2180,7 @@ app.delete('/api/marketplaces/:id', (req, res) => {
 // Toggle marketplace visibility
 app.put('/api/marketplaces/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
-  
+
   // Get current visibility status
   db.get('SELECT is_visible FROM marketplaces WHERE id = ?', [id], (err, marketplace) => {
     if (err) {
@@ -2189,19 +2191,19 @@ app.put('/api/marketplaces/:id/toggle-visibility', (req, res) => {
       res.status(404).json({ error: 'Marketplace not found' });
       return;
     }
-    
+
     const newVisibility = marketplace.is_visible ? 0 : 1;
-    
+
     // Update visibility
-    db.run('UPDATE marketplaces SET is_visible = ? WHERE id = ?', [newVisibility, id], function(err) {
+    db.run('UPDATE marketplaces SET is_visible = ? WHERE id = ?', [newVisibility, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ 
-        message: `Marketplace ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+      res.json({
+        message: `Marketplace ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -2212,29 +2214,29 @@ function duplicateSectionItems(originalMarketplaceId, sectionIdMap, newMarketpla
   // Get all section items for the original marketplace
   const originalSectionIds = Array.from(sectionIdMap.keys());
   const placeholders = originalSectionIds.map(() => '?').join(',');
-  
+
   db.all(`SELECT * FROM section_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
     if (err) {
       console.error('Error fetching section items:', err.message);
-      res.json({ 
-        message: 'Marketplace duplicated successfully (sections only)', 
+      res.json({
+        message: 'Marketplace duplicated successfully (sections only)',
         id: newMarketplaceId,
         warning: 'Section items could not be duplicated'
       });
       return;
     }
-    
+
     if (items.length === 0) {
       // Create main page section for the duplicated marketplace
       createMainMarketplaceSection(newMarketplaceId, marketplaceName, marketplaceDescription, () => {
-        res.json({ 
-          message: 'Marketplace duplicated successfully', 
+        res.json({
+          message: 'Marketplace duplicated successfully',
           id: newMarketplaceId
         });
       });
       return;
     }
-    
+
     let completed = 0;
     items.forEach((item) => {
       const newSectionId = sectionIdMap.get(item.section_id);
@@ -2242,18 +2244,18 @@ function duplicateSectionItems(originalMarketplaceId, sectionIdMap, newMarketpla
         console.error('Could not find new section ID for item:', item.id);
         completed++;
         if (completed === items.length) {
-          res.json({ 
-            message: 'Marketplace duplicated successfully', 
+          res.json({
+            message: 'Marketplace duplicated successfully',
             id: newMarketplaceId,
             warning: 'Some section items could not be duplicated'
           });
         }
         return;
       }
-      
-      db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [newSectionId, item.item_type, item.title, item.description, item.icon, item.value, item.label, item.features, item.order_index], 
-        function(err) {
+
+      db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newSectionId, item.item_type, item.title, item.description, item.icon, item.value, item.label, item.features, item.order_index],
+        function (err) {
           if (err) {
             console.error('Error duplicating section item:', err.message);
           }
@@ -2261,8 +2263,8 @@ function duplicateSectionItems(originalMarketplaceId, sectionIdMap, newMarketpla
           if (completed === items.length) {
             // Create main page section for the duplicated marketplace
             createMainMarketplaceSection(newMarketplaceId, marketplaceName, marketplaceDescription, () => {
-              res.json({ 
-                message: 'Marketplace duplicated successfully', 
+              res.json({
+                message: 'Marketplace duplicated successfully',
                 id: newMarketplaceId
               });
             });
@@ -2276,14 +2278,14 @@ function duplicateSectionItems(originalMarketplaceId, sectionIdMap, newMarketpla
 function findUniqueRoute(baseRoute, callback) {
   let attemptRoute = baseRoute;
   let attemptNumber = 1;
-  
+
   function checkRoute() {
     db.get('SELECT id FROM marketplaces WHERE route = ?', [attemptRoute], (err, existing) => {
       if (err) {
         callback(err, null);
         return;
       }
-      
+
       if (!existing) {
         // Route is available
         callback(null, attemptRoute);
@@ -2295,7 +2297,7 @@ function findUniqueRoute(baseRoute, callback) {
       }
     });
   }
-  
+
   checkRoute();
 }
 
@@ -2303,7 +2305,7 @@ function findUniqueRoute(baseRoute, callback) {
 app.post('/api/marketplaces/:id/duplicate', (req, res) => {
   const { id } = req.params;
   const { newName, newRoute, name } = req.body; // Accept both 'name' and 'newName' for compatibility
-  
+
   // Get the original marketplace
   db.get('SELECT * FROM marketplaces WHERE id = ?', [id], (err, originalMarketplace) => {
     if (err) {
@@ -2314,33 +2316,33 @@ app.post('/api/marketplaces/:id/duplicate', (req, res) => {
       res.status(404).json({ error: 'Marketplace not found' });
       return;
     }
-    
+
     // Get the next order index
     db.get('SELECT MAX(order_index) as max_order FROM marketplaces', (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const nextOrder = (result.max_order || -1) + 1;
-      
+
       // Generate a proper route for the duplicate (accept both 'name' and 'newName')
       const duplicateName = newName || name || `${originalMarketplace.name} (Copy)`;
-      
+
       // Create the duplicate marketplace with a temporary route (will be updated after we get the ID)
       // Use a placeholder route that won't conflict
       const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      db.run(`INSERT INTO marketplaces (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalMarketplace.description, originalMarketplace.category, originalMarketplace.color, originalMarketplace.border_color, tempRoute, nextOrder, originalMarketplace.gradient_start, originalMarketplace.gradient_end], 
-        function(err) {
+
+      db.run(`INSERT INTO marketplaces (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [duplicateName, originalMarketplace.description, originalMarketplace.category, originalMarketplace.color, originalMarketplace.border_color, tempRoute, nextOrder, originalMarketplace.gradient_start, originalMarketplace.gradient_end],
+        function (err) {
           if (err) {
             res.status(500).json({ error: err.message });
             return;
           }
-          
+
           const newMarketplaceId = this.lastID;
-          
+
           // Update the route to the correct format: /marketplaces/{id}
           const correctRoute = `/marketplaces/${newMarketplaceId}`;
           db.run(`UPDATE marketplaces SET route = ? WHERE id = ?`, [correctRoute, newMarketplaceId], (updateErr) => {
@@ -2348,49 +2350,49 @@ app.post('/api/marketplaces/:id/duplicate', (req, res) => {
               console.error('Error updating route:', updateErr.message);
               // Continue anyway - the marketplace was created successfully
             }
-            
+
             // Duplicate all sections
             db.all('SELECT * FROM marketplace_sections WHERE marketplace_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
               if (err) {
                 res.status(500).json({ error: err.message });
                 return;
               }
-              
+
               if (sections.length === 0) {
                 // Create main page section even if no sections exist
                 createMainMarketplaceSection(newMarketplaceId, duplicateName, originalMarketplace.description, () => {
-                  res.json({ 
-                    message: 'Marketplace duplicated successfully', 
+                  res.json({
+                    message: 'Marketplace duplicated successfully',
                     id: newMarketplaceId,
-                    changes: this.changes 
+                    changes: this.changes
                   });
                 });
                 return;
               }
-              
+
               let completed = 0;
               const sectionIdMap = new Map(); // Map old section IDs to new section IDs
-              
+
               sections.forEach((section, index) => {
-                db.run(`INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`, 
-                  [newMarketplaceId, section.section_type, section.title, section.content, section.order_index, section.is_visible], 
-                  function(err) {
+                db.run(`INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
+                  [newMarketplaceId, section.section_type, section.title, section.content, section.order_index, section.is_visible],
+                  function (err) {
                     if (err) {
                       console.error('Error duplicating section:', err.message);
                       completed++;
                       if (completed === sections.length) {
-                        res.json({ 
-                          message: 'Marketplace duplicated successfully', 
+                        res.json({
+                          message: 'Marketplace duplicated successfully',
                           id: newMarketplaceId,
-                          changes: this.changes 
+                          changes: this.changes
                         });
                       }
                       return;
                     }
-                    
+
                     const newSectionId = this.lastID;
                     sectionIdMap.set(section.id, newSectionId);
-                    
+
                     completed++;
                     if (completed === sections.length) {
                       // Now duplicate all section items
@@ -2400,7 +2402,7 @@ app.post('/api/marketplaces/:id/duplicate', (req, res) => {
               });
             });
           });
-      });
+        });
     });
   });
 });
@@ -2439,23 +2441,23 @@ app.get('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
 app.post('/api/marketplaces/:id/sections', (req, res) => {
   const { id } = req.params;
   const { section_type, title, content, media_type, media_source, media_url } = req.body;
-  
+
   // Validate media fields if section_type is media_banner
   let finalMediaUrl = null;
-  
+
   if (section_type === 'media_banner') {
     if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
       return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
     }
-    
+
     if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
       return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
     }
-    
+
     if (!media_url) {
       return res.status(400).json({ error: 'media_url is required for media_banner sections' });
     }
-    
+
     // Validate YouTube URL if source is youtube
     if (media_source === 'youtube') {
       const youtubeValidation = validateYouTubeUrl(media_url);
@@ -2470,7 +2472,7 @@ app.post('/api/marketplaces/:id/sections', (req, res) => {
   } else {
     finalMediaUrl = media_url || null;
   }
-  
+
   // Get the order index
   const getOrderIndex = () => {
     return new Promise((resolve, reject) => {
@@ -2492,19 +2494,19 @@ app.post('/api/marketplaces/:id/sections', (req, res) => {
       }
     });
   };
-  
+
   getOrderIndex().then(finalOrderIndex => {
-    db.run(`INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [id, section_type, title, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], 
-      function(err) {
+    db.run(`INSERT INTO marketplace_sections (marketplace_id, section_type, title, content, order_index, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, section_type, title, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Section created successfully', 
+        res.json({
+          message: 'Section created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   }).catch(err => {
@@ -2515,52 +2517,52 @@ app.post('/api/marketplaces/:id/sections', (req, res) => {
 // Update section
 app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { 
+  const {
     section_type, title, content, is_visible, media_type, media_source, media_url, icon,
     pricing_table_header_app_name, pricing_table_header_specs, pricing_table_header_features,
     pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
     pricing_table_header_yearly, pricing_table_header_action,
     show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
   } = req.body;
-  
+
   // First, get the existing section to check for file cleanup
   db.get('SELECT * FROM marketplace_sections WHERE id = ? AND marketplace_id = ?', [sectionId, id], (err, existingSection) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!existingSection) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Validate and process media fields if section_type is media_banner
     let finalMediaType = media_type;
     let finalMediaSource = media_source;
     let finalMediaUrl = media_url;
     let oldFileToDelete = null;
-    
+
     if (section_type === 'media_banner') {
       if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
         return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
       }
-      
+
       if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
         return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
       }
-      
+
       if (!media_url) {
         return res.status(400).json({ error: 'media_url is required for media_banner sections' });
       }
-      
+
       // If media_source changed from upload to youtube, or media_url changed for upload, delete old file
       if (existingSection.media_source === 'upload' && existingSection.media_url) {
         if (media_source !== 'upload' || media_url !== existingSection.media_url) {
           oldFileToDelete = existingSection.media_url;
         }
       }
-      
+
       // Validate YouTube URL if source is youtube
       if (media_source === 'youtube') {
         const youtubeValidation = validateYouTubeUrl(media_url);
@@ -2579,7 +2581,7 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
       finalMediaSource = null;
       finalMediaUrl = null;
     }
-    
+
     // Delete old file if needed
     const deleteOldFile = () => {
       if (oldFileToDelete) {
@@ -2587,11 +2589,11 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
       }
       return Promise.resolve({ success: true });
     };
-    
+
     // Build dynamic query based on provided fields
     let updateFields = [];
     let values = [];
-    
+
     if (section_type !== undefined) {
       updateFields.push('section_type = ?');
       values.push(section_type);
@@ -2675,15 +2677,15 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
       updateFields.push('show_yearly_column = ?');
       values.push(show_yearly_column ? 1 : 0);
     }
-    
+
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(sectionId, id);
-    
+
     const query = `UPDATE marketplace_sections SET ${updateFields.join(', ')} WHERE id = ? AND marketplace_id = ?`;
-    
+
     // Update the section
     deleteOldFile().then(() => {
-      db.run(query, values, function(updateErr) {
+      db.run(query, values, function (updateErr) {
         if (updateErr) {
           res.status(500).json({ error: updateErr.message });
           return;
@@ -2693,7 +2695,7 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
     }).catch(deleteErr => {
       console.error('Error deleting old file:', deleteErr);
       // Continue with update even if file deletion fails
-      db.run(query, values, function(updateErr) {
+      db.run(query, values, function (updateErr) {
         if (updateErr) {
           res.status(500).json({ error: updateErr.message });
           return;
@@ -2707,7 +2709,7 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
 // Delete section
 app.delete('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  
+
   // Get section info to delete associated file if it's an uploaded file
   db.get(`
     SELECT media_source, media_url, section_type
@@ -2718,20 +2720,20 @@ app.delete('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Delete associated file if it's an uploaded file for media_banner section
-    const deleteFilePromise = (section.section_type === 'media_banner' && section.media_source === 'upload' && section.media_url) 
+    const deleteFilePromise = (section.section_type === 'media_banner' && section.media_source === 'upload' && section.media_url)
       ? deleteUploadedFile(section.media_url)
       : Promise.resolve({ success: true });
-    
+
     // Delete the section
     deleteFilePromise.then(() => {
-      db.run(`DELETE FROM marketplace_sections WHERE id = ? AND marketplace_id = ?`, [sectionId, id], function(deleteErr) {
+      db.run(`DELETE FROM marketplace_sections WHERE id = ? AND marketplace_id = ?`, [sectionId, id], function (deleteErr) {
         if (deleteErr) {
           res.status(500).json({ error: deleteErr.message });
           return;
@@ -2741,7 +2743,7 @@ app.delete('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
     }).catch(deleteFileErr => {
       console.error('Error deleting file:', deleteFileErr);
       // Continue with section deletion even if file deletion fails
-      db.run(`DELETE FROM marketplace_sections WHERE id = ? AND marketplace_id = ?`, [sectionId, id], function(deleteErr) {
+      db.run(`DELETE FROM marketplace_sections WHERE id = ? AND marketplace_id = ?`, [sectionId, id], function (deleteErr) {
         if (deleteErr) {
           res.status(500).json({ error: deleteErr.message });
           return;
@@ -2770,28 +2772,28 @@ app.get('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
 app.post('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
   const { sectionId } = req.params;
   const { item_type, title, description, icon, value, label, features, content, is_visible } = req.body;
-  
+
   // Get next order index
   db.get('SELECT MAX(order_index) as max_order FROM section_items WHERE section_id = ?', [sectionId], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || -1) + 1;
     const visibility = is_visible !== undefined ? is_visible : 1; // Default to visible
-    
-    db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, content, is_visible, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [sectionId, item_type, title, description, icon, value, label, features, content || null, visibility, nextOrder], 
-      function(err) {
+
+    db.run(`INSERT INTO section_items (section_id, item_type, title, description, icon, value, label, features, content, is_visible, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [sectionId, item_type, title, description, icon, value, label, features, content || null, visibility, nextOrder],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Section item created successfully', 
+        res.json({
+          message: 'Section item created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -2801,14 +2803,14 @@ app.post('/api/marketplaces/:id/sections/:sectionId/items', (req, res) => {
 app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
   const { item_type, title, description, icon, value, label, features, is_visible, content } = req.body;
-  
+
   console.log(`[PUT /api/marketplaces/:id/sections/:sectionId/items/:itemId] Updating item ${itemId} in section ${sectionId}`);
   console.log('Request body:', { item_type, title, description, icon, value, label, features, is_visible, content: content ? (content.length > 100 ? content.substring(0, 100) + '...' : content) : null });
-  
+
   // Build dynamic update query
   const updateFields = [];
   const values = [];
-  
+
   if (item_type !== undefined) {
     updateFields.push('item_type = ?');
     values.push(item_type);
@@ -2848,29 +2850,29 @@ app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) =>
     updateFields.push('is_visible = ?');
     values.push(is_visible);
   }
-  
+
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
   values.push(itemId, sectionId);
-  
+
   const query = `UPDATE section_items SET ${updateFields.join(', ')} WHERE id = ? AND section_id = ?`;
   console.log('[PUT] SQL Query:', query);
   console.log('[PUT] Values:', values.map((v, i) => i < values.length - 2 ? (typeof v === 'string' && v.length > 50 ? v.substring(0, 50) + '...' : v) : v));
-  
-  db.run(query, values, function(err) {
+
+  db.run(query, values, function (err) {
     if (err) {
       console.error('[PUT] Database error:', err);
       res.status(500).json({ error: err.message });
       return;
     }
     console.log(`[PUT] Update successful. Changes: ${this.changes}`);
-    
+
     // Verify the content was saved by retrieving it
     db.get('SELECT content FROM section_items WHERE id = ?', [itemId], (err, row) => {
       if (!err && row) {
         console.log('[PUT] Verified saved content:', row.content ? (row.content.length > 100 ? row.content.substring(0, 100) + '...' : row.content) : 'NULL');
       }
     });
-    
+
     res.json({ message: 'Section item updated successfully', changes: this.changes });
   });
 });
@@ -2878,8 +2880,8 @@ app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) =>
 // Delete section item
 app.delete('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
-  
-  db.run(`DELETE FROM section_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function(err) {
+
+  db.run(`DELETE FROM section_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -2925,18 +2927,18 @@ app.get('/api/products/with-cards', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!products || products.length === 0) {
       return res.json([]);
     }
-    
+
     // Get all existing card entries
     db.all('SELECT * FROM main_products_sections', (err, cardEntries) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       // Create a map of product_id -> card entry
       const cardMap = new Map();
       cardEntries.forEach(card => {
@@ -2944,20 +2946,20 @@ app.get('/api/products/with-cards', (req, res) => {
           cardMap.set(card.product_id, card);
         }
       });
-      
+
       // Get max order index for new entries
-      const maxOrder = cardEntries.length > 0 
-        ? Math.max(...cardEntries.map(c => c.order_index || 0)) 
+      const maxOrder = cardEntries.length > 0
+        ? Math.max(...cardEntries.map(c => c.order_index || 0))
         : -1;
-      
+
       let processedCount = 0;
       const productsWithCards = [];
       const cardsToCreate = [];
-      
+
       // Process each product
       products.forEach((product, index) => {
         let cardEntry = cardMap.get(product.id);
-        
+
         // If card doesn't exist, prepare to create it
         if (!cardEntry) {
           const newOrder = maxOrder + index + 1;
@@ -2968,7 +2970,7 @@ app.get('/api/products/with-cards', (req, res) => {
             category: product.category || null,
             order_index: newOrder
           });
-          
+
           // Use temporary card entry for response
           cardEntry = {
             id: null,
@@ -2986,7 +2988,7 @@ app.get('/api/products/with-cards', (req, res) => {
             button_text: null
           };
         }
-        
+
         // Parse features if it's a JSON string
         let features = [];
         if (cardEntry.features) {
@@ -3000,7 +3002,7 @@ app.get('/api/products/with-cards', (req, res) => {
             features = [];
           }
         }
-        
+
         productsWithCards.push({
           product: product,
           card: {
@@ -3019,10 +3021,10 @@ app.get('/api/products/with-cards', (req, res) => {
             button_text: cardEntry.button_text
           }
         });
-        
+
         processedCount++;
       });
-      
+
       // Create missing card entries
       if (cardsToCreate.length > 0) {
         let createdCount = 0;
@@ -3036,12 +3038,12 @@ app.get('/api/products/with-cards', (req, res) => {
             cardData.description,
             cardData.category,
             cardData.order_index
-          ], function(createErr) {
+          ], function (createErr) {
             if (createErr) {
               console.error('Error auto-creating card entry:', createErr);
             } else {
               // Update the card id in the response
-              const matchingItem = productsWithCards.find(item => 
+              const matchingItem = productsWithCards.find(item =>
                 item.card.product_id === cardData.product_id && item.card.id === null
               );
               if (matchingItem) {
@@ -3053,12 +3055,12 @@ app.get('/api/products/with-cards', (req, res) => {
               // All created, fetch updated cards to get their IDs
               const productIds = cardsToCreate.map(c => c.product_id);
               const placeholders = productIds.map(() => '?').join(',');
-              db.all(`SELECT * FROM main_products_sections WHERE product_id IN (${placeholders})`, 
+              db.all(`SELECT * FROM main_products_sections WHERE product_id IN (${placeholders})`,
                 productIds,
                 (fetchErr, newCards) => {
                   if (!fetchErr && newCards) {
                     newCards.forEach(newCard => {
-                      const matchingItem = productsWithCards.find(item => 
+                      const matchingItem = productsWithCards.find(item =>
                         item.card.product_id === newCard.product_id && item.card.id === null
                       );
                       if (matchingItem) {
@@ -3112,19 +3114,19 @@ app.get('/api/products/categories', (req, res) => {
 // Add new product category
 app.post('/api/products/categories', (req, res) => {
   const { name } = req.body;
-  
+
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Category name is required' });
   }
-  
+
   // Get max order_index
   db.get('SELECT MAX(order_index) as max_order FROM product_categories', (err, row) => {
     const nextOrder = (row?.max_order || -1) + 1;
-    
+
     db.run(
       'INSERT INTO product_categories (name, order_index) VALUES (?, ?)',
       [name.trim(), nextOrder],
-      function(err) {
+      function (err) {
         if (err) {
           if (err.message.includes('UNIQUE constraint')) {
             return res.status(400).json({ error: 'Category already exists' });
@@ -3140,8 +3142,8 @@ app.post('/api/products/categories', (req, res) => {
 // Delete product category
 app.delete('/api/products/categories/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('DELETE FROM product_categories WHERE id = ?', [id], function(err) {
+
+  db.run('DELETE FROM product_categories WHERE id = ?', [id], function (err) {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -3153,15 +3155,15 @@ app.delete('/api/products/categories/:id', (req, res) => {
 app.put('/api/products/categories/:id', (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
-  
+
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Category name is required' });
   }
-  
+
   db.run(
     'UPDATE product_categories SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [name.trim(), id],
-    function(err) {
+    function (err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint')) {
           return res.status(400).json({ error: 'Category name already exists' });
@@ -3177,18 +3179,18 @@ app.put('/api/products/categories/:id', (req, res) => {
 // IMPORTANT: This route must be defined AFTER /api/products/with-cards to avoid route conflicts
 app.get('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  
+
   // Skip if id is a special route keyword (should be handled by other routes)
   if (id === 'with-cards' || id === 'categories' || id === 'by-route') {
     // This shouldn't happen if routes are in correct order, but just in case
     return res.status(404).json({ error: 'Route not found' });
   }
-  
+
   // Check if id is numeric (product ID) or not
   if (isNaN(id)) {
     return res.status(404).json({ error: 'Product not found' });
   }
-  
+
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -3206,7 +3208,7 @@ app.get('/api/products/:id', (req, res) => {
 app.get('/api/products/by-route/:route', (req, res) => {
   // Decode the route parameter (Express should do this automatically, but be safe)
   let route = decodeURIComponent(req.params.route);
-  
+
   // Try multiple route formats
   const routeVariations = [
     route, // Exact match
@@ -3215,13 +3217,13 @@ app.get('/api/products/by-route/:route', (req, res) => {
     `/products/${route}`, // With /products/ prefix
     route.startsWith('/') ? `/products${route}` : `/products/${route}` // Add /products/ if missing
   ];
-  
+
   // Remove duplicates
   const uniqueRoutes = [...new Set(routeVariations)];
-  
+
   let attempts = 0;
   const maxAttempts = uniqueRoutes.length;
-  
+
   function tryRoute(routeToTry) {
     db.get('SELECT * FROM products WHERE route = ? AND is_visible = 1', [routeToTry], (err, product) => {
       if (err) {
@@ -3234,12 +3236,12 @@ app.get('/api/products/by-route/:route', (req, res) => {
         tryRoute(uniqueRoutes[attempts]);
         return;
       }
-      
+
       if (product) {
         res.json(product);
         return;
       }
-      
+
       // Product not found with this route variation
       attempts++;
       if (attempts >= maxAttempts) {
@@ -3247,12 +3249,12 @@ app.get('/api/products/by-route/:route', (req, res) => {
         res.status(404).json({ error: 'Product not found' });
         return;
       }
-      
+
       // Try next variation
       tryRoute(uniqueRoutes[attempts]);
     });
   }
-  
+
   // Start with first route variation
   tryRoute(uniqueRoutes[0]);
 });
@@ -3261,7 +3263,7 @@ app.get('/api/products/by-route/:route', (req, res) => {
 app.get('/api/products/by-route/:route/sections', (req, res) => {
   // Decode the route parameter
   let route = decodeURIComponent(req.params.route);
-  
+
   // Try multiple route formats
   const routeVariations = [
     route, // Exact match
@@ -3270,13 +3272,13 @@ app.get('/api/products/by-route/:route/sections', (req, res) => {
     `/products/${route}`, // With /products/ prefix
     route.startsWith('/') ? `/products${route}` : `/products/${route}` // Add /products/ if missing
   ];
-  
+
   // Remove duplicates
   const uniqueRoutes = [...new Set(routeVariations)];
-  
+
   let attempts = 0;
   const maxAttempts = uniqueRoutes.length;
-  
+
   function tryRoute(routeToTry) {
     db.get('SELECT id FROM products WHERE route = ? AND is_visible = 1', [routeToTry], (err, product) => {
       if (err) {
@@ -3289,7 +3291,7 @@ app.get('/api/products/by-route/:route/sections', (req, res) => {
         tryRoute(uniqueRoutes[attempts]);
         return;
       }
-      
+
       if (product) {
         // Then get sections for this product
         db.all(`
@@ -3305,7 +3307,7 @@ app.get('/api/products/by-route/:route/sections', (req, res) => {
         });
         return;
       }
-      
+
       // Product not found with this route variation
       attempts++;
       if (attempts >= maxAttempts) {
@@ -3313,12 +3315,12 @@ app.get('/api/products/by-route/:route/sections', (req, res) => {
         res.status(404).json({ error: 'Product not found' });
         return;
       }
-      
+
       // Try next variation
       tryRoute(uniqueRoutes[attempts]);
     });
   }
-  
+
   // Start with first route variation
   tryRoute(uniqueRoutes[0]);
 });
@@ -3332,14 +3334,14 @@ function createMainProductSection(productId, productName, productDescription, ca
       callback(); // Continue even if this fails
       return;
     }
-    
+
     const nextOrder = (result.max_order || 0) + 1;
-    
+
     // Insert new main page section
     db.run(`
       INSERT INTO main_products_sections (product_id, title, description, is_visible, order_index, button_text) 
       VALUES (?, ?, ?, 1, ?, 'Explore Product')
-    `, [productId, productName, productDescription, nextOrder], function(err) {
+    `, [productId, productName, productDescription, nextOrder], function (err) {
       if (err) {
         console.error('Error creating main products section:', err.message);
       } else {
@@ -3353,7 +3355,7 @@ function createMainProductSection(productId, productName, productDescription, ca
 // Create new product
 app.post('/api/products', (req, res) => {
   const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null, icon = null } = req.body;
-  
+
   // Your 4 perfect colors (only these will be used)
   const gradientColors = [
     { start: 'blue', end: 'blue-100' },      // Financial Services
@@ -3361,37 +3363,37 @@ app.post('/api/products', (req, res) => {
     { start: 'green', end: 'green-100' },    // Retail
     { start: 'orange', end: 'orange-100' }   // Healthcare
   ];
-  
+
   // Get the next order index and count existing products for gradient assignment
   db.get('SELECT MAX(order_index) as max_order, COUNT(*) as total_count FROM products', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || -1) + 1;
     const totalCount = result.total_count || 0;
-    
+
     // Assign gradient color based on total count (cycles through palette)
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
-    
-    db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, enable_single_page, redirect_url, icon], 
-      function(err) {
+
+    db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, description, category, color, border_color, route, nextOrder, enable_single_page, redirect_url, icon],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
+
         const newProductId = this.lastID;
-        
+
         // Auto-create corresponding entry in main_products_sections to keep them interlinked
         createMainProductSection(newProductId, name, description, () => {
-        res.json({ 
-          message: 'Product created successfully', 
+          res.json({
+            message: 'Product created successfully',
             id: newProductId,
-          changes: this.changes
+            changes: this.changes
           });
         });
       });
@@ -3402,19 +3404,19 @@ app.post('/api/products', (req, res) => {
 app.put('/api/products/:id', (req, res) => {
   const { id } = req.params;
   const { name, description, category, color, border_color, route, enable_single_page, redirect_url, icon } = req.body;
-  
+
   // Get current product to check if name changed
   db.get('SELECT name, route FROM products WHERE id = ?', [id], (err, currentProduct) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!currentProduct) {
       res.status(404).json({ error: 'Product not found' });
       return;
     }
-    
+
     // Sanitize route if provided - remove /products/ prefix and leading/trailing slashes
     // Only update route if explicitly provided (not undefined and not missing from request)
     // If route is not in req.body at all, preserve existing route
@@ -3427,7 +3429,7 @@ app.put('/api/products/:id', (req, res) => {
       if (sanitizedRoute === '' || sanitizedRoute === '-') {
         sanitizedRoute = undefined;
       }
-      
+
       // If route is provided, check if it's unique (unless it's the same as current route)
       if (sanitizedRoute && sanitizedRoute !== currentProduct.route) {
         db.get('SELECT id FROM products WHERE route = ? AND id != ?', [sanitizedRoute, id], (routeErr, existing) => {
@@ -3435,19 +3437,19 @@ app.put('/api/products/:id', (req, res) => {
             res.status(500).json({ error: routeErr.message });
             return;
           }
-          
+
           if (existing) {
             // Route already exists, append a number to make it unique
             let attemptRoute = sanitizedRoute;
             let attemptNumber = 1;
-            
+
             function findUniqueRoute() {
               db.get('SELECT id FROM products WHERE route = ? AND id != ?', [attemptRoute, id], (checkErr, checkExisting) => {
                 if (checkErr) {
                   res.status(500).json({ error: checkErr.message });
                   return;
                 }
-                
+
                 if (!checkExisting) {
                   // Route is unique, use it
                   sanitizedRoute = attemptRoute;
@@ -3460,7 +3462,7 @@ app.put('/api/products/:id', (req, res) => {
                 }
               });
             }
-            
+
             findUniqueRoute();
           } else {
             // Route is unique, continue
@@ -3475,7 +3477,7 @@ app.put('/api/products/:id', (req, res) => {
       // No route provided, continue with update (preserve existing route)
       continueUpdate();
     }
-    
+
     function continueUpdate() {
       // Only update route if explicitly provided (not undefined)
       // If route is undefined, preserve existing route (don't include in UPDATE)
@@ -3491,30 +3493,30 @@ app.put('/api/products/:id', (req, res) => {
         redirect_url = ?,
         icon = ?,
         updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?`, 
+        WHERE id = ?`,
         sanitizedRoute !== undefined
           ? [name, description, category, color, border_color, sanitizedRoute, enable_single_page, redirect_url, icon, id]
-          : [name, description, category, color, border_color, enable_single_page, redirect_url, icon, id], 
-        function(err) {
+          : [name, description, category, color, border_color, enable_single_page, redirect_url, icon, id],
+        function (err) {
           if (err) {
             res.status(500).json({ error: err.message });
             return;
           }
-          
+
           // Also update the related main_products_sections entry if it exists
           // This ensures the homepage shows updated data immediately
           db.run(`UPDATE main_products_sections SET 
             title = COALESCE(?, title),
             description = COALESCE(?, description),
             updated_at = CURRENT_TIMESTAMP
-            WHERE product_id = ?`, 
+            WHERE product_id = ?`,
             [name, description, id],
-            function(updateErr) {
+            function (updateErr) {
               if (updateErr) {
                 console.error('Error updating main_products_sections:', updateErr);
                 // Don't fail the request if this update fails, just log it
               }
-              
+
               // Update hero section title item if product name changed
               // This ensures the hero section displays the updated product name
               db.get('SELECT id FROM product_sections WHERE product_id = ? AND section_type = ?', [id, 'hero'], (heroErr, heroSection) => {
@@ -3523,7 +3525,7 @@ app.put('/api/products/:id', (req, res) => {
                   db.run(`UPDATE product_items SET 
                     title = ?,
                     description = COALESCE(?, description)
-                    WHERE section_id = ? AND item_type = ?`, 
+                    WHERE section_id = ? AND item_type = ?`,
                     [name, description, heroSection.id, 'title'],
                     (itemErr) => {
                       if (itemErr) {
@@ -3532,12 +3534,12 @@ app.put('/api/products/:id', (req, res) => {
                       }
                     }
                   );
-                  
+
                   // Also update the hero section title
                   db.run(`UPDATE product_sections SET 
                     title = ?,
                     description = COALESCE(?, description)
-                    WHERE id = ?`, 
+                    WHERE id = ?`,
                     [name, description, heroSection.id],
                     (sectionErr) => {
                       if (sectionErr) {
@@ -3547,45 +3549,45 @@ app.put('/api/products/:id', (req, res) => {
                     }
                   );
                 }
-                
+
                 res.json({ message: 'Product updated successfully', changes: this.changes });
               });
             });
         });
-      }
-    });
+    }
   });
+});
 
 // Delete product
 app.delete('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  
+
   // First delete all product items for this product's sections
   db.run(`DELETE FROM product_items WHERE section_id IN (SELECT id FROM product_sections WHERE product_id = ?)`, [id], (err) => {
     if (err) {
       console.error('Error deleting product items:', err.message);
       // Continue with deletion even if product items fail
     }
-    
+
     // Then delete all sections for this product
     db.run(`DELETE FROM product_sections WHERE product_id = ?`, [id], (err) => {
       if (err) {
         console.error('Error deleting product sections:', err.message);
       }
-      
+
       // Also delete from main_products_sections
       db.run(`DELETE FROM main_products_sections WHERE product_id = ?`, [id], (err) => {
         if (err) {
           console.error('Error deleting main_products_sections entry:', err.message);
-      }
-      
-      // Finally delete the product
-      db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
         }
-        res.json({ message: 'Product deleted successfully', changes: this.changes });
+
+        // Finally delete the product
+        db.run(`DELETE FROM products WHERE id = ?`, [id], function (err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ message: 'Product deleted successfully', changes: this.changes });
         });
       });
     });
@@ -3595,7 +3597,7 @@ app.delete('/api/products/:id', (req, res) => {
 // Toggle product visibility
 app.put('/api/products/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
-  
+
   // Get current visibility status
   db.get('SELECT is_visible FROM products WHERE id = ?', [id], (err, product) => {
     if (err) {
@@ -3606,19 +3608,19 @@ app.put('/api/products/:id/toggle-visibility', (req, res) => {
       res.status(404).json({ error: 'Product not found' });
       return;
     }
-    
+
     const newVisibility = product.is_visible ? 0 : 1;
-    
+
     // Update visibility
-    db.run('UPDATE products SET is_visible = ? WHERE id = ?', [newVisibility, id], function(err) {
+    db.run('UPDATE products SET is_visible = ? WHERE id = ?', [newVisibility, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ 
-        message: `Product ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+      res.json({
+        message: `Product ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -3629,29 +3631,29 @@ function duplicateProductItems(originalProductId, sectionIdMap, newProductId, pr
   // Get all product items for the original product
   const originalSectionIds = Array.from(sectionIdMap.keys());
   const placeholders = originalSectionIds.map(() => '?').join(',');
-  
+
   db.all(`SELECT * FROM product_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
     if (err) {
       console.error('Error fetching product items:', err.message);
-      res.json({ 
-        message: 'Product duplicated successfully (sections only)', 
+      res.json({
+        message: 'Product duplicated successfully (sections only)',
         id: newProductId,
         warning: 'Product items could not be duplicated'
       });
       return;
     }
-    
+
     if (items.length === 0) {
       // Create main page section for the duplicated product
       createMainProductSection(newProductId, productName, productDescription, () => {
-        res.json({ 
-          message: 'Product duplicated successfully', 
+        res.json({
+          message: 'Product duplicated successfully',
           id: newProductId
         });
       });
       return;
     }
-    
+
     let completed = 0;
     items.forEach((item) => {
       const newSectionId = sectionIdMap.get(item.section_id);
@@ -3659,18 +3661,18 @@ function duplicateProductItems(originalProductId, sectionIdMap, newProductId, pr
         console.error('Could not find new section ID for item:', item.id);
         completed++;
         if (completed === items.length) {
-          res.json({ 
-            message: 'Product duplicated successfully', 
+          res.json({
+            message: 'Product duplicated successfully',
             id: newProductId,
             warning: 'Some product items could not be duplicated'
           });
         }
         return;
       }
-      
-      db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [newSectionId, item.item_type, item.title, item.description, item.content || null, item.icon, item.value, item.label, item.features, item.order_index, item.is_visible || 1], 
-        function(err) {
+
+      db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newSectionId, item.item_type, item.title, item.description, item.content || null, item.icon, item.value, item.label, item.features, item.order_index, item.is_visible || 1],
+        function (err) {
           if (err) {
             console.error('Error duplicating product item:', err.message);
           }
@@ -3678,8 +3680,8 @@ function duplicateProductItems(originalProductId, sectionIdMap, newProductId, pr
           if (completed === items.length) {
             // Create main page section for the duplicated product
             createMainProductSection(newProductId, productName, productDescription, () => {
-              res.json({ 
-                message: 'Product duplicated successfully', 
+              res.json({
+                message: 'Product duplicated successfully',
                 id: newProductId
               });
             });
@@ -3693,14 +3695,14 @@ function duplicateProductItems(originalProductId, sectionIdMap, newProductId, pr
 function findUniqueProductRoute(baseRoute, callback) {
   let attemptRoute = baseRoute;
   let attemptNumber = 1;
-  
+
   function checkRoute() {
     db.get('SELECT id FROM products WHERE route = ?', [attemptRoute], (err, existing) => {
       if (err) {
         callback(err, null);
         return;
       }
-      
+
       if (!existing) {
         // Route is available
         callback(null, attemptRoute);
@@ -3712,7 +3714,7 @@ function findUniqueProductRoute(baseRoute, callback) {
       }
     });
   }
-  
+
   checkRoute();
 }
 
@@ -3720,7 +3722,7 @@ function findUniqueProductRoute(baseRoute, callback) {
 app.post('/api/products/:id/duplicate', (req, res) => {
   const { id } = req.params;
   const { newName, newRoute, name } = req.body; // Accept both 'name' and 'newName' for compatibility
-  
+
   // Get the original product
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, originalProduct) => {
     if (err) {
@@ -3731,38 +3733,38 @@ app.post('/api/products/:id/duplicate', (req, res) => {
       res.status(404).json({ error: 'Product not found' });
       return;
     }
-    
+
     // Get the next order index
     db.get('SELECT MAX(order_index) as max_order FROM products', (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const nextOrder = (result.max_order || -1) + 1;
-      
+
       // Generate a proper route for the duplicate (accept both 'name' and 'newName')
       const duplicateName = newName || name || `${originalProduct.name} (Copy)`;
-      
+
       // Create the duplicate product with a temporary route (will be updated after we get the ID)
       // Use a placeholder route that won't conflict
       const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalProduct.description, originalProduct.category, originalProduct.color, originalProduct.border_color, tempRoute, nextOrder, originalProduct.enable_single_page, originalProduct.redirect_url], 
-        function(err) {
+
+      db.run(`INSERT INTO products (name, description, category, color, border_color, route, order_index, enable_single_page, redirect_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [duplicateName, originalProduct.description, originalProduct.category, originalProduct.color, originalProduct.border_color, tempRoute, nextOrder, originalProduct.enable_single_page, originalProduct.redirect_url],
+        function (err) {
           if (err) {
             res.status(500).json({ error: err.message });
             return;
           }
-          
+
           const newProductId = this.lastID;
-          
+
           // Generate a proper slug route from the product name
           const baseSlug = duplicateName.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '');
-          
+
           // Find a unique route
           findUniqueProductRoute(baseSlug, (routeErr, uniqueRoute) => {
             if (routeErr) {
@@ -3777,19 +3779,19 @@ app.post('/api/products/:id/duplicate', (req, res) => {
               });
               return;
             }
-            
+
             // Update the route to the unique slug
             db.run(`UPDATE products SET route = ? WHERE id = ?`, [uniqueRoute, newProductId], (updateErr) => {
               if (updateErr) {
                 console.error('Error updating route:', updateErr.message);
                 // Continue anyway - the product was created successfully
               }
-              
+
               // Continue with duplication
               continueDuplication();
             });
           });
-          
+
           // Function to continue duplication after route is set
           function continueDuplication() {
             // Duplicate all sections
@@ -3798,40 +3800,40 @@ app.post('/api/products/:id/duplicate', (req, res) => {
                 res.status(500).json({ error: err.message });
                 return;
               }
-              
+
               if (sections.length === 0) {
                 // Create main page section even if no sections exist
                 createMainProductSection(newProductId, duplicateName, originalProduct.description, () => {
-                  res.json({ 
-                    message: 'Product duplicated successfully', 
+                  res.json({
+                    message: 'Product duplicated successfully',
                     id: newProductId
                   });
                 });
                 return;
               }
-              
+
               // Map old section IDs to new section IDs
               const sectionIdMap = new Map();
               let sectionsCompleted = 0;
-              
+
               sections.forEach((section) => {
                 // Include ALL fields including content and description
-                db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                  [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
-                  function(err) {
+                db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                  [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null],
+                  function (err) {
                     if (err) {
                       // If error is about content column, try without it
                       if (err.message.includes('no such column')) {
                         console.log('   ⚠️  Some column not found, trying basic insert...');
-                        db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                          [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null], 
-                          function(err2) {
+                        db.run(`INSERT INTO product_sections (product_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                          [newProductId, section.section_type, section.title || '', section.description || null, section.content || null, section.order_index, section.is_visible, section.media_type || null, section.media_source || null, section.media_url || null],
+                          function (err2) {
                             if (err2) {
                               console.error('Error duplicating section (retry):', err2.message);
                             } else {
                               sectionIdMap.set(section.id, this.lastID);
                             }
-                            
+
                             sectionsCompleted++;
                             if (sectionsCompleted === sections.length) {
                               duplicateProductItems(id, sectionIdMap, newProductId, duplicateName, originalProduct.description, res);
@@ -3894,23 +3896,23 @@ app.get('/api/products/:id/sections/:sectionId', (req, res) => {
 app.post('/api/products/:id/sections', (req, res) => {
   const { id } = req.params;
   const { section_type, title, content, media_type, media_source, media_url } = req.body;
-  
+
   // Validate media fields if section_type is media_banner
   let finalMediaUrl = null;
-  
+
   if (section_type === 'media_banner') {
     if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
       return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
     }
-    
+
     if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
       return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
     }
-    
+
     if (!media_url) {
       return res.status(400).json({ error: 'media_url is required for media_banner sections' });
     }
-    
+
     // Validate YouTube URL if source is youtube
     if (media_source === 'youtube') {
       const youtubeValidation = validateYouTubeUrl(media_url);
@@ -3925,7 +3927,7 @@ app.post('/api/products/:id/sections', (req, res) => {
   } else {
     finalMediaUrl = media_url || null;
   }
-  
+
   // Get the order index
   const getOrderIndex = () => {
     return new Promise((resolve, reject) => {
@@ -3947,19 +3949,19 @@ app.post('/api/products/:id/sections', (req, res) => {
       }
     });
   };
-  
+
   getOrderIndex().then(finalOrderIndex => {
-    db.run(`INSERT INTO product_sections (product_id, section_type, title, content, order_index, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [id, section_type, title, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], 
-      function(err) {
+    db.run(`INSERT INTO product_sections (product_id, section_type, title, content, order_index, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, section_type, title, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Section created successfully', 
+        res.json({
+          message: 'Section created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   }).catch(err => {
@@ -3970,53 +3972,53 @@ app.post('/api/products/:id/sections', (req, res) => {
 // Update section
 app.put('/api/products/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { 
-    section_type, title, content, description, is_visible, order_index, 
+  const {
+    section_type, title, content, description, is_visible, order_index,
     media_type, media_source, media_url,
     pricing_table_header_plan, pricing_table_header_specs, pricing_table_header_features,
     pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
     pricing_table_header_yearly, pricing_table_header_action,
     show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
   } = req.body;
-  
+
   // First, get the existing section to check for file cleanup
   db.get('SELECT * FROM product_sections WHERE id = ? AND product_id = ?', [sectionId, id], (err, existingSection) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!existingSection) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Validate and process media fields if section_type is media_banner
     let finalMediaType = media_type;
     let finalMediaSource = media_source;
     let finalMediaUrl = media_url;
     let oldFileToDelete = null;
-    
+
     if (section_type === 'media_banner') {
       if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
         return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
       }
-      
+
       if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
         return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
       }
-      
+
       if (!media_url) {
         return res.status(400).json({ error: 'media_url is required for media_banner sections' });
       }
-      
+
       // If media_source changed from upload to youtube, or media_url changed for upload, delete old file
       if (existingSection.media_source === 'upload' && existingSection.media_url) {
         if (media_source !== 'upload' || media_url !== existingSection.media_url) {
           oldFileToDelete = existingSection.media_url;
         }
       }
-      
+
       // Validate YouTube URL if source is youtube
       if (media_source === 'youtube') {
         const youtubeValidation = validateYouTubeUrl(media_url);
@@ -4035,7 +4037,7 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
       finalMediaSource = null;
       finalMediaUrl = null;
     }
-    
+
     // Delete old file if needed
     const deleteOldFile = () => {
       if (oldFileToDelete) {
@@ -4043,11 +4045,11 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
       }
       return Promise.resolve({ success: true });
     };
-    
+
     // Build dynamic query based on provided fields
     let updateFields = [];
     let values = [];
-    
+
     if (section_type !== undefined) {
       updateFields.push('section_type = ?');
       values.push(section_type);
@@ -4061,7 +4063,7 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
       // Use content if provided, otherwise use description, otherwise use empty string
       const finalContent = content !== undefined ? content : (description !== undefined ? description : '');
       const finalDescription = description !== undefined ? description : (content !== undefined ? content : '');
-      
+
       updateFields.push('content = ?');
       values.push(finalContent);
       updateFields.push('description = ?');
@@ -4138,15 +4140,15 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
       updateFields.push('show_yearly_column = ?');
       values.push(show_yearly_column ? 1 : 0);
     }
-    
+
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(sectionId, id);
-    
+
     const query = `UPDATE product_sections SET ${updateFields.join(', ')} WHERE id = ? AND product_id = ?`;
-    
+
     // Update the section
     deleteOldFile().then(() => {
-      db.run(query, values, function(updateErr) {
+      db.run(query, values, function (updateErr) {
         if (updateErr) {
           res.status(500).json({ error: updateErr.message });
           return;
@@ -4156,7 +4158,7 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
     }).catch(deleteErr => {
       console.error('Error deleting old file:', deleteErr);
       // Continue with update even if file deletion fails
-      db.run(query, values, function(updateErr) {
+      db.run(query, values, function (updateErr) {
         if (updateErr) {
           res.status(500).json({ error: updateErr.message });
           return;
@@ -4170,7 +4172,7 @@ app.put('/api/products/:id/sections/:sectionId', (req, res) => {
 // Delete section
 app.delete('/api/products/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  
+
   // Get section info to delete associated file if it's an uploaded file
   db.get(`
     SELECT media_source, media_url, section_type
@@ -4181,20 +4183,20 @@ app.delete('/api/products/:id/sections/:sectionId', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Delete associated file if it's an uploaded file for media_banner section
-    const deleteFilePromise = (section.section_type === 'media_banner' && section.media_source === 'upload' && section.media_url) 
+    const deleteFilePromise = (section.section_type === 'media_banner' && section.media_source === 'upload' && section.media_url)
       ? deleteUploadedFile(section.media_url)
       : Promise.resolve({ success: true });
-    
+
     // Delete the section
     deleteFilePromise.then(() => {
-      db.run(`DELETE FROM product_sections WHERE id = ? AND product_id = ?`, [sectionId, id], function(deleteErr) {
+      db.run(`DELETE FROM product_sections WHERE id = ? AND product_id = ?`, [sectionId, id], function (deleteErr) {
         if (deleteErr) {
           res.status(500).json({ error: deleteErr.message });
           return;
@@ -4204,7 +4206,7 @@ app.delete('/api/products/:id/sections/:sectionId', (req, res) => {
     }).catch(deleteFileErr => {
       console.error('Error deleting file:', deleteFileErr);
       // Continue with section deletion even if file deletion fails
-      db.run(`DELETE FROM product_sections WHERE id = ? AND product_id = ?`, [sectionId, id], function(deleteErr) {
+      db.run(`DELETE FROM product_sections WHERE id = ? AND product_id = ?`, [sectionId, id], function (deleteErr) {
         if (deleteErr) {
           res.status(500).json({ error: deleteErr.message });
           return;
@@ -4233,49 +4235,49 @@ app.get('/api/products/:id/sections/:sectionId/items', (req, res) => {
 app.post('/api/products/:id/sections/:sectionId/items', (req, res) => {
   const { sectionId } = req.params;
   const { item_type, title, description, content, icon, value, label, features, is_visible, order_index } = req.body;
-  
+
   // Use provided order_index if available, otherwise get next order
   if (order_index !== undefined) {
     const visibility = is_visible !== undefined ? is_visible : 1;
-    
-    db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [sectionId, item_type, title, description, content || null, icon, value, label, features, order_index, visibility], 
-      function(err) {
+
+    db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [sectionId, item_type, title, description, content || null, icon, value, label, features, order_index, visibility],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Section item created successfully', 
+        res.json({
+          message: 'Section item created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   } else {
-  // Get next order index
-  db.get('SELECT MAX(order_index) as max_order FROM product_items WHERE section_id = ?', [sectionId], (err, result) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    
-    const nextOrder = (result.max_order || -1) + 1;
-    const visibility = is_visible !== undefined ? is_visible : 1;
-    
-    db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [sectionId, item_type, title, description, content || null, icon, value, label, features, nextOrder, visibility], 
-      function(err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
-        }
-        res.json({ 
-          message: 'Section item created successfully', 
-          id: this.lastID,
-          changes: this.changes 
+    // Get next order index
+    db.get('SELECT MAX(order_index) as max_order FROM product_items WHERE section_id = ?', [sectionId], (err, result) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      const nextOrder = (result.max_order || -1) + 1;
+      const visibility = is_visible !== undefined ? is_visible : 1;
+
+      db.run(`INSERT INTO product_items (section_id, item_type, title, description, content, icon, value, label, features, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sectionId, item_type, title, description, content || null, icon, value, label, features, nextOrder, visibility],
+        function (err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({
+            message: 'Section item created successfully',
+            id: this.lastID,
+            changes: this.changes
+          });
         });
-      });
-  });
+    });
   }
 });
 
@@ -4283,11 +4285,11 @@ app.post('/api/products/:id/sections/:sectionId/items', (req, res) => {
 app.put('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
   const { item_type, title, description, content, icon, value, label, features, is_visible, order_index } = req.body;
-  
+
   // Build dynamic query based on provided fields
   let updateFields = [];
   let values = [];
-  
+
   if (item_type !== undefined) {
     updateFields.push('item_type = ?');
     values.push(item_type);
@@ -4328,13 +4330,13 @@ app.put('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
     updateFields.push('order_index = ?');
     values.push(order_index);
   }
-  
+
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
   values.push(itemId, sectionId);
-  
+
   const query = `UPDATE product_items SET ${updateFields.join(', ')} WHERE id = ? AND section_id = ?`;
-  
-  db.run(query, values, function(err) {
+
+  db.run(query, values, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -4346,8 +4348,8 @@ app.put('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
 // Delete section item
 app.delete('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { itemId, sectionId } = req.params;
-  
-  db.run(`DELETE FROM product_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function(err) {
+
+  db.run(`DELETE FROM product_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -4364,31 +4366,31 @@ app.delete('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => 
 app.get('/api/main-products', (req, res) => {
   const mainPageData = {};
   const { all } = req.query; // For admin view, show all sections including hidden
-  
+
   // Get hero content
   db.get('SELECT * FROM main_products_content WHERE id = 1', (err, heroContent) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     mainPageData.hero = heroContent || {
       title: 'Our Products',
       subtitle: 'Cloud Services - Made in India',
       description: 'Discover our comprehensive suite of cloud computing services designed to power your business transformation.',
       stat1_label: 'Global Customers',
       stat1_value: '10K+',
-      stat2_label: 'Uptime SLA', 
+      stat2_label: 'Uptime SLA',
       stat2_value: '99.9%',
       stat3_label: 'Data Centers',
       stat3_value: '15+',
       stat4_label: 'Support Rating',
       stat4_value: '4.9★'
     };
-    
+
     // Get product sections - show all if "all" query param is present (for admin)
     // Include button_text field similar to marketplaces
-    const sectionsQuery = all === 'true' 
+    const sectionsQuery = all === 'true'
       ? `
         SELECT 
           mps.*, 
@@ -4415,13 +4417,13 @@ app.get('/api/main-products', (req, res) => {
         WHERE mps.is_visible = 1 AND p.is_visible = 1
         ORDER BY mps.order_index ASC
       `;
-    
+
     db.all(sectionsQuery, (err, sections) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       mainPageData.sections = sections || [];
       res.json(mainPageData);
     });
@@ -4455,9 +4457,9 @@ function addMainProductsContentColumns() {
 
 // Update main products page hero content
 app.put('/api/main-products/hero', (req, res) => {
-  const { 
-    title, 
-    subtitle, 
+  const {
+    title,
+    subtitle,
     description,
     stat1_label,
     stat1_value,
@@ -4468,7 +4470,7 @@ app.put('/api/main-products/hero', (req, res) => {
     stat4_label,
     stat4_value
   } = req.body;
-  
+
   db.run(`
     UPDATE main_products_content 
     SET title = ?, subtitle = ?, description = ?, 
@@ -4480,12 +4482,12 @@ app.put('/api/main-products/hero', (req, res) => {
     title, subtitle, description,
     stat1_label, stat1_value, stat2_label, stat2_value,
     stat3_label, stat3_value, stat4_label, stat4_value
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       // Insert if doesn't exist
       db.run(`
@@ -4499,7 +4501,7 @@ app.put('/api/main-products/hero', (req, res) => {
         title, subtitle, description,
         stat1_label, stat1_value, stat2_label, stat2_value,
         stat3_label, stat3_value, stat4_label, stat4_value
-      ], function(err) {
+      ], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -4529,7 +4531,7 @@ app.get('/api/main-products/sections/all', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     res.json(sections || []);
   });
 });
@@ -4537,10 +4539,10 @@ app.get('/api/main-products/sections/all', (req, res) => {
 // Update main products section
 app.put('/api/main-products/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  const { 
-    title, 
-    description, 
-    is_visible, 
+  const {
+    title,
+    description,
+    is_visible,
     order_index,
     features,
     category,
@@ -4550,7 +4552,7 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
     free_trial_tag,
     button_text
   } = req.body;
-  
+
   // Handle features - convert array to JSON string if provided
   let featuresJson = null;
   if (features !== undefined) {
@@ -4560,7 +4562,7 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
       featuresJson = features;
     }
   }
-  
+
   db.run(`
     UPDATE main_products_sections 
     SET 
@@ -4578,8 +4580,8 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
       updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `, [
-    title, 
-    description, 
+    title,
+    description,
     is_visible,
     featuresJson,
     category || null,
@@ -4590,7 +4592,7 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
     button_text || null,
     order_index || 0,
     sectionId
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -4601,27 +4603,27 @@ app.put('/api/main-products/sections/:sectionId', (req, res) => {
 
 // Create new main products section (standalone)
 app.post('/api/main-products/sections', (req, res) => {
-  const { 
-    title, 
-    description, 
+  const {
+    title,
+    description,
     is_visible,
     product_id
   } = req.body;
-  
+
   if (!title) {
     res.status(400).json({ error: 'title is required' });
     return;
   }
-  
+
   // Get the next order index
   db.get('SELECT MAX(order_index) as max_order FROM main_products_sections', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || 0) + 1;
-    
+
     db.run(`
       INSERT INTO main_products_sections (
         product_id, title, description, is_visible, order_index
@@ -4629,20 +4631,20 @@ app.post('/api/main-products/sections', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `, [
       product_id || null,
-      title, 
-      description || '', 
-      is_visible !== undefined ? is_visible : 1, 
+      title,
+      description || '',
+      is_visible !== undefined ? is_visible : 1,
       nextOrder
-    ], function(err) {
+    ], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
-        message: 'Section created successfully', 
+
+      res.json({
+        message: 'Section created successfully',
         id: this.lastID,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -4651,19 +4653,19 @@ app.post('/api/main-products/sections', (req, res) => {
 // Delete main products section
 app.delete('/api/main-products/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  
-  db.run('DELETE FROM main_products_sections WHERE id = ?', [sectionId], function(err) {
+
+  db.run('DELETE FROM main_products_sections WHERE id = ?', [sectionId], function (err) {
     if (err) {
       console.error('Error deleting section:', err);
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     res.json({ message: 'Section deleted successfully', changes: this.changes });
   });
 });
@@ -4671,7 +4673,7 @@ app.delete('/api/main-products/sections/:sectionId', (req, res) => {
 // Toggle visibility of main products section
 app.put('/api/main-products/sections/:sectionId/toggle-visibility', (req, res) => {
   const { sectionId } = req.params;
-  
+
   // Get current visibility
   db.get('SELECT is_visible FROM main_products_sections WHERE id = ?', [sectionId], (err, section) => {
     if (err) {
@@ -4679,26 +4681,26 @@ app.put('/api/main-products/sections/:sectionId/toggle-visibility', (req, res) =
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Toggle visibility
     const newVisibility = section.is_visible ? 0 : 1;
-    
-    db.run('UPDATE main_products_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function(err) {
+
+    db.run('UPDATE main_products_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function (err) {
       if (err) {
         console.error('Error toggling section visibility:', err);
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
-        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+
+      res.json({
+        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -4707,7 +4709,7 @@ app.put('/api/main-products/sections/:sectionId/toggle-visibility', (req, res) =
 // Duplicate main products section
 app.post('/api/main-products/sections/:sectionId/duplicate', (req, res) => {
   const { sectionId } = req.params;
-  
+
   // Get the original section
   db.get(`
     SELECT 
@@ -4722,21 +4724,21 @@ app.post('/api/main-products/sections/:sectionId/duplicate', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!originalSection) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Get the next order index
     db.get('SELECT MAX(order_index) as max_order FROM main_products_sections', (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const nextOrder = (result.max_order || 0) + 1;
-      
+
       // Create duplicate section
       db.run(`
         INSERT INTO main_products_sections (
@@ -4749,17 +4751,17 @@ app.post('/api/main-products/sections/:sectionId/duplicate', (req, res) => {
         originalSection.description || '',
         originalSection.is_visible || 1,
         nextOrder
-      ], function(err) {
+      ], function (err) {
         if (err) {
           console.error('Error duplicating section:', err);
           res.status(500).json({ error: err.message });
           return;
         }
-        
-        res.json({ 
-          message: 'Section duplicated successfully', 
+
+        res.json({
+          message: 'Section duplicated successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
     });
@@ -4769,19 +4771,19 @@ app.post('/api/main-products/sections/:sectionId/duplicate', (req, res) => {
 // Get all products for a section
 app.get('/api/main-products/sections/:sectionId/products', (req, res) => {
   const { sectionId } = req.params;
-  
+
   // First get the section to find the product_id
   db.get('SELECT product_id FROM main_products_sections WHERE id = ?', [sectionId], (err, section) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // If section has a product_id, return that product, otherwise return all products
     if (section.product_id) {
       db.get('SELECT * FROM products WHERE id = ?', [section.product_id], (err, product) => {
@@ -4823,9 +4825,9 @@ app.get('/api/pricing/hero', (req, res) => {
 app.put('/api/pricing/hero/:id', (req, res) => {
   const { id } = req.params;
   const { title, description, redirect_url } = req.body;
-  
+
   db.run('UPDATE pricing_hero SET title = ?, description = ?, redirect_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [title, description, redirect_url, id], function(err) {
+    [title, description, redirect_url, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -4848,20 +4850,20 @@ app.get('/api/pricing/categories', (req, res) => {
 // Create new pricing category
 app.post('/api/pricing/categories', (req, res) => {
   const { name, slug, icon, description, order_index } = req.body;
-  
+
   // Get the next order index if not provided
   db.get('SELECT MAX(order_index) as max_order FROM pricing_categories', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
-    
+
     db.run(`INSERT INTO pricing_categories (name, slug, icon, description, order_index) 
             VALUES (?, ?, ?, ?, ?)`,
       [name, slug, icon || 'CpuChipIcon', description || '', nextOrder],
-      function(err) {
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -4875,12 +4877,12 @@ app.post('/api/pricing/categories', (req, res) => {
 app.put('/api/pricing/categories/:id', (req, res) => {
   const { id } = req.params;
   const { name, slug, icon, description, order_index } = req.body;
-  
+
   db.run(`UPDATE pricing_categories SET 
           name = ?, slug = ?, icon = ?, description = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?`,
     [name, slug, icon, description, order_index || 0, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -4892,8 +4894,8 @@ app.put('/api/pricing/categories/:id', (req, res) => {
 // Delete pricing category (soft delete)
 app.delete('/api/pricing/categories/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE pricing_categories SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE pricing_categories SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -4919,20 +4921,20 @@ app.get('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
 app.post('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
   const { categoryId } = req.params;
   const { name, slug, description, header_color, order_index } = req.body;
-  
+
   // Get the next order index if not provided
   db.get('SELECT MAX(order_index) as max_order FROM pricing_subcategories WHERE category_id = ?', [categoryId], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
-    
+
     db.run(`INSERT INTO pricing_subcategories (category_id, name, slug, description, header_color, order_index) 
             VALUES (?, ?, ?, ?, ?, ?)`,
       [categoryId, name, slug, description || '', header_color || 'green-100', nextOrder],
-      function(err) {
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -4946,12 +4948,12 @@ app.post('/api/pricing/categories/:categoryId/subcategories', (req, res) => {
 app.put('/api/pricing/subcategories/:id', (req, res) => {
   const { id } = req.params;
   const { name, slug, description, header_color, order_index } = req.body;
-  
+
   db.run(`UPDATE pricing_subcategories SET 
           name = ?, slug = ?, description = ?, header_color = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?`,
     [name, slug, description, header_color, order_index || 0, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -4963,8 +4965,8 @@ app.put('/api/pricing/subcategories/:id', (req, res) => {
 // Delete pricing subcategory (soft delete)
 app.delete('/api/pricing/subcategories/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE pricing_subcategories SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE pricing_subcategories SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5031,7 +5033,7 @@ db.run(`CREATE TABLE IF NOT EXISTS pricing_page_config (
     console.error('Error creating pricing_page_config table:', err.message);
   } else if (!err) {
     console.log('✅ Created pricing_page_config table');
-    
+
     // Insert default config if it doesn't exist
     db.get('SELECT COUNT(*) as count FROM pricing_page_config', (err, row) => {
       if (!err && row && row.count === 0) {
@@ -5060,7 +5062,7 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
-  
+
   db.run(`CREATE TABLE IF NOT EXISTS disk_offerings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -5073,17 +5075,17 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
-  
+
   // Seed default compute plans data if table is empty
   db.get('SELECT COUNT(*) as count FROM compute_plans', (err, row) => {
     if (err) {
       console.error('Error checking compute_plans count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Seeding default compute plans...');
-      
+
       const basicPlans = [
         { name: 'BP_1vC-1GB', vcpu: '1 vCPU', memory: '1.0 GB', monthly_price: '₹512', hourly_price: '₹0.7' },
         { name: 'BP_2vC-4GB', vcpu: '2 vCPU', memory: '4.0 GB', monthly_price: '₹1,504', hourly_price: '₹2.05' },
@@ -5093,14 +5095,14 @@ db.serialize(() => {
         { name: 'BP_16vC-32GB', vcpu: '16 vCPU', memory: '32.0 GB', monthly_price: '₹12,032', hourly_price: '₹16.44' },
         { name: 'BP_16vC-64GB', vcpu: '16 vCPU', memory: '64.0 GB', monthly_price: '₹19,712', hourly_price: '₹26.93' }
       ];
-      
+
       const cpuIntensivePlans = [
         { name: 'CI_2vC-1GB', vcpu: '2 vCPU', memory: '1.0 GB', monthly_price: '₹784', hourly_price: '₹1.07' },
         { name: 'CI_2vC-2GB', vcpu: '2 vCPU', memory: '2.0 GB', monthly_price: '₹1,024', hourly_price: '₹1.4' },
         { name: 'CI_32vC-64GB', vcpu: '32 vCPU', memory: '64.0 GB', monthly_price: '₹24,064', hourly_price: '₹32.87' },
         { name: 'CI_48vC-96GB', vcpu: '48 vCPU', memory: '96.0 GB', monthly_price: '₹36,096', hourly_price: '₹49.31' }
       ];
-      
+
       const memoryIntensivePlans = [
         { name: 'MI_1vC-4GB', vcpu: '1 vCPU', memory: '4.0 GB', monthly_price: '₹1,232', hourly_price: '₹1.68' },
         { name: 'MI_1vC-8GB', vcpu: '1 vCPU', memory: '8.0 GB', monthly_price: '₹2,192', hourly_price: '₹2.99' },
@@ -5110,10 +5112,10 @@ db.serialize(() => {
         { name: 'MI_8vC-64GB', vcpu: '8 vCPU', memory: '64.0 GB', monthly_price: '₹17,536', hourly_price: '₹23.96' },
         { name: 'MI_16vC-128GB', vcpu: '16 vCPU', memory: '128.0 GB', monthly_price: '₹35,072', hourly_price: '₹47.91' }
       ];
-      
-      [...basicPlans.map(p => ({...p, plan_type: 'basic'})),
-       ...cpuIntensivePlans.map(p => ({...p, plan_type: 'cpuIntensive'})),
-       ...memoryIntensivePlans.map(p => ({...p, plan_type: 'memoryIntensive'}))].forEach((plan, index) => {
+
+      [...basicPlans.map(p => ({ ...p, plan_type: 'basic' })),
+      ...cpuIntensivePlans.map(p => ({ ...p, plan_type: 'cpuIntensive' })),
+      ...memoryIntensivePlans.map(p => ({ ...p, plan_type: 'memoryIntensive' }))].forEach((plan, index) => {
         db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, order_index)
                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [plan.plan_type, plan.name, plan.vcpu, plan.memory, plan.monthly_price, plan.hourly_price, index],
@@ -5123,21 +5125,21 @@ db.serialize(() => {
             }
           });
       });
-      
+
       console.log('✅ Default compute plans seeded successfully!');
     }
   });
-  
+
   // Seed default disk offerings data if table is empty
   db.get('SELECT COUNT(*) as count FROM disk_offerings', (err, row) => {
     if (err) {
       console.error('Error checking disk_offerings count:', err.message);
       return;
     }
-    
+
     if (row.count === 0) {
       console.log('Seeding default disk offerings...');
-      
+
       const diskOfferings = [
         { name: '20 GB', storage_type: 'NVMe', size: '20.0 GB', monthly_price: '₹160', hourly_price: '₹0.25' },
         { name: '50 GB', storage_type: 'NVMe', size: '50.0 GB', monthly_price: '₹400', hourly_price: '₹0.55' },
@@ -5147,7 +5149,7 @@ db.serialize(() => {
         { name: '1 TB', storage_type: 'NVMe', size: '1.0 TB', monthly_price: '₹8,192', hourly_price: '₹11.19' },
         { name: '2 TB', storage_type: 'NVMe', size: '2.0 TB', monthly_price: '₹16,384', hourly_price: '₹22.38' }
       ];
-      
+
       diskOfferings.forEach((offering, index) => {
         db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, order_index)
                 VALUES (?, ?, ?, ?, ?, ?)`,
@@ -5158,7 +5160,7 @@ db.serialize(() => {
             }
           });
       });
-      
+
       console.log('✅ Default disk offerings seeded successfully!');
     }
   });
@@ -5169,14 +5171,14 @@ app.get('/api/pricing/compute-plans', (req, res) => {
   const { plan_type } = req.query;
   let query = 'SELECT * FROM compute_plans WHERE is_active = 1';
   const params = [];
-  
+
   if (plan_type) {
     query += ' AND plan_type = ?';
     params.push(plan_type);
   }
-  
+
   query += ' ORDER BY plan_type, order_index';
-  
+
   db.all(query, params, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -5189,19 +5191,19 @@ app.get('/api/pricing/compute-plans', (req, res) => {
 // Create compute plan
 app.post('/api/pricing/compute-plans', (req, res) => {
   const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
-  
+
   db.get('SELECT MAX(order_index) as max_order FROM compute_plans WHERE plan_type = ?', [plan_type], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
-    
+
     db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
-      function(err) {
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -5215,13 +5217,13 @@ app.post('/api/pricing/compute-plans', (req, res) => {
 app.put('/api/pricing/compute-plans/:id', (req, res) => {
   const { id } = req.params;
   const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
-  
+
   db.run(`UPDATE compute_plans SET
           plan_type = ?, name = ?, vcpu = ?, memory = ?, monthly_price = ?, hourly_price = ?,
           quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
     [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5233,8 +5235,8 @@ app.put('/api/pricing/compute-plans/:id', (req, res) => {
 // Delete compute plan
 app.delete('/api/pricing/compute-plans/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE compute_plans SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE compute_plans SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5257,19 +5259,19 @@ app.get('/api/pricing/disk-offerings', (req, res) => {
 // Create disk offering
 app.post('/api/pricing/disk-offerings', (req, res) => {
   const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
-  
+
   db.get('SELECT MAX(order_index) as max_order FROM disk_offerings', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
-    
+
     db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
-      function(err) {
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -5283,13 +5285,13 @@ app.post('/api/pricing/disk-offerings', (req, res) => {
 app.put('/api/pricing/disk-offerings/:id', (req, res) => {
   const { id } = req.params;
   const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
-  
+
   db.run(`UPDATE disk_offerings SET
           name = ?, storage_type = ?, size = ?, monthly_price = ?, hourly_price = ?,
           quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
     [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5301,8 +5303,8 @@ app.put('/api/pricing/disk-offerings/:id', (req, res) => {
 // Delete disk offering
 app.delete('/api/pricing/disk-offerings/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE disk_offerings SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE disk_offerings SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5347,7 +5349,7 @@ app.get('/api/pricing/page-config', (req, res) => {
 // Update pricing page configuration
 app.put('/api/pricing/page-config', (req, res) => {
   const config = req.body;
-  
+
   db.run(`UPDATE pricing_page_config SET 
     main_heading = ?,
     compute_section_heading = ?,
@@ -5423,7 +5425,7 @@ app.put('/api/pricing/page-config', (req, res) => {
       config.button_get_started,
       config.button_contact_sales
     ],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5436,11 +5438,11 @@ app.put('/api/pricing/page-config', (req, res) => {
 app.post('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
   const { subcategoryId } = req.params;
   const { ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular } = req.body;
-  
+
   db.run(`INSERT INTO pricing_plans (subcategory_id, ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular) 
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [subcategoryId, ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular || 0],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5453,14 +5455,14 @@ app.post('/api/pricing/subcategories/:subcategoryId/plans', (req, res) => {
 app.put('/api/pricing/plans/:id', (req, res) => {
   const { id } = req.params;
   const { ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular } = req.body;
-  
+
   db.run(`UPDATE pricing_plans SET 
           ram = ?, vcpu = ?, storage = ?, bandwidth = ?, discount = ?, 
           hourly_price = ?, monthly_price = ?, yearly_price = ?, 
           instance_type = ?, nodes = ?, is_popular = ?, updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?`,
     [ram, vcpu, storage, bandwidth, discount, hourly_price, monthly_price, yearly_price, instance_type, nodes, is_popular || 0, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5472,8 +5474,8 @@ app.put('/api/pricing/plans/:id', (req, res) => {
 // Delete pricing plan
 app.delete('/api/pricing/plans/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE pricing_plans SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE pricing_plans SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5485,9 +5487,9 @@ app.delete('/api/pricing/plans/:id', (req, res) => {
 // Create storage option
 app.post('/api/pricing/storage', (req, res) => {
   const { name, description, price_per_gb, features } = req.body;
-  
+
   db.run('INSERT INTO storage_options (name, description, price_per_gb, features) VALUES (?, ?, ?, ?)',
-    [name, description, price_per_gb, JSON.stringify(features)], function(err) {
+    [name, description, price_per_gb, JSON.stringify(features)], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5500,9 +5502,9 @@ app.post('/api/pricing/storage', (req, res) => {
 app.put('/api/pricing/storage/:id', (req, res) => {
   const { id } = req.params;
   const { name, description, price_per_gb, features } = req.body;
-  
+
   db.run('UPDATE storage_options SET name = ?, description = ?, price_per_gb = ?, features = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [name, description, price_per_gb, JSON.stringify(features), id], function(err) {
+    [name, description, price_per_gb, JSON.stringify(features), id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5514,9 +5516,9 @@ app.put('/api/pricing/storage/:id', (req, res) => {
 // Create FAQ
 app.post('/api/pricing/faqs', (req, res) => {
   const { question, answer } = req.body;
-  
+
   db.run('INSERT INTO pricing_faqs (question, answer) VALUES (?, ?)',
-    [question, answer], function(err) {
+    [question, answer], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5529,9 +5531,9 @@ app.post('/api/pricing/faqs', (req, res) => {
 app.put('/api/pricing/faqs/:id', (req, res) => {
   const { id } = req.params;
   const { question, answer } = req.body;
-  
+
   db.run('UPDATE pricing_faqs SET question = ?, answer = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [question, answer, id], function(err) {
+    [question, answer, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -5543,8 +5545,8 @@ app.put('/api/pricing/faqs/:id', (req, res) => {
 // Delete FAQ
 app.delete('/api/pricing/faqs/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('UPDATE pricing_faqs SET is_active = 0 WHERE id = ?', [id], function(err) {
+
+  db.run('UPDATE pricing_faqs SET is_active = 0 WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5559,31 +5561,31 @@ app.delete('/api/pricing/faqs/:id', (req, res) => {
 app.get('/api/main-marketplaces', (req, res) => {
   const mainPageData = {};
   const { all } = req.query; // For admin view, show all sections including hidden
-  
+
   // Get hero content
   db.get('SELECT * FROM main_marketplaces_content WHERE id = 1', (err, heroContent) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     mainPageData.hero = heroContent || {
       title: 'Our Marketplaces',
       subtitle: 'Enterprise Marketplaces - Made in India',
       description: 'Explore our enterprise-grade marketplaces designed to transform your business operations.',
       stat1_label: 'Global Customers',
       stat1_value: '10K+',
-      stat2_label: 'Uptime SLA', 
+      stat2_label: 'Uptime SLA',
       stat2_value: '99.9%',
       stat3_label: 'Data Centers',
       stat3_value: '15+',
       stat4_label: 'Support Rating',
       stat4_value: '4.9★'
     };
-    
+
     // Get marketplace sections - show all if "all" query param is present (for admin)
     // Include all new fields: popular_tag, category, features, price, price_period, free_trial_tag, button_text
-    const sectionsQuery = all === 'true' 
+    const sectionsQuery = all === 'true'
       ? `
         SELECT 
           mss.*, 
@@ -5618,13 +5620,13 @@ app.get('/api/main-marketplaces', (req, res) => {
         WHERE mss.is_visible = 1 AND (s.is_visible = 1 OR s.id IS NULL)
         ORDER BY mss.order_index ASC
       `;
-    
+
     db.all(sectionsQuery, (err, sections) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       // Parse features JSON for each section
       const parsedSections = sections.map(section => ({
         ...section,
@@ -5636,7 +5638,7 @@ app.get('/api/main-marketplaces', (req, res) => {
           }
         })()
       }));
-      
+
       mainPageData.sections = parsedSections || [];
       res.json(mainPageData);
     });
@@ -5670,9 +5672,9 @@ function addMainMarketplacesContentColumns() {
 
 // Update main marketplaces page hero content
 app.put('/api/main-marketplaces/hero', (req, res) => {
-  const { 
-    title, 
-    subtitle, 
+  const {
+    title,
+    subtitle,
     description,
     stat1_label,
     stat1_value,
@@ -5683,7 +5685,7 @@ app.put('/api/main-marketplaces/hero', (req, res) => {
     stat4_label,
     stat4_value
   } = req.body;
-  
+
   db.run(`
     UPDATE main_marketplaces_content 
     SET title = ?, subtitle = ?, description = ?, 
@@ -5695,12 +5697,12 @@ app.put('/api/main-marketplaces/hero', (req, res) => {
     title, subtitle, description,
     stat1_label, stat1_value, stat2_label, stat2_value,
     stat3_label, stat3_value, stat4_label, stat4_value
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       // Insert if doesn't exist
       db.run(`
@@ -5714,7 +5716,7 @@ app.put('/api/main-marketplaces/hero', (req, res) => {
         title, subtitle, description,
         stat1_label, stat1_value, stat2_label, stat2_value,
         stat3_label, stat3_value, stat4_label, stat4_value
-      ], function(err) {
+      ], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -5731,7 +5733,7 @@ app.put('/api/main-marketplaces/hero', (req, res) => {
 function addMainMarketplacesSectionColumns() {
   const columnsToAdd = [
     'popular_tag TEXT',
-    'category TEXT', 
+    'category TEXT',
     'features TEXT DEFAULT "[]"',
     'price TEXT',
     'price_period TEXT',
@@ -5769,7 +5771,7 @@ function addMainMarketplacesSectionColumns() {
         console.log('✅ Set default values for main_marketplaces_sections');
       }
     });
-    
+
     // Update existing records that have 'Explore Marketplace' to 'Explore App'
     db.run(`
       UPDATE main_marketplaces_sections 
@@ -5854,13 +5856,13 @@ function addAboutUsSectionColumns() {
         console.log('✅ Set default title_after for about_hero_section');
       }
     });
-    
+
     db.run(`UPDATE about_hero_section SET is_visible = 1 WHERE is_visible IS NULL`, (err) => {
       if (err) {
         console.error('Error setting default is_visible for about_hero_section:', err.message);
       }
     });
-    
+
     ['about_story_section', 'about_legacy_section', 'about_testimonials_section', 'about_approach_section'].forEach(table => {
       db.run(`UPDATE ${table} SET is_visible = 1 WHERE is_visible IS NULL`, (err) => {
         if (err) {
@@ -5874,10 +5876,10 @@ function addAboutUsSectionColumns() {
 // Update main marketplaces section
 app.put('/api/main-marketplaces/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  const { 
-    title, 
-    description, 
-    is_visible, 
+  const {
+    title,
+    description,
+    is_visible,
     order_index,
     popular_tag,
     category,
@@ -5887,10 +5889,10 @@ app.put('/api/main-marketplaces/sections/:sectionId', (req, res) => {
     free_trial_tag,
     button_text
   } = req.body;
-  
+
   // Convert features array to JSON string if it's an array
   const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
-  
+
   db.run(`
     UPDATE main_marketplaces_sections 
     SET 
@@ -5908,9 +5910,9 @@ app.put('/api/main-marketplaces/sections/:sectionId', (req, res) => {
       updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `, [
-    title, 
-    description, 
-    is_visible, 
+    title,
+    description,
+    is_visible,
     order_index || 0,
     popular_tag || null,
     category || null,
@@ -5920,7 +5922,7 @@ app.put('/api/main-marketplaces/sections/:sectionId', (req, res) => {
     free_trial_tag || null,
     button_text || null,
     sectionId
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -5952,7 +5954,7 @@ app.get('/api/main-marketplaces/sections/all', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     // Parse features JSON for each section
     const parsedSections = sections.map(section => ({
       ...section,
@@ -5964,7 +5966,7 @@ app.get('/api/main-marketplaces/sections/all', (req, res) => {
         }
       })()
     }));
-    
+
     res.json(parsedSections || []);
   });
 });
@@ -5972,7 +5974,7 @@ app.get('/api/main-marketplaces/sections/all', (req, res) => {
 // Duplicate main marketplaces section
 app.post('/api/main-marketplaces/sections/:sectionId/duplicate', (req, res) => {
   const { sectionId } = req.params;
-  
+
   // Get the original section with all fields
   db.get(`
     SELECT 
@@ -5987,21 +5989,21 @@ app.post('/api/main-marketplaces/sections/:sectionId/duplicate', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!originalSection) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Get the next order index
     db.get('SELECT MAX(order_index) as max_order FROM main_marketplaces_sections', (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const nextOrder = (result.max_order || 0) + 1;
-      
+
       // Create duplicate section with all fields
       db.run(`
         INSERT INTO main_marketplaces_sections (
@@ -6022,17 +6024,17 @@ app.post('/api/main-marketplaces/sections/:sectionId/duplicate', (req, res) => {
         originalSection.price_period || null,
         originalSection.free_trial_tag || null,
         originalSection.button_text || null
-      ], function(err) {
+      ], function (err) {
         if (err) {
           console.error('Error duplicating section:', err);
           res.status(500).json({ error: err.message });
           return;
         }
-        
-        res.json({ 
-          message: 'Section duplicated successfully', 
+
+        res.json({
+          message: 'Section duplicated successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
     });
@@ -6042,19 +6044,19 @@ app.post('/api/main-marketplaces/sections/:sectionId/duplicate', (req, res) => {
 // Delete main marketplaces section
 app.delete('/api/main-marketplaces/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  
-  db.run('DELETE FROM main_marketplaces_sections WHERE id = ?', [sectionId], function(err) {
+
+  db.run('DELETE FROM main_marketplaces_sections WHERE id = ?', [sectionId], function (err) {
     if (err) {
       console.error('Error deleting section:', err);
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     res.json({ message: 'Section deleted successfully', changes: this.changes });
   });
 });
@@ -6062,7 +6064,7 @@ app.delete('/api/main-marketplaces/sections/:sectionId', (req, res) => {
 // Toggle visibility of main marketplaces section
 app.patch('/api/main-marketplaces/sections/:sectionId/toggle-visibility', (req, res) => {
   const { sectionId } = req.params;
-  
+
   // Get current visibility
   db.get('SELECT is_visible FROM main_marketplaces_sections WHERE id = ?', [sectionId], (err, section) => {
     if (err) {
@@ -6070,26 +6072,26 @@ app.patch('/api/main-marketplaces/sections/:sectionId/toggle-visibility', (req, 
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     // Toggle visibility
     const newVisibility = section.is_visible ? 0 : 1;
-    
-    db.run('UPDATE main_marketplaces_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function(err) {
+
+    db.run('UPDATE main_marketplaces_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function (err) {
       if (err) {
         console.error('Error toggling section visibility:', err);
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
-        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+
+      res.json({
+        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -6097,9 +6099,9 @@ app.patch('/api/main-marketplaces/sections/:sectionId/toggle-visibility', (req, 
 
 // Create new main marketplaces section (standalone)
 app.post('/api/main-marketplaces/sections', (req, res) => {
-  const { 
-    title, 
-    description, 
+  const {
+    title,
+    description,
     is_visible,
     popular_tag,
     category,
@@ -6109,24 +6111,24 @@ app.post('/api/main-marketplaces/sections', (req, res) => {
     free_trial_tag,
     button_text
   } = req.body;
-  
+
   if (!title) {
     res.status(400).json({ error: 'title is required' });
     return;
   }
-  
+
   // Get the next order index
   db.get('SELECT MAX(order_index) as max_order FROM main_marketplaces_sections', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || 0) + 1;
-    
+
     // Convert features array to JSON string if it's an array
     const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
-    
+
     db.run(`
       INSERT INTO main_marketplaces_sections (
         marketplace_id, title, description, is_visible, order_index,
@@ -6134,9 +6136,9 @@ app.post('/api/main-marketplaces/sections', (req, res) => {
       ) 
       VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      title, 
-      description || '', 
-      is_visible !== undefined ? is_visible : 1, 
+      title,
+      description || '',
+      is_visible !== undefined ? is_visible : 1,
       nextOrder,
       popular_tag || null,
       category || null,
@@ -6145,16 +6147,16 @@ app.post('/api/main-marketplaces/sections', (req, res) => {
       price_period || null,
       free_trial_tag || null,
       button_text || null
-    ], function(err) {
+    ], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
-        message: 'Section created successfully', 
+
+      res.json({
+        message: 'Section created successfully',
         id: this.lastID,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -6165,37 +6167,37 @@ app.post('/api/main-marketplaces/sections', (req, res) => {
 // Get comprehensive section data (header, features, stats)
 app.get('/api/comprehensive-section', (req, res) => {
   const comprehensiveData = {};
-  
+
   // Get header content
   db.get('SELECT * FROM comprehensive_section_content WHERE id = 1', (err, headerContent) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     comprehensiveData.header = headerContent || {
       title: 'The most comprehensive cloud platform',
       description: 'From infrastructure technologies like compute, storage, and databases to emerging technologies like machine learning, artificial intelligence, and data analytics.'
     };
-    
+
     // Get feature cards (only visible ones, ordered by order_index)
     db.all('SELECT * FROM comprehensive_section_features WHERE is_visible = 1 ORDER BY order_index ASC', (err, features) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       comprehensiveData.features = features || [];
-      
+
       // Get statistics (only visible ones, ordered by order_index)
       db.all('SELECT * FROM comprehensive_section_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
+
         comprehensiveData.stats = stats || [];
-        
+
         res.json(comprehensiveData);
       });
     });
@@ -6205,37 +6207,37 @@ app.get('/api/comprehensive-section', (req, res) => {
 // Update comprehensive section header
 app.put('/api/comprehensive-section/header', (req, res) => {
   const { title, description } = req.body;
-  
+
   db.run(`
     UPDATE comprehensive_section_content 
     SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP 
     WHERE id = 1
-  `, [title, description], function(err) {
+  `, [title, description], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       // Insert if doesn't exist
       db.run(`
         INSERT INTO comprehensive_section_content (id, title, description) 
         VALUES (1, ?, ?)
-      `, [title, description], function(err) {
+      `, [title, description], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Header updated successfully', 
+        res.json({
+          message: 'Header updated successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
     } else {
-      res.json({ 
-        message: 'Header updated successfully', 
-        changes: this.changes 
+      res.json({
+        message: 'Header updated successfully',
+        changes: this.changes
       });
     }
   });
@@ -6245,21 +6247,21 @@ app.put('/api/comprehensive-section/header', (req, res) => {
 app.put('/api/comprehensive-section/features/:id', (req, res) => {
   const { id } = req.params;
   const { title, description, button_text, icon_type, order_index, is_visible } = req.body;
-  
+
   db.run(`
     UPDATE comprehensive_section_features 
     SET title = ?, description = ?, button_text = ?, icon_type = ?, 
         order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
-  `, [title, description, button_text, icon_type, order_index, is_visible !== undefined ? is_visible : 1, id], function(err) {
+  `, [title, description, button_text, icon_type, order_index, is_visible !== undefined ? is_visible : 1, id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
-    res.json({ 
-      message: 'Feature updated successfully', 
-      changes: this.changes 
+
+    res.json({
+      message: 'Feature updated successfully',
+      changes: this.changes
     });
   });
 });
@@ -6268,20 +6270,20 @@ app.put('/api/comprehensive-section/features/:id', (req, res) => {
 app.put('/api/comprehensive-section/stats/:id', (req, res) => {
   const { id } = req.params;
   const { value, label, order_index, is_visible } = req.body;
-  
+
   db.run(`
     UPDATE comprehensive_section_stats 
     SET value = ?, label = ?, order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
-  `, [value, label, order_index, is_visible !== undefined ? is_visible : 1, id], function(err) {
+  `, [value, label, order_index, is_visible !== undefined ? is_visible : 1, id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
-    res.json({ 
-      message: 'Statistic updated successfully', 
-      changes: this.changes 
+
+    res.json({
+      message: 'Statistic updated successfully',
+      changes: this.changes
     });
   });
 });
@@ -6295,7 +6297,7 @@ app.get('/api/feature-banners', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     // Format banners to match frontend expectations
     const formattedBanners = banners.map(banner => ({
       id: banner.id,
@@ -6307,7 +6309,7 @@ app.get('/api/feature-banners', (req, res) => {
       gradient: `from-${banner.gradient_start} via-${banner.gradient_mid} to-${banner.gradient_end}`,
       accentGradient: `from-${banner.accent_gradient_start} to-${banner.accent_gradient_end}`
     }));
-    
+
     res.json(formattedBanners);
   });
 });
@@ -6319,7 +6321,7 @@ app.get('/api/feature-banners/all', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     // Format banners to match frontend expectations
     const formattedBanners = banners.map(banner => ({
       id: banner.id,
@@ -6338,18 +6340,18 @@ app.get('/api/feature-banners/all', (req, res) => {
       order_index: banner.order_index,
       is_visible: banner.is_visible
     }));
-    
+
     res.json(formattedBanners);
   });
 });
 
 // Create new feature banner
 app.post('/api/feature-banners', (req, res) => {
-  const { 
-    category, 
-    title, 
-    subtitle, 
-    cta_text, 
+  const {
+    category,
+    title,
+    subtitle,
+    cta_text,
     cta_link,
     gradient_start,
     gradient_mid,
@@ -6359,21 +6361,21 @@ app.post('/api/feature-banners', (req, res) => {
     order_index,
     is_visible
   } = req.body;
-  
+
   if (!category || !title) {
     res.status(400).json({ error: 'category and title are required' });
     return;
   }
-  
+
   // Get the next order index if not provided
   db.get('SELECT MAX(order_index) as max_order FROM feature_banners', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = order_index !== undefined ? order_index : ((result.max_order || 0) + 1);
-    
+
     db.run(`
       INSERT INTO feature_banners (
         category, title, subtitle, cta_text, cta_link,
@@ -6387,16 +6389,16 @@ app.post('/api/feature-banners', (req, res) => {
       gradient_start || 'saree-teal', gradient_mid || 'phulkari-turquoise', gradient_end || 'saree-lime',
       accent_gradient_start || 'saree-teal', accent_gradient_end || 'phulkari-turquoise',
       nextOrder, is_visible !== undefined ? is_visible : 1
-    ], function(err) {
+    ], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
-        message: 'Feature banner created successfully', 
+
+      res.json({
+        message: 'Feature banner created successfully',
         id: this.lastID,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -6405,11 +6407,11 @@ app.post('/api/feature-banners', (req, res) => {
 // Update feature banner
 app.put('/api/feature-banners/:id', (req, res) => {
   const { id } = req.params;
-  const { 
-    category, 
-    title, 
-    subtitle, 
-    cta_text, 
+  const {
+    category,
+    title,
+    subtitle,
+    cta_text,
     cta_link,
     gradient_start,
     gradient_mid,
@@ -6419,7 +6421,7 @@ app.put('/api/feature-banners/:id', (req, res) => {
     order_index,
     is_visible
   } = req.body;
-  
+
   db.run(`
     UPDATE feature_banners 
     SET category = ?, title = ?, subtitle = ?, cta_text = ?, cta_link = ?,
@@ -6432,15 +6434,15 @@ app.put('/api/feature-banners/:id', (req, res) => {
     gradient_start, gradient_mid, gradient_end,
     accent_gradient_start, accent_gradient_end,
     order_index, is_visible !== undefined ? is_visible : 1, id
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
-    res.json({ 
-      message: 'Feature banner updated successfully', 
-      changes: this.changes 
+
+    res.json({
+      message: 'Feature banner updated successfully',
+      changes: this.changes
     });
   });
 });
@@ -6448,16 +6450,16 @@ app.put('/api/feature-banners/:id', (req, res) => {
 // Delete feature banner
 app.delete('/api/feature-banners/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('DELETE FROM feature_banners WHERE id = ?', [id], function(err) {
+
+  db.run('DELETE FROM feature_banners WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
-    res.json({ 
-      message: 'Feature banner deleted successfully', 
-      changes: this.changes 
+
+    res.json({
+      message: 'Feature banner deleted successfully',
+      changes: this.changes
     });
   });
 });
@@ -6465,32 +6467,32 @@ app.delete('/api/feature-banners/:id', (req, res) => {
 // Toggle feature banner visibility
 app.patch('/api/feature-banners/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
-  
+
   // Get current visibility
   db.get('SELECT is_visible FROM feature_banners WHERE id = ?', [id], (err, banner) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!banner) {
       res.status(404).json({ error: 'Feature banner not found' });
       return;
     }
-    
+
     const newVisibility = banner.is_visible === 1 ? 0 : 1;
-    
-    db.run('UPDATE feature_banners SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', 
-      [newVisibility, id], function(err) {
+
+    db.run('UPDATE feature_banners SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
-        res.json({ 
+
+        res.json({
           message: 'Visibility toggled successfully',
           is_visible: newVisibility,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -6503,9 +6505,9 @@ app.get('/api/about', (req, res) => {
   const { all } = req.query;
   const showAll = all === 'true';
   const aboutData = {};
-  
+
   // Get hero section (only if visible, unless all=true)
-  const heroQuery = showAll 
+  const heroQuery = showAll
     ? 'SELECT * FROM about_hero_section WHERE id = 1'
     : 'SELECT * FROM about_hero_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
   db.get(heroQuery, (err, hero) => {
@@ -6514,9 +6516,9 @@ app.get('/api/about', (req, res) => {
       return;
     }
     aboutData.hero = hero || {};
-    
+
     // Get story section (only if visible, unless all=true)
-    const storyQuery = showAll 
+    const storyQuery = showAll
       ? 'SELECT * FROM about_story_section WHERE id = 1'
       : 'SELECT * FROM about_story_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
     db.get(storyQuery, (err, story) => {
@@ -6525,7 +6527,7 @@ app.get('/api/about', (req, res) => {
         return;
       }
       aboutData.story = story || {};
-      
+
       // Parse story_items JSON string
       if (aboutData.story.story_items) {
         try {
@@ -6534,9 +6536,9 @@ app.get('/api/about', (req, res) => {
           aboutData.story.story_items = [];
         }
       }
-      
+
       // Get legacy section (only if visible, unless all=true)
-      const legacyQuery = showAll 
+      const legacyQuery = showAll
         ? 'SELECT * FROM about_legacy_section WHERE id = 1'
         : 'SELECT * FROM about_legacy_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
       db.get(legacyQuery, (err, legacy) => {
@@ -6545,114 +6547,114 @@ app.get('/api/about', (req, res) => {
           return;
         }
         aboutData.legacy = legacy || {};
-        
+
         // Get stats
-          db.all('SELECT * FROM about_legacy_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
+        db.all('SELECT * FROM about_legacy_stats WHERE is_visible = 1 ORDER BY order_index ASC', (err, stats) => {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          aboutData.legacy.stats = stats || [];
+
+          // Get testimonials section (only if visible, unless all=true)
+          const testimonialsSectionQuery = showAll
+            ? 'SELECT * FROM about_testimonials_section WHERE id = 1'
+            : 'SELECT * FROM about_testimonials_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+          db.get(testimonialsSectionQuery, (err, testimonialsSection) => {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
             }
-            aboutData.legacy.stats = stats || [];
-            
-            // Get testimonials section (only if visible, unless all=true)
-            const testimonialsSectionQuery = showAll 
-              ? 'SELECT * FROM about_testimonials_section WHERE id = 1'
-              : 'SELECT * FROM about_testimonials_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
-            db.get(testimonialsSectionQuery, (err, testimonialsSection) => {
+            aboutData.testimonialsSection = testimonialsSection || {};
+
+            // Get testimonials
+            db.all('SELECT * FROM about_testimonials WHERE is_visible = 1 ORDER BY page_index ASC, order_index ASC', (err, testimonials) => {
               if (err) {
                 res.status(500).json({ error: err.message });
                 return;
               }
-              aboutData.testimonialsSection = testimonialsSection || {};
-              
-              // Get testimonials
-              db.all('SELECT * FROM about_testimonials WHERE is_visible = 1 ORDER BY page_index ASC, order_index ASC', (err, testimonials) => {
+              aboutData.testimonials = testimonials || [];
+
+              // Group testimonials by page_index
+              const groupedTestimonials = {};
+              testimonials.forEach(testimonial => {
+                if (!groupedTestimonials[testimonial.page_index]) {
+                  groupedTestimonials[testimonial.page_index] = [];
+                }
+                groupedTestimonials[testimonial.page_index].push(testimonial);
+              });
+              aboutData.testimonials = Object.values(groupedTestimonials);
+
+              // Get ratings
+              db.all('SELECT * FROM about_testimonial_ratings WHERE is_visible = 1 ORDER BY order_index ASC', (err, ratings) => {
                 if (err) {
                   res.status(500).json({ error: err.message });
                   return;
                 }
-                aboutData.testimonials = testimonials || [];
-                
-                // Group testimonials by page_index
-                const groupedTestimonials = {};
-                testimonials.forEach(testimonial => {
-                  if (!groupedTestimonials[testimonial.page_index]) {
-                    groupedTestimonials[testimonial.page_index] = [];
-                  }
-                  groupedTestimonials[testimonial.page_index].push(testimonial);
-                });
-                aboutData.testimonials = Object.values(groupedTestimonials);
-                
-                // Get ratings
-                db.all('SELECT * FROM about_testimonial_ratings WHERE is_visible = 1 ORDER BY order_index ASC', (err, ratings) => {
+                aboutData.ratings = ratings || [];
+
+                // Get approach section (only if visible, unless all=true)
+                const approachSectionQuery = showAll
+                  ? 'SELECT * FROM about_approach_section WHERE id = 1'
+                  : 'SELECT * FROM about_approach_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+                db.get(approachSectionQuery, (err, approachSection) => {
                   if (err) {
                     res.status(500).json({ error: err.message });
                     return;
                   }
-                  aboutData.ratings = ratings || [];
-                  
-                  // Get approach section (only if visible, unless all=true)
-                  const approachSectionQuery = showAll 
-                    ? 'SELECT * FROM about_approach_section WHERE id = 1'
-                    : 'SELECT * FROM about_approach_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
-                  db.get(approachSectionQuery, (err, approachSection) => {
+                  aboutData.approachSection = approachSection || {};
+
+                  // Get approach items
+                  db.all('SELECT * FROM about_approach_items WHERE is_visible = 1 ORDER BY order_index ASC', (err, approachItems) => {
                     if (err) {
                       res.status(500).json({ error: err.message });
                       return;
                     }
-                    aboutData.approachSection = approachSection || {};
-                    
-                    // Get approach items
-                    db.all('SELECT * FROM about_approach_items WHERE is_visible = 1 ORDER BY order_index ASC', (err, approachItems) => {
+                    aboutData.approachItems = approachItems || [];
+
+                    // Get mission & vision section (only if visible, unless all=true)
+                    const missionVisionQuery = showAll
+                      ? 'SELECT * FROM about_mission_vision_section WHERE id = 1'
+                      : 'SELECT * FROM about_mission_vision_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+                    db.get(missionVisionQuery, (err, missionVision) => {
                       if (err) {
-                        res.status(500).json({ error: err.message });
-                        return;
+                        // Table might not exist yet, continue without it
+                        aboutData.missionVision = {};
+                      } else {
+                        aboutData.missionVision = missionVision || {};
                       }
-                      aboutData.approachItems = approachItems || [];
-                      
-                      // Get mission & vision section (only if visible, unless all=true)
-                      const missionVisionQuery = showAll 
-                        ? 'SELECT * FROM about_mission_vision_section WHERE id = 1'
-                        : 'SELECT * FROM about_mission_vision_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
-                      db.get(missionVisionQuery, (err, missionVision) => {
+
+                      // Get core values section (only if visible, unless all=true)
+                      const coreValuesSectionQuery = showAll
+                        ? 'SELECT * FROM about_core_values_section WHERE id = 1'
+                        : 'SELECT * FROM about_core_values_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
+                      db.get(coreValuesSectionQuery, (err, coreValuesSection) => {
                         if (err) {
                           // Table might not exist yet, continue without it
-                          aboutData.missionVision = {};
+                          aboutData.coreValuesSection = {};
+                          aboutData.coreValues = [];
+                          res.json(aboutData);
                         } else {
-                          aboutData.missionVision = missionVision || {};
-                        }
-                        
-                        // Get core values section (only if visible, unless all=true)
-                        const coreValuesSectionQuery = showAll 
-                          ? 'SELECT * FROM about_core_values_section WHERE id = 1'
-                          : 'SELECT * FROM about_core_values_section WHERE id = 1 AND (is_visible = 1 OR is_visible IS NULL)';
-                        db.get(coreValuesSectionQuery, (err, coreValuesSection) => {
-                          if (err) {
-                            // Table might not exist yet, continue without it
-                            aboutData.coreValuesSection = {};
-                            aboutData.coreValues = [];
+                          aboutData.coreValuesSection = coreValuesSection || {};
+
+                          // Get core values items
+                          db.all('SELECT * FROM about_core_values WHERE is_visible = 1 ORDER BY order_index ASC', (err, coreValues) => {
+                            if (err) {
+                              aboutData.coreValues = [];
+                            } else {
+                              aboutData.coreValues = coreValues || [];
+                            }
+
                             res.json(aboutData);
-                          } else {
-                            aboutData.coreValuesSection = coreValuesSection || {};
-                            
-                            // Get core values items
-                            db.all('SELECT * FROM about_core_values WHERE is_visible = 1 ORDER BY order_index ASC', (err, coreValues) => {
-                              if (err) {
-                                aboutData.coreValues = [];
-                              } else {
-                                aboutData.coreValues = coreValues || [];
-                              }
-                              
-                              res.json(aboutData);
-                            });
-                          }
-                        });
+                          });
+                        }
                       });
                     });
                   });
                 });
               });
             });
+          });
         });
       });
     });
@@ -6662,7 +6664,7 @@ app.get('/api/about', (req, res) => {
 // Update About Hero Section
 app.put('/api/about/hero', (req, res) => {
   const { badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label } = req.body;
-  
+
   db.run(`UPDATE about_hero_section SET 
     badge_text = COALESCE(?, badge_text),
     title = COALESCE(?, title),
@@ -6675,18 +6677,18 @@ app.put('/api/about/hero', (req, res) => {
     stat_value = COALESCE(?, stat_value),
     stat_label = COALESCE(?, stat_label),
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = 1`, 
-    [badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label], 
-    function(err) {
+    WHERE id = 1`,
+    [badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
         db.run(`INSERT INTO about_hero_section (id, badge_text, title, highlighted_text, title_after, description, button_text, button_link, image_url, stat_value, stat_label) 
-          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-          [badge_text || 'About Cloud 4 India', title, highlighted_text, title_after || 'Control', description, button_text, button_link, image_url, stat_value, stat_label], 
-          function(err) {
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [badge_text || 'About Cloud 4 India', title, highlighted_text, title_after || 'Control', description, button_text, button_link, image_url, stat_value, stat_label],
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -6702,9 +6704,9 @@ app.put('/api/about/hero', (req, res) => {
 // Update About Story Section
 app.put('/api/about/story', (req, res) => {
   const { header_title, header_description, founding_year, story_items, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label } = req.body;
-  
+
   const storyItemsJson = Array.isArray(story_items) ? JSON.stringify(story_items) : story_items;
-  
+
   db.run(`UPDATE about_story_section SET 
     header_title = COALESCE(?, header_title),
     header_description = COALESCE(?, header_description),
@@ -6718,18 +6720,18 @@ app.put('/api/about/story', (req, res) => {
     top_badge_value = COALESCE(?, top_badge_value),
     top_badge_label = COALESCE(?, top_badge_label),
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = 1`, 
-    [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label], 
-    function(err) {
+    WHERE id = 1`,
+    [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
         db.run(`INSERT INTO about_story_section (id, header_title, header_description, founding_year, story_items, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label) 
-          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-          [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label], 
-          function(err) {
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [header_title, header_description, founding_year, storyItemsJson, image_url, badge_icon, badge_value, badge_label, top_badge_icon, top_badge_value, top_badge_label],
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -6745,22 +6747,22 @@ app.put('/api/about/story', (req, res) => {
 // Update About Legacy Section Header
 app.put('/api/about/legacy', (req, res) => {
   const { header_title, header_description } = req.body;
-  
+
   db.run(`UPDATE about_legacy_section SET 
     header_title = COALESCE(?, header_title),
     header_description = COALESCE(?, header_description),
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = 1`, 
-    [header_title, header_description], 
-    function(err) {
+    WHERE id = 1`,
+    [header_title, header_description],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
-        db.run(`INSERT INTO about_legacy_section (id, header_title, header_description) VALUES (1, ?, ?)`, 
-          [header_title || 'Our Legacy', header_description], 
-          function(err) {
+        db.run(`INSERT INTO about_legacy_section (id, header_title, header_description) VALUES (1, ?, ?)`,
+          [header_title || 'Our Legacy', header_description],
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -6792,7 +6794,7 @@ app.post('/api/about/stats', (req, res) => {
   const { label, value, order_index, is_visible } = req.body;
   db.run(`INSERT INTO about_legacy_stats (label, value, order_index, is_visible) VALUES (?, ?, ?, ?)`,
     [label, value, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6812,7 +6814,7 @@ app.put('/api/about/stats/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [label, value, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6823,7 +6825,7 @@ app.put('/api/about/stats/:id', (req, res) => {
 
 app.delete('/api/about/stats/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM about_legacy_stats WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM about_legacy_stats WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -6841,7 +6843,7 @@ app.put('/api/about/testimonials-section', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`,
     [header_title, header_description],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6849,7 +6851,7 @@ app.put('/api/about/testimonials-section', (req, res) => {
       if (this.changes === 0) {
         db.run(`INSERT INTO about_testimonials_section (id, header_title, header_description) VALUES (1, ?, ?)`,
           [header_title, header_description],
-          function(err) {
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -6881,7 +6883,7 @@ app.post('/api/about/testimonials', (req, res) => {
   const { quote, company, author, page_index, order_index, is_visible } = req.body;
   db.run(`INSERT INTO about_testimonials (quote, company, author, page_index, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
     [quote, company || null, author || null, page_index || 0, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6903,7 +6905,7 @@ app.put('/api/about/testimonials/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [quote, company, author, page_index, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6914,7 +6916,7 @@ app.put('/api/about/testimonials/:id', (req, res) => {
 
 app.delete('/api/about/testimonials/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM about_testimonials WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM about_testimonials WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -6942,7 +6944,7 @@ app.post('/api/about/ratings', (req, res) => {
   const { platform, rating_value, platform_icon, order_index, is_visible } = req.body;
   db.run(`INSERT INTO about_testimonial_ratings (platform, rating_value, platform_icon, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
     [platform, rating_value, platform_icon || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6963,7 +6965,7 @@ app.put('/api/about/ratings/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [platform, rating_value, platform_icon, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -6974,7 +6976,7 @@ app.put('/api/about/ratings/:id', (req, res) => {
 
 app.delete('/api/about/ratings/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM about_testimonial_ratings WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM about_testimonial_ratings WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -6994,7 +6996,7 @@ app.put('/api/about/approach-section', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`,
     [header_title, header_description, cta_button_text, cta_button_url],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7002,7 +7004,7 @@ app.put('/api/about/approach-section', (req, res) => {
       if (this.changes === 0) {
         db.run(`INSERT INTO about_approach_section (id, header_title, header_description, cta_button_text, cta_button_url) VALUES (1, ?, ?, ?, ?)`,
           [header_title || 'Our Approach', header_description, cta_button_text || 'Talk to a Specialist', cta_button_url || ''],
-          function(err) {
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -7034,7 +7036,7 @@ app.post('/api/about/approach-items', (req, res) => {
   const { title, description, icon_type, order_index, is_visible } = req.body;
   db.run(`INSERT INTO about_approach_items (title, description, icon_type, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
     [title, description, icon_type || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7055,7 +7057,7 @@ app.put('/api/about/approach-items/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [title, description, icon_type, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7066,7 +7068,7 @@ app.put('/api/about/approach-items/:id', (req, res) => {
 
 app.delete('/api/about/approach-items/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM about_approach_items WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM about_approach_items WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -7089,7 +7091,7 @@ app.put('/api/about/stats/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = stat.is_visible === 1 ? 0 : 1;
     db.run('UPDATE about_legacy_stats SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7112,7 +7114,7 @@ app.put('/api/about/testimonials/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = testimonial.is_visible === 1 ? 0 : 1;
     db.run('UPDATE about_testimonials SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7135,7 +7137,7 @@ app.put('/api/about/ratings/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = rating.is_visible === 1 ? 0 : 1;
     db.run('UPDATE about_testimonial_ratings SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7158,7 +7160,7 @@ app.put('/api/about/approach-items/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = item.is_visible === 1 ? 0 : 1;
     db.run('UPDATE about_approach_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7181,7 +7183,7 @@ app.put('/api/about/hero/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_hero_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7203,7 +7205,7 @@ app.put('/api/about/story/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_story_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7225,7 +7227,7 @@ app.put('/api/about/legacy/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_legacy_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7247,7 +7249,7 @@ app.put('/api/about/testimonials-section/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_testimonials_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7269,7 +7271,7 @@ app.put('/api/about/approach-section/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_approach_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7292,7 +7294,7 @@ app.put('/api/about/mission-vision', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`,
     [header_title, header_description, mission_title, mission_description, vision_title, vision_description],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7300,7 +7302,7 @@ app.put('/api/about/mission-vision', (req, res) => {
       if (this.changes === 0) {
         db.run(`INSERT INTO about_mission_vision_section (id, header_title, header_description, mission_title, mission_description, vision_title, vision_description) VALUES (1, ?, ?, ?, ?, ?, ?)`,
           [header_title, header_description, mission_title, mission_description, vision_title, vision_description],
-          function(err) {
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -7326,7 +7328,7 @@ app.put('/api/about/mission-vision/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_mission_vision_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7345,7 +7347,7 @@ app.put('/api/about/core-values-section', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = 1`,
     [header_title, header_description],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7353,7 +7355,7 @@ app.put('/api/about/core-values-section', (req, res) => {
       if (this.changes === 0) {
         db.run(`INSERT INTO about_core_values_section (id, header_title, header_description) VALUES (1, ?, ?)`,
           [header_title, header_description],
-          function(err) {
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -7379,7 +7381,7 @@ app.put('/api/about/core-values-section/toggle-visibility', (req, res) => {
     }
     const newVisibility = (section.is_visible === 1 || section.is_visible === null) ? 0 : 1;
     db.run('UPDATE about_core_values_section SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-      [newVisibility], function(err) {
+      [newVisibility], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7408,7 +7410,7 @@ app.post('/api/about/core-values', (req, res) => {
   const { title, description, icon_type, color, order_index, is_visible } = req.body;
   db.run(`INSERT INTO about_core_values (title, description, icon_type, color, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
     [title, description, icon_type || 'lightbulb', color || 'saree-teal', order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7430,7 +7432,7 @@ app.put('/api/about/core-values/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [title, description, icon_type, color, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -7441,7 +7443,7 @@ app.put('/api/about/core-values/:id', (req, res) => {
 
 app.delete('/api/about/core-values/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM about_core_values WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM about_core_values WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -7463,7 +7465,7 @@ app.put('/api/about/core-values/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = value.is_visible === 1 ? 0 : 1;
     db.run('UPDATE about_core_values SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -7480,18 +7482,18 @@ function cleanupOrphanedMainMarketplacesSections() {
     DELETE FROM main_marketplaces_sections 
     WHERE marketplace_id IS NOT NULL 
     AND marketplace_id NOT IN (SELECT id FROM marketplaces)
-  `, function(err) {
+  `, function (err) {
     if (err) {
       console.error('Error cleaning up orphaned main_marketplaces_sections:', err.message);
     } else if (this.changes > 0) {
       console.log(`🧹 Cleaned up ${this.changes} orphaned main_marketplaces_sections entries (deleted marketplaces only)`);
     }
-    
+
     // Also clean up NULL marketplace_id entries (these are truly orphaned)
     db.run(`
       DELETE FROM main_marketplaces_sections 
       WHERE marketplace_id IS NULL
-    `, function(err2) {
+    `, function (err2) {
       if (!err2 && this.changes > 0) {
         console.log(`🧹 Cleaned up ${this.changes} entries with NULL marketplace_id`);
       }
@@ -7506,7 +7508,7 @@ function cleanupOrphanedMainSolutionsSections() {
     DELETE FROM main_solutions_sections 
     WHERE solution_id IS NOT NULL 
     AND solution_id NOT IN (SELECT id FROM solutions)
-  `, function(err) {
+  `, function (err) {
     if (err) {
       console.error('Error cleaning up orphaned main_solutions_sections:', err.message);
     } else if (this.changes > 0) {
@@ -7522,7 +7524,7 @@ function cleanupOrphanedMainProductsSections() {
     DELETE FROM main_products_sections 
     WHERE product_id IS NOT NULL 
     AND product_id NOT IN (SELECT id FROM products)
-  `, function(err) {
+  `, function (err) {
     if (err) {
       console.error('Error cleaning up orphaned main_products_sections:', err.message);
     } else if (this.changes > 0) {
@@ -7576,7 +7578,7 @@ app.get('/api/solutions/:id', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   const { id } = req.params;
   db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, solution) => {
     if (err) {
@@ -7594,39 +7596,39 @@ app.get('/api/solutions/:id', (req, res) => {
 // Create new solution
 app.post('/api/solutions', (req, res) => {
   const { name, description, category, color, border_color, route, enable_single_page = 1, redirect_url = null, icon = null } = req.body;
-  
+
   const gradientColors = [
     { start: 'blue', end: 'blue-100' },
     { start: 'purple', end: 'purple-100' },
     { start: 'green', end: 'green-100' },
     { start: 'orange', end: 'orange-100' }
   ];
-  
+
   db.get('SELECT MAX(order_index) as max_order, COUNT(*) as total_count FROM solutions', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || -1) + 1;
     const totalCount = result.total_count || 0;
     const gradientIndex = totalCount % gradientColors.length;
     const gradient = gradientColors[gradientIndex];
-    
-    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url, icon], 
-      function(err) {
+
+    db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, description, category, color, border_color, route, nextOrder, gradient.start, gradient.end, enable_single_page, redirect_url, icon],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
+
         const newSolutionId = this.lastID;
-        
+
         // Auto-create main solutions section
         createMainSolutionSection(newSolutionId, name, description, category, () => {
-          res.json({ 
-            message: 'Solution created successfully', 
+          res.json({
+            message: 'Solution created successfully',
             id: newSolutionId,
             changes: this.changes,
             gradient: gradient
@@ -7640,7 +7642,7 @@ app.post('/api/solutions', (req, res) => {
 app.put('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
   const { name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, icon } = req.body;
-  
+
   db.run(`UPDATE solutions SET 
     name = ?, 
     description = ?, 
@@ -7654,22 +7656,22 @@ app.put('/api/solutions/:id', (req, res) => {
     redirect_url = ?,
     icon = ?,
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`, 
-    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, icon, id], 
-    function(err) {
+    WHERE id = ?`,
+    [name, description, category, color, border_color, route, gradient_start, gradient_end, enable_single_page, redirect_url, icon, id],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       db.run(`UPDATE main_solutions_sections SET 
         title = COALESCE(?, title),
         description = COALESCE(?, description),
         category = COALESCE(?, category),
         updated_at = CURRENT_TIMESTAMP
-        WHERE solution_id = ?`, 
+        WHERE solution_id = ?`,
         [name, description, category, id],
-        function(updateErr) {
+        function (updateErr) {
           if (updateErr) {
             console.error('Error updating main_solutions_sections:', updateErr);
           }
@@ -7681,29 +7683,29 @@ app.put('/api/solutions/:id', (req, res) => {
 // Delete solution
 app.delete('/api/solutions/:id', (req, res) => {
   const { id } = req.params;
-  
+
   db.run(`DELETE FROM solution_items WHERE section_id IN (SELECT id FROM solution_sections WHERE solution_id = ?)`, [id], (err) => {
     if (err) {
       console.error('Error deleting solution items:', err.message);
     }
-    
+
     db.run(`DELETE FROM solution_sections WHERE solution_id = ?`, [id], (err) => {
       if (err) {
         console.error('Error deleting solution sections:', err.message);
       }
-      
+
       // Also delete from main_solutions_sections
       db.run(`DELETE FROM main_solutions_sections WHERE solution_id = ?`, [id], (err) => {
         if (err) {
           console.error('Error deleting main_solutions_sections entry:', err.message);
-      }
-      
-      db.run(`DELETE FROM solutions WHERE id = ?`, [id], function(err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
         }
-        res.json({ message: 'Solution deleted successfully', changes: this.changes });
+
+        db.run(`DELETE FROM solutions WHERE id = ?`, [id], function (err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ message: 'Solution deleted successfully', changes: this.changes });
         });
       });
     });
@@ -7713,7 +7715,7 @@ app.delete('/api/solutions/:id', (req, res) => {
 // Toggle solution visibility
 app.put('/api/solutions/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
-  
+
   db.get('SELECT is_visible FROM solutions WHERE id = ?', [id], (err, solution) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -7723,18 +7725,18 @@ app.put('/api/solutions/:id/toggle-visibility', (req, res) => {
       res.status(404).json({ error: 'Solution not found' });
       return;
     }
-    
+
     const newVisibility = solution.is_visible ? 0 : 1;
-    
-    db.run('UPDATE solutions SET is_visible = ? WHERE id = ?', [newVisibility, id], function(err) {
+
+    db.run('UPDATE solutions SET is_visible = ? WHERE id = ?', [newVisibility, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ 
-        message: `Solution ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+      res.json({
+        message: `Solution ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -7745,151 +7747,151 @@ app.post('/api/solutions/:id/duplicate', async (req, res) => {
   console.log('[DUPLICATE] ========== ENDPOINT HIT ==========');
   console.log('[DUPLICATE] Request params:', req.params);
   console.log('[DUPLICATE] Request body:', req.body);
-  
+
   // Set a longer timeout for this operation
   req.setTimeout(300000); // 5 minutes
   res.setTimeout(300000);
-  
+
   try {
     const { id } = req.params;
     const { newName, newRoute, name } = req.body;
-    
+
     console.log(`[DUPLICATE] Starting duplication for solution ID: ${id}`);
     console.log(`[DUPLICATE] Request body:`, { newName, newRoute, name });
-    
+
     db.get('SELECT * FROM solutions WHERE id = ?', [id], (err, originalSolution) => {
-    if (err) {
-      console.error('[DUPLICATE] Error fetching solution:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: err.message });
-      }
-      return;
-    }
-    if (!originalSolution) {
-      console.error('[DUPLICATE] Solution not found:', id);
-      if (!res.headersSent) {
-        res.status(404).json({ error: 'Solution not found' });
-      }
-      return;
-    }
-    
-    console.log(`[DUPLICATE] Found solution: ${originalSolution.name}`);
-    
-    db.get('SELECT MAX(order_index) as max_order FROM solutions', (err, result) => {
       if (err) {
-        console.error('[DUPLICATE] Error getting max order:', err);
+        console.error('[DUPLICATE] Error fetching solution:', err);
         if (!res.headersSent) {
           res.status(500).json({ error: err.message });
         }
         return;
       }
-      
-      const nextOrder = (result.max_order || -1) + 1;
-      const duplicateName = newName || name || `${originalSolution.name} (Copy)`;
-      const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log(`[DUPLICATE] Creating new solution with name: ${duplicateName}, order: ${nextOrder}`);
-      
-      db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-        [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end, originalSolution.enable_single_page, originalSolution.redirect_url, originalSolution.icon], 
-        function(err) {
-          if (err) {
-            console.error('[DUPLICATE] Error inserting new solution:', err);
-            if (!res.headersSent) {
-              res.status(500).json({ error: err.message });
-            }
-            return;
+      if (!originalSolution) {
+        console.error('[DUPLICATE] Solution not found:', id);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'Solution not found' });
+        }
+        return;
+      }
+
+      console.log(`[DUPLICATE] Found solution: ${originalSolution.name}`);
+
+      db.get('SELECT MAX(order_index) as max_order FROM solutions', (err, result) => {
+        if (err) {
+          console.error('[DUPLICATE] Error getting max order:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: err.message });
           }
-          
-          const newSolutionId = this.lastID;
-          
-          // Generate slug-based route from the solution name
-          const slug = duplicateName.toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-')           // Replace spaces with hyphens
-            .replace(/[^a-z0-9-]/g, '')     // Remove special characters
-            .replace(/--+/g, '-')           // Replace multiple hyphens with single
-            .replace(/^-+|-+$/g, '');       // Trim hyphens from start/end
-          
-          const correctRoute = `/solutions/${slug}`;
-          
-          console.log(`[DUPLICATE] New solution created with ID: ${newSolutionId}`);
-          console.log(`[DUPLICATE] Generated route: ${correctRoute} from name: ${duplicateName}`);
-          
-          db.run(`UPDATE solutions SET route = ? WHERE id = ?`, [correctRoute, newSolutionId], (updateErr) => {
-            if (updateErr) {
-              console.error('[DUPLICATE] Error updating route:', updateErr.message);
-            } else {
-              console.log(`[DUPLICATE] Route updated successfully to: ${correctRoute}`);
+          return;
+        }
+
+        const nextOrder = (result.max_order || -1) + 1;
+        const duplicateName = newName || name || `${originalSolution.name} (Copy)`;
+        const tempRoute = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log(`[DUPLICATE] Creating new solution with name: ${duplicateName}, order: ${nextOrder}`);
+
+        db.run(`INSERT INTO solutions (name, description, category, color, border_color, route, order_index, gradient_start, gradient_end, enable_single_page, redirect_url, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [duplicateName, originalSolution.description, originalSolution.category, originalSolution.color, originalSolution.border_color, tempRoute, nextOrder, originalSolution.gradient_start, originalSolution.gradient_end, originalSolution.enable_single_page, originalSolution.redirect_url, originalSolution.icon],
+          function (err) {
+            if (err) {
+              console.error('[DUPLICATE] Error inserting new solution:', err);
+              if (!res.headersSent) {
+                res.status(500).json({ error: err.message });
+              }
+              return;
             }
-            
-            console.log(`[DUPLICATE] Fetching sections for original solution ${id}`);
-            
-            // Duplicate all sections
-            db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
-              if (err) {
-                console.error('[DUPLICATE] Error fetching sections:', err.message);
-                if (!res.headersSent) {
-                  res.json({ 
-                    message: 'Solution duplicated successfully (sections could not be duplicated)', 
-                    id: newSolutionId
-                  });
-                }
-                return;
+
+            const newSolutionId = this.lastID;
+
+            // Generate slug-based route from the solution name
+            const slug = duplicateName.toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')           // Replace spaces with hyphens
+              .replace(/[^a-z0-9-]/g, '')     // Remove special characters
+              .replace(/--+/g, '-')           // Replace multiple hyphens with single
+              .replace(/^-+|-+$/g, '');       // Trim hyphens from start/end
+
+            const correctRoute = `/solutions/${slug}`;
+
+            console.log(`[DUPLICATE] New solution created with ID: ${newSolutionId}`);
+            console.log(`[DUPLICATE] Generated route: ${correctRoute} from name: ${duplicateName}`);
+
+            db.run(`UPDATE solutions SET route = ? WHERE id = ?`, [correctRoute, newSolutionId], (updateErr) => {
+              if (updateErr) {
+                console.error('[DUPLICATE] Error updating route:', updateErr.message);
+              } else {
+                console.log(`[DUPLICATE] Route updated successfully to: ${correctRoute}`);
               }
-              
-              console.log(`[DUPLICATE] Found ${sections.length} sections to duplicate`);
-              
-              if (sections.length === 0) {
-                if (!res.headersSent) {
-                  res.json({ 
-                    message: 'Solution duplicated successfully', 
-                    id: newSolutionId
-                  });
+
+              console.log(`[DUPLICATE] Fetching sections for original solution ${id}`);
+
+              // Duplicate all sections
+              db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
+                if (err) {
+                  console.error('[DUPLICATE] Error fetching sections:', err.message);
+                  if (!res.headersSent) {
+                    res.json({
+                      message: 'Solution duplicated successfully (sections could not be duplicated)',
+                      id: newSolutionId
+                    });
+                  }
+                  return;
                 }
-                return;
-              }
-              
-              const sectionIdMap = new Map();
-              let completed = 0;
-              const total = sections.length;
-              let hasError = false;
-              
-              sections.forEach((section, index) => {
-                console.log(`[DUPLICATE] Duplicating section ${index + 1}/${total}: ${section.section_type}`);
-                
-                db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                  [newSolutionId, section.section_type, section.title || null, section.description || null, section.content || null, section.order_index || 0, section.is_visible !== undefined ? section.is_visible : 1, section.media_type || null, section.media_source || null, section.media_url || null], 
-                  function(err) {
-                    if (err) {
-                      console.error('[DUPLICATE] Error duplicating section:', err.message);
-                      console.error('[DUPLICATE] Section data:', JSON.stringify(section, null, 2));
-                      hasError = true;
-                    } else {
-                      sectionIdMap.set(section.id, this.lastID);
-                      console.log(`[DUPLICATE] Section duplicated: ${section.id} -> ${this.lastID}`);
-                    }
-                    
-                    completed++;
-                    if (completed === total) {
-                      console.log(`[DUPLICATE] All ${total} sections processed, now duplicating items...`);
-                      // Duplicate section items
-                      try {
-                        duplicateSolutionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution, res);
-                      } catch (itemErr) {
-                        console.error('[DUPLICATE] Error in duplicateSolutionItems:', itemErr);
-                        if (!res.headersSent) {
-                          res.status(500).json({ error: itemErr.message || 'Error duplicating items' });
+
+                console.log(`[DUPLICATE] Found ${sections.length} sections to duplicate`);
+
+                if (sections.length === 0) {
+                  if (!res.headersSent) {
+                    res.json({
+                      message: 'Solution duplicated successfully',
+                      id: newSolutionId
+                    });
+                  }
+                  return;
+                }
+
+                const sectionIdMap = new Map();
+                let completed = 0;
+                const total = sections.length;
+                let hasError = false;
+
+                sections.forEach((section, index) => {
+                  console.log(`[DUPLICATE] Duplicating section ${index + 1}/${total}: ${section.section_type}`);
+
+                  db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, is_visible, media_type, media_source, media_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [newSolutionId, section.section_type, section.title || null, section.description || null, section.content || null, section.order_index || 0, section.is_visible !== undefined ? section.is_visible : 1, section.media_type || null, section.media_source || null, section.media_url || null],
+                    function (err) {
+                      if (err) {
+                        console.error('[DUPLICATE] Error duplicating section:', err.message);
+                        console.error('[DUPLICATE] Section data:', JSON.stringify(section, null, 2));
+                        hasError = true;
+                      } else {
+                        sectionIdMap.set(section.id, this.lastID);
+                        console.log(`[DUPLICATE] Section duplicated: ${section.id} -> ${this.lastID}`);
+                      }
+
+                      completed++;
+                      if (completed === total) {
+                        console.log(`[DUPLICATE] All ${total} sections processed, now duplicating items...`);
+                        // Duplicate section items
+                        try {
+                          duplicateSolutionItems(id, sectionIdMap, newSolutionId, duplicateName, originalSolution, res);
+                        } catch (itemErr) {
+                          console.error('[DUPLICATE] Error in duplicateSolutionItems:', itemErr);
+                          if (!res.headersSent) {
+                            res.status(500).json({ error: itemErr.message || 'Error duplicating items' });
+                          }
                         }
                       }
-                    }
-                  });
+                    });
+                });
               });
             });
           });
-        });
+      });
     });
-  });
   } catch (error) {
     console.error('[DUPLICATE] Unhandled error:', error);
     console.error('[DUPLICATE] Error stack:', error.stack);
@@ -7905,7 +7907,7 @@ function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId,
     // Prevent multiple responses
     let responseSent = false;
     let responseTimeout = null;
-    
+
     const sendResponse = (data) => {
       if (responseTimeout) {
         clearTimeout(responseTimeout);
@@ -7919,78 +7921,78 @@ function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId,
         console.log('[DUPLICATE] Response already sent, skipping duplicate response');
       }
     };
-    
+
     // Safety timeout - send response after 30 seconds if nothing else does
     responseTimeout = setTimeout(() => {
       if (!responseSent && !res.headersSent) {
         console.log('[DUPLICATE] Timeout reached, sending response anyway');
-        sendResponse({ 
-          message: 'Solution duplication completed (timeout)', 
+        sendResponse({
+          message: 'Solution duplication completed (timeout)',
           id: newSolutionId
         });
       }
     }, 30000);
-    
+
     console.log(`[DUPLICATE] Starting item duplication for solution ${newSolutionId}`);
     console.log(`[DUPLICATE] Section ID map size: ${sectionIdMap.size}`);
-    
+
     const originalSectionIds = Array.from(sectionIdMap.keys());
     if (originalSectionIds.length === 0) {
       console.log('[DUPLICATE] No sections to duplicate items from');
       try {
         createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
-          sendResponse({ 
-            message: 'Solution duplicated successfully', 
+          sendResponse({
+            message: 'Solution duplicated successfully',
             id: newSolutionId
           });
         });
       } catch (err) {
         console.error('[DUPLICATE] Error creating main solution section:', err);
-        sendResponse({ 
-          message: 'Solution duplicated (main section creation failed)', 
+        sendResponse({
+          message: 'Solution duplicated (main section creation failed)',
           id: newSolutionId
         });
       }
       return;
     }
-    
+
     const placeholders = originalSectionIds.map(() => '?').join(',');
     console.log(`[DUPLICATE] Querying items for ${originalSectionIds.length} sections`);
-    
+
     db.all(`SELECT * FROM solution_items WHERE section_id IN (${placeholders}) ORDER BY section_id, order_index`, originalSectionIds, (err, items) => {
       if (err) {
         console.error('[DUPLICATE] Error fetching solution items:', err.message);
-        sendResponse({ 
-          message: 'Solution duplicated successfully (items could not be duplicated)', 
+        sendResponse({
+          message: 'Solution duplicated successfully (items could not be duplicated)',
           id: newSolutionId
         });
         return;
       }
-    
+
       console.log(`[DUPLICATE] Found ${items.length} items to duplicate`);
-      
+
       if (items.length === 0) {
         console.log('[DUPLICATE] No items to duplicate');
         try {
           createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
-            sendResponse({ 
-              message: 'Solution duplicated successfully', 
+            sendResponse({
+              message: 'Solution duplicated successfully',
               id: newSolutionId
             });
           });
         } catch (err) {
           console.error('[DUPLICATE] Error creating main solution section:', err);
-          sendResponse({ 
-            message: 'Solution duplicated (main section creation failed)', 
+          sendResponse({
+            message: 'Solution duplicated (main section creation failed)',
             id: newSolutionId
           });
         }
         return;
       }
-      
+
       let completed = 0;
       const total = items.length;
-      
+
       items.forEach((item, index) => {
         const newSectionId = sectionIdMap.get(item.section_id);
         if (!newSectionId) {
@@ -7999,34 +8001,34 @@ function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId,
           if (completed === total) {
             try {
               createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
-                sendResponse({ 
-                  message: 'Solution duplicated successfully', 
+                sendResponse({
+                  message: 'Solution duplicated successfully',
                   id: newSolutionId
                 });
               });
             } catch (err) {
               console.error('[DUPLICATE] Error creating main solution section:', err);
-              sendResponse({ 
-                message: 'Solution duplicated (main section creation failed)', 
+              sendResponse({
+                message: 'Solution duplicated (main section creation failed)',
                 id: newSolutionId
               });
             }
           }
           return;
         }
-        
+
         console.log(`[DUPLICATE] Duplicating item ${index + 1}/${total}: ${item.item_type || 'unknown'}`);
-        
-        db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, order_index, content, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-          [newSectionId, item.item_type || null, item.title || null, item.description || null, item.icon || null, item.value || null, item.label || null, item.features || null, item.order_index || 0, item.content || null, item.is_visible !== undefined ? item.is_visible : 1], 
-          function(err) {
+
+        db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, order_index, content, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [newSectionId, item.item_type || null, item.title || null, item.description || null, item.icon || null, item.value || null, item.label || null, item.features || null, item.order_index || 0, item.content || null, item.is_visible !== undefined ? item.is_visible : 1],
+          function (err) {
             if (err) {
               console.error('[DUPLICATE] Error duplicating item:', err.message);
               console.error('[DUPLICATE] Item data:', JSON.stringify(item, null, 2));
             } else {
               console.log(`[DUPLICATE] Item ${index + 1} duplicated successfully`);
             }
-            
+
             completed++;
             if (completed === total) {
               console.log(`[DUPLICATE] All ${total} items processed, creating main section...`);
@@ -8034,15 +8036,15 @@ function duplicateSolutionItems(originalSolutionId, sectionIdMap, newSolutionId,
               try {
                 createMainSolutionSection(newSolutionId, duplicateName, originalSolution.description, originalSolution.category, () => {
                   console.log(`[DUPLICATE] Solution ${newSolutionId} duplicated successfully!`);
-                  sendResponse({ 
-                    message: 'Solution duplicated successfully', 
+                  sendResponse({
+                    message: 'Solution duplicated successfully',
                     id: newSolutionId
                   });
                 });
               } catch (err) {
                 console.error('[DUPLICATE] Error creating main solution section:', err);
-                sendResponse({ 
-                  message: 'Solution duplicated (main section creation failed)', 
+                sendResponse({
+                  message: 'Solution duplicated (main section creation failed)',
                   id: newSolutionId
                 });
               }
@@ -8067,15 +8069,15 @@ app.post('/api/main-solutions/sync', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!solutions || solutions.length === 0) {
       res.json({ message: 'No visible solutions found', created: 0 });
       return;
     }
-    
+
     let processed = 0;
     let created = 0;
-    
+
     solutions.forEach((solution) => {
       db.get('SELECT id FROM main_solutions_sections WHERE solution_id = ?', [solution.id], (checkErr, existing) => {
         if (checkErr) {
@@ -8086,7 +8088,7 @@ app.post('/api/main-solutions/sync', (req, res) => {
           }
           return;
         }
-        
+
         if (!existing) {
           // Create missing entry
           createMainSolutionSection(solution.id, solution.name, solution.description, solution.category, () => {
@@ -8111,20 +8113,20 @@ app.post('/api/main-solutions/sync', (req, res) => {
 app.get('/api/main-solutions', (req, res) => {
   const mainPageData = {};
   const { all } = req.query;
-  
+
   db.get('SELECT * FROM main_solutions_content WHERE id = 1', (err, heroContent) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     mainPageData.hero = heroContent || {
       title: 'Our Solutions',
       subtitle: 'Cloud Solutions - Made in India',
       description: 'Explore our comprehensive cloud solutions designed to transform your business operations.'
     };
-    
-    const sectionsQuery = all === 'true' 
+
+    const sectionsQuery = all === 'true'
       ? `
         SELECT 
           mss.*, 
@@ -8147,13 +8149,13 @@ app.get('/api/main-solutions', (req, res) => {
         WHERE mss.is_visible = 1 AND (mss.solution_id IS NULL OR s.is_visible = 1)
         ORDER BY mss.order_index ASC
       `;
-    
+
     db.all(sectionsQuery, (err, sections) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const parsedSections = (sections || []).map(section => ({
         ...section,
         features: (() => {
@@ -8164,7 +8166,7 @@ app.get('/api/main-solutions', (req, res) => {
           }
         })()
       }));
-      
+
       mainPageData.sections = parsedSections;
       res.json(mainPageData);
     });
@@ -8198,9 +8200,9 @@ function addMainSolutionsContentColumns() {
 
 // Update main solutions page hero content
 app.put('/api/main-solutions/hero', (req, res) => {
-  const { 
-    title, 
-    subtitle, 
+  const {
+    title,
+    subtitle,
     description,
     stat1_label,
     stat1_value,
@@ -8211,15 +8213,15 @@ app.put('/api/main-solutions/hero', (req, res) => {
     stat4_label,
     stat4_value
   } = req.body;
-  
+
   addMainSolutionsContentColumns();
-  
+
   db.get('SELECT * FROM main_solutions_content WHERE id = 1', (err, existing) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (existing) {
       db.run(`
         UPDATE main_solutions_content 
@@ -8232,7 +8234,7 @@ app.put('/api/main-solutions/hero', (req, res) => {
         title, subtitle, description,
         stat1_label, stat1_value, stat2_label, stat2_value,
         stat3_label, stat3_value, stat4_label, stat4_value
-      ], function(err) {
+      ], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -8251,7 +8253,7 @@ app.put('/api/main-solutions/hero', (req, res) => {
         title, subtitle, description,
         stat1_label, stat1_value, stat2_label, stat2_value,
         stat3_label, stat3_value, stat4_label, stat4_value
-      ], function(err) {
+      ], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -8307,10 +8309,10 @@ function addMainSolutionsSectionsColumns() {
 // Update main solutions section
 app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  const { 
-    title, 
-    description, 
-    is_visible, 
+  const {
+    title,
+    description,
+    is_visible,
     order_index,
     popular_tag,
     category,
@@ -8320,11 +8322,11 @@ app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
     free_trial_tag,
     button_text
   } = req.body;
-  
+
   addMainSolutionsSectionsColumns();
-  
+
   const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
-  
+
   db.run(`
     UPDATE main_solutions_sections 
     SET 
@@ -8342,9 +8344,9 @@ app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
       updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `, [
-    title, 
-    description, 
-    is_visible, 
+    title,
+    description,
+    is_visible,
     order_index || 0,
     popular_tag || null,
     category || null,
@@ -8354,7 +8356,7 @@ app.put('/api/main-solutions/sections/:sectionId', (req, res) => {
     free_trial_tag || null,
     button_text || null,
     sectionId
-  ], function(err) {
+  ], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -8379,7 +8381,7 @@ app.get('/api/main-solutions/sections/all', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const parsedSections = sections.map(section => ({
       ...section,
       features: (() => {
@@ -8390,7 +8392,7 @@ app.get('/api/main-solutions/sections/all', (req, res) => {
         }
       })()
     }));
-    
+
     res.json(parsedSections || []);
   });
 });
@@ -8398,7 +8400,7 @@ app.get('/api/main-solutions/sections/all', (req, res) => {
 // Duplicate main solutions section
 app.post('/api/main-solutions/sections/:sectionId/duplicate', (req, res) => {
   const { sectionId } = req.params;
-  
+
   db.get(`
     SELECT 
       mss.*, 
@@ -8412,20 +8414,20 @@ app.post('/api/main-solutions/sections/:sectionId/duplicate', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!originalSection) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
+
       const nextOrder = (result.max_order || 0) + 1;
-      
+
       db.run(`
         INSERT INTO main_solutions_sections (
           solution_id, title, description, is_visible, order_index,
@@ -8445,7 +8447,7 @@ app.post('/api/main-solutions/sections/:sectionId/duplicate', (req, res) => {
         originalSection.price_period,
         originalSection.free_trial_tag,
         originalSection.button_text
-      ], function(err) {
+      ], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -8459,8 +8461,8 @@ app.post('/api/main-solutions/sections/:sectionId/duplicate', (req, res) => {
 // Delete main solutions section
 app.delete('/api/main-solutions/sections/:sectionId', (req, res) => {
   const { sectionId } = req.params;
-  
-  db.run('DELETE FROM main_solutions_sections WHERE id = ?', [sectionId], function(err) {
+
+  db.run('DELETE FROM main_solutions_sections WHERE id = ?', [sectionId], function (err) {
     if (err) {
       console.error('Error deleting section:', err);
       res.status(500).json({ error: err.message });
@@ -8473,31 +8475,31 @@ app.delete('/api/main-solutions/sections/:sectionId', (req, res) => {
 // Toggle main solutions section visibility
 app.patch('/api/main-solutions/sections/:sectionId/toggle-visibility', (req, res) => {
   const { sectionId } = req.params;
-  
+
   db.get('SELECT is_visible FROM main_solutions_sections WHERE id = ?', [sectionId], (err, section) => {
     if (err) {
       console.error('Error getting section visibility:', err);
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (!section) {
       res.status(404).json({ error: 'Section not found' });
       return;
     }
-    
+
     const newVisibility = section.is_visible ? 0 : 1;
-    
-    db.run('UPDATE main_solutions_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function(err) {
+
+    db.run('UPDATE main_solutions_sections SET is_visible = ? WHERE id = ?', [newVisibility, sectionId], function (err) {
       if (err) {
         console.error('Error toggling section visibility:', err);
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ 
-        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`, 
+      res.json({
+        message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`,
         is_visible: newVisibility,
-        changes: this.changes 
+        changes: this.changes
       });
     });
   });
@@ -8505,9 +8507,9 @@ app.patch('/api/main-solutions/sections/:sectionId/toggle-visibility', (req, res
 
 // Create new main solutions section
 app.post('/api/main-solutions/sections', (req, res) => {
-  const { 
-    title, 
-    description, 
+  const {
+    title,
+    description,
     is_visible,
     popular_tag,
     category,
@@ -8517,23 +8519,23 @@ app.post('/api/main-solutions/sections', (req, res) => {
     free_trial_tag,
     button_text
   } = req.body;
-  
+
   if (!title) {
     res.status(400).json({ error: 'title is required' });
     return;
   }
-  
+
   addMainSolutionsSectionsColumns();
-  
+
   db.get('SELECT MAX(order_index) as max_order FROM main_solutions_sections', (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const nextOrder = (result.max_order || 0) + 1;
     const featuresJson = Array.isArray(features) ? JSON.stringify(features) : (features || '[]');
-    
+
     db.run(`
       INSERT INTO main_solutions_sections (
         solution_id, title, description, is_visible, order_index,
@@ -8541,9 +8543,9 @@ app.post('/api/main-solutions/sections', (req, res) => {
       ) 
       VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      title, 
-      description || '', 
-      is_visible !== undefined ? is_visible : 1, 
+      title,
+      description || '',
+      is_visible !== undefined ? is_visible : 1,
       nextOrder,
       popular_tag || null,
       category || null,
@@ -8552,7 +8554,7 @@ app.post('/api/main-solutions/sections', (req, res) => {
       price_period || null,
       free_trial_tag || null,
       button_text || null
-    ], function(err) {
+    ], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -8570,7 +8572,7 @@ app.get('/api/solutions/:id/sections', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   const { id } = req.params;
   db.all('SELECT * FROM solution_sections WHERE solution_id = ? ORDER BY order_index ASC', [id], (err, sections) => {
     if (err) {
@@ -8603,7 +8605,7 @@ app.get('/api/solutions/by-route/:route', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   let { route } = req.params;
   // Handle both full route (/solutions/startups-cloud) and slug (startups-cloud)
   if (!route.startsWith('/')) {
@@ -8628,13 +8630,13 @@ app.get('/api/solutions/by-route/:route/sections', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   let { route } = req.params;
   // Handle both full route (/solutions/startups-cloud) and slug (startups-cloud)
   if (!route.startsWith('/')) {
     route = `/solutions/${route}`;
   }
-  
+
   // First get the solution ID from route
   db.get('SELECT id FROM solutions WHERE route = ? AND is_visible = 1', [route], (err, solution) => {
     if (err) {
@@ -8645,7 +8647,7 @@ app.get('/api/solutions/by-route/:route/sections', (req, res) => {
       res.status(404).json({ error: 'Solution not found' });
       return;
     }
-    
+
     // Get sections for this solution
     db.all(`
       SELECT * FROM solution_sections 
@@ -8665,23 +8667,23 @@ app.get('/api/solutions/by-route/:route/sections', (req, res) => {
 app.post('/api/solutions/:id/sections', (req, res) => {
   const { id } = req.params;
   const { section_type, title, description, content, media_type, media_source, media_url } = req.body;
-  
+
   // Validate media fields if section_type is media_banner
   let finalMediaUrl = null;
-  
+
   if (section_type === 'media_banner') {
     if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
       return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
     }
-    
+
     if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
       return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
     }
-    
+
     if (!media_url) {
       return res.status(400).json({ error: 'media_url is required for media_banner sections' });
     }
-    
+
     // Validate YouTube URL if source is youtube
     if (media_source === 'youtube') {
       const youtubeValidation = validateYouTubeUrl(media_url);
@@ -8696,7 +8698,7 @@ app.post('/api/solutions/:id/sections', (req, res) => {
   } else {
     finalMediaUrl = media_url || null;
   }
-  
+
   // Get the next order index
   db.get(`
     SELECT MAX(order_index) as max_order 
@@ -8707,20 +8709,20 @@ app.post('/api/solutions/:id/sections', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const finalOrderIndex = (result.max_order || -1) + 1;
-    
-    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, media_type, media_source, media_url, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`, 
-      [id, section_type, title, description, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl], 
-      function(err) {
+
+    db.run(`INSERT INTO solution_sections (solution_id, section_type, title, description, content, order_index, media_type, media_source, media_url, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      [id, section_type, title, description, content, finalOrderIndex, media_type || null, media_source || null, finalMediaUrl],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Section created successfully', 
+        res.json({
+          message: 'Section created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -8729,19 +8731,19 @@ app.post('/api/solutions/:id/sections', (req, res) => {
 // Update solution section
 app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  const { 
-    section_type, title, description, content, order_index, is_visible, 
+  const {
+    section_type, title, description, content, order_index, is_visible,
     media_type, media_source, media_url,
     pricing_table_header_plan, pricing_table_header_specs, pricing_table_header_features,
     pricing_table_header_hourly, pricing_table_header_monthly, pricing_table_header_quarterly,
     pricing_table_header_yearly, pricing_table_header_action,
     show_hourly_column, show_monthly_column, show_quarterly_column, show_yearly_column
   } = req.body;
-  
+
   // Build dynamic query based on provided fields
   let updateFields = [];
   let values = [];
-  
+
   if (section_type !== undefined) {
     updateFields.push('section_type = ?');
     values.push(section_type);
@@ -8828,33 +8830,33 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
     updateFields.push('show_yearly_column = ?');
     values.push(show_yearly_column ? 1 : 0);
   }
-  
+
   // Always update updated_at
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
-  
+
   // Check if there are any fields to update
   if (updateFields.length === 1) {
     // Only updated_at, which means no actual fields were provided
     res.status(400).json({ error: 'No fields provided to update' });
     return;
   }
-  
+
   values.push(sectionId, id);
-  
+
   const query = `UPDATE solution_sections SET ${updateFields.join(', ')} WHERE id = ? AND solution_id = ?`;
-  
-  db.run(query, values, function(err) {
+
+  db.run(query, values, function (err) {
     if (err) {
       console.error('Error updating solution section:', err);
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     if (this.changes === 0) {
       res.status(404).json({ error: 'Section not found or no changes made' });
       return;
     }
-    
+
     res.json({ message: 'Section updated successfully', changes: this.changes });
   });
 });
@@ -8862,8 +8864,8 @@ app.put('/api/solutions/:id/sections/:sectionId', (req, res) => {
 // Delete solution section
 app.delete('/api/solutions/:id/sections/:sectionId', (req, res) => {
   const { id, sectionId } = req.params;
-  
-  db.run(`DELETE FROM solution_sections WHERE id = ? AND solution_id = ?`, [sectionId, id], function(err) {
+
+  db.run(`DELETE FROM solution_sections WHERE id = ? AND solution_id = ?`, [sectionId, id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -8880,7 +8882,7 @@ app.get('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
+
   const { sectionId } = req.params;
   db.all('SELECT * FROM solution_items WHERE section_id = ? ORDER BY order_index ASC', [sectionId], (err, items) => {
     if (err) {
@@ -8895,7 +8897,7 @@ app.get('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
 app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
   const { id, sectionId } = req.params;
   const { item_type, title, description, icon, value, label, features, content } = req.body;
-  
+
   // Get the next order index
   db.get(`
     SELECT MAX(order_index) as max_order 
@@ -8906,21 +8908,21 @@ app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const finalOrderIndex = (result.max_order || -1) + 1;
     const featuresJson = features ? JSON.stringify(features) : null;
-    
-    db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`, 
-      [sectionId, item_type, title, description, icon, value, label, featuresJson, content, finalOrderIndex], 
-      function(err) {
+
+    db.run(`INSERT INTO solution_items (section_id, item_type, title, description, icon, value, label, features, content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      [sectionId, item_type, title, description, icon, value, label, featuresJson, content, finalOrderIndex],
+      function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Item created successfully', 
+        res.json({
+          message: 'Item created successfully',
           id: this.lastID,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -8930,11 +8932,11 @@ app.post('/api/solutions/:id/sections/:sectionId/items', (req, res) => {
 app.put('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { id, sectionId, itemId } = req.params;
   const { item_type, title, description, icon, value, label, features, content, is_visible, order_index } = req.body;
-  
+
   // Build dynamic query
   let updateFields = [];
   let values = [];
-  
+
   if (item_type !== undefined) {
     updateFields.push('item_type = ?');
     values.push(item_type);
@@ -8975,13 +8977,13 @@ app.put('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
     updateFields.push('order_index = ?');
     values.push(order_index);
   }
-  
+
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
   values.push(itemId, sectionId);
-  
+
   const query = `UPDATE solution_items SET ${updateFields.join(', ')} WHERE id = ? AND section_id = ?`;
-  
-  db.run(query, values, function(err) {
+
+  db.run(query, values, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -8993,8 +8995,8 @@ app.put('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
 // Delete solution section item
 app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) => {
   const { id, sectionId, itemId } = req.params;
-  
-  db.run(`DELETE FROM solution_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function(err) {
+
+  db.run(`DELETE FROM solution_items WHERE id = ? AND section_id = ?`, [itemId, sectionId], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9009,11 +9011,11 @@ app.delete('/api/solutions/:id/sections/:sectionId/items/:itemId', (req, res) =>
 app.get('/api/integrity-pages', (req, res) => {
   const { all } = req.query;
   const showAll = all === 'true';
-  
+
   const query = showAll
     ? 'SELECT * FROM integrity_pages ORDER BY id ASC'
     : 'SELECT * FROM integrity_pages WHERE is_visible = 1 ORDER BY id ASC';
-  
+
   db.all(query, (err, pages) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -9028,11 +9030,11 @@ app.get('/api/integrity-pages/:slug', (req, res) => {
   const { slug } = req.params;
   const { all } = req.query;
   const showAll = all === 'true';
-  
+
   const query = showAll
     ? 'SELECT * FROM integrity_pages WHERE slug = ?'
     : 'SELECT * FROM integrity_pages WHERE slug = ? AND is_visible = 1';
-  
+
   db.get(query, [slug], (err, page) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -9049,16 +9051,16 @@ app.get('/api/integrity-pages/:slug', (req, res) => {
 // Create new integrity page
 app.post('/api/integrity-pages', (req, res) => {
   const { slug, title, description, content, is_visible } = req.body;
-  
+
   if (!slug || !title || !content) {
     res.status(400).json({ error: 'Slug, title, and content are required' });
     return;
   }
-  
+
   db.run(`INSERT INTO integrity_pages (slug, title, description, content, is_visible) 
           VALUES (?, ?, ?, ?, ?)`,
     [slug, title, description || null, content, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint')) {
           res.status(409).json({ error: 'Page with this slug already exists' });
@@ -9067,14 +9069,14 @@ app.post('/api/integrity-pages', (req, res) => {
         }
         return;
       }
-      res.json({ 
-        id: this.lastID, 
-        slug, 
+      res.json({
+        id: this.lastID,
+        slug,
         title,
         description: description || null,
-        content, 
+        content,
         is_visible: is_visible !== undefined ? is_visible : 1,
-        message: 'Page created successfully' 
+        message: 'Page created successfully'
       });
     });
 });
@@ -9083,14 +9085,14 @@ app.post('/api/integrity-pages', (req, res) => {
 app.put('/api/integrity-pages/:id', (req, res) => {
   const { id } = req.params;
   const { slug, title, description, content, is_visible, eyebrow } = req.body;
-  
+
   console.log('🚀 ===== INTEGRITY PAGE UPDATE REQUEST =====');
   console.log('📥 Received update request for page ID:', id);
   console.log('📥 Request body:', { slug, title, description, content: content ? content.substring(0, 50) + '...' : null, is_visible, eyebrow });
-  
+
   const updateFields = [];
   const values = [];
-  
+
   if (slug !== undefined) {
     updateFields.push('slug = ?');
     values.push(slug);
@@ -9105,11 +9107,11 @@ app.put('/api/integrity-pages/:id', (req, res) => {
     // If it's null, set to null; if it's empty string, set to empty string; otherwise use the value
     const descValue = description === null ? null : String(description);
     values.push(descValue);
-    console.log('📝 Description update:', { 
-      original: description, 
+    console.log('📝 Description update:', {
+      original: description,
       type: typeof description,
       processed: descValue,
-      length: descValue?.length 
+      length: descValue?.length
     });
   }
   if (eyebrow !== undefined) {
@@ -9125,27 +9127,27 @@ app.put('/api/integrity-pages/:id', (req, res) => {
     updateFields.push('is_visible = ?');
     values.push(is_visible);
   }
-  
+
   if (updateFields.length === 0) {
     res.status(400).json({ error: 'No fields to update' });
     return;
   }
-  
+
   updateFields.push('updated_at = CURRENT_TIMESTAMP');
   values.push(id);
-  
+
   const query = `UPDATE integrity_pages SET ${updateFields.join(', ')} WHERE id = ?`;
-  
+
   console.log('🔧 Backend UPDATE query:', query);
   console.log('🔧 Backend UPDATE values:', values);
-  
+
   // Execute the UPDATE query
   console.log('🔧 Executing UPDATE with query:', query);
   console.log('🔧 Values array:', JSON.stringify(values));
   console.log('🔧 Values count:', values.length);
   console.log('🔧 Placeholders in query:', (query.match(/\?/g) || []).length);
-  
-  db.run(query, values, function(err) {
+
+  db.run(query, values, function (err) {
     if (err) {
       console.error('❌ Backend UPDATE error:', err);
       console.error('❌ Error details:', err.message, err.stack);
@@ -9156,19 +9158,19 @@ app.put('/api/integrity-pages/:id', (req, res) => {
       }
       return;
     }
-    
-    console.log('✅ Backend UPDATE executed:', { 
-      changes: this.changes, 
+
+    console.log('✅ Backend UPDATE executed:', {
+      changes: this.changes,
       lastID: this.lastID,
       'this.changes type': typeof this.changes
     });
-    
+
     if (this.changes === 0) {
       console.warn('⚠️ Backend UPDATE: No rows changed - row might not exist');
       res.status(404).json({ error: 'Page not found' });
       return;
     }
-    
+
     // Verify the update by fetching the updated row immediately after UPDATE
     // Use a small delay to ensure SQLite has committed
     setTimeout(() => {
@@ -9178,13 +9180,13 @@ app.put('/api/integrity-pages/:id', (req, res) => {
           res.json({ message: 'Page updated successfully', changes: this.changes, warning: 'Could not verify update' });
           return;
         }
-        
+
         if (!updatedRow) {
           console.error('❌ Backend verification: Row not found after update!');
           res.json({ message: 'Page updated successfully', changes: this.changes, warning: 'Row not found after update' });
           return;
         }
-        
+
         console.log('🔍 Backend verified updated row:', {
           id: updatedRow?.id,
           title: updatedRow?.title,
@@ -9196,7 +9198,7 @@ app.put('/api/integrity-pages/:id', (req, res) => {
           'description === check': updatedRow?.description === description,
           'description == check': updatedRow?.description == description
         });
-        
+
         // If description doesn't match, log a detailed warning
         if (description !== undefined && updatedRow?.description !== description) {
           console.error('⚠️⚠️⚠️ CRITICAL: Description mismatch after update! ⚠️⚠️⚠️');
@@ -9208,9 +9210,9 @@ app.put('/api/integrity-pages/:id', (req, res) => {
           console.error('  Stored type:', typeof updatedRow?.description);
           console.error('  Query was:', query);
           console.error('  Values were:', JSON.stringify(values));
-          
+
           // Try to update again directly to see if it works
-          db.run('UPDATE integrity_pages SET description = ? WHERE id = ?', [description, id], function(retryErr) {
+          db.run('UPDATE integrity_pages SET description = ? WHERE id = ?', [description, id], function (retryErr) {
             if (retryErr) {
               console.error('  Retry UPDATE also failed:', retryErr);
             } else {
@@ -9226,9 +9228,9 @@ app.put('/api/integrity-pages/:id', (req, res) => {
             }
           });
         }
-        
-        res.json({ 
-          message: 'Page updated successfully', 
+
+        res.json({
+          message: 'Page updated successfully',
           changes: this.changes,
           updated: updatedRow,
           descriptionMatch: updatedRow?.description === description
@@ -9241,8 +9243,8 @@ app.put('/api/integrity-pages/:id', (req, res) => {
 // Delete integrity page
 app.delete('/api/integrity-pages/:id', (req, res) => {
   const { id } = req.params;
-  
-  db.run('DELETE FROM integrity_pages WHERE id = ?', [id], function(err) {
+
+  db.run('DELETE FROM integrity_pages WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9258,7 +9260,7 @@ app.delete('/api/integrity-pages/:id', (req, res) => {
 // Toggle integrity page visibility
 app.put('/api/integrity-pages/:id/toggle-visibility', (req, res) => {
   const { id } = req.params;
-  
+
   db.get('SELECT is_visible FROM integrity_pages WHERE id = ?', [id], (err, page) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -9268,19 +9270,19 @@ app.put('/api/integrity-pages/:id/toggle-visibility', (req, res) => {
       res.status(404).json({ error: 'Page not found' });
       return;
     }
-    
+
     const newVisibility = page.is_visible === 1 ? 0 : 1;
-    
+
     db.run('UPDATE integrity_pages SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ 
-          message: 'Visibility toggled successfully', 
+        res.json({
+          message: 'Visibility toggled successfully',
           is_visible: newVisibility,
-          changes: this.changes 
+          changes: this.changes
         });
       });
   });
@@ -9290,7 +9292,7 @@ app.put('/api/integrity-pages/:id/toggle-visibility', (req, res) => {
 app.post('/api/integrity-pages/:id/duplicate', (req, res) => {
   const { id } = req.params;
   const { slug, title } = req.body;
-  
+
   // Get original page
   db.get('SELECT * FROM integrity_pages WHERE id = ?', [id], (err, originalPage) => {
     if (err) {
@@ -9301,11 +9303,11 @@ app.post('/api/integrity-pages/:id/duplicate', (req, res) => {
       res.status(404).json({ error: 'Page not found' });
       return;
     }
-    
+
     // Check if slug already exists
     const newSlug = slug || `${originalPage.slug}-copy`;
     const newTitle = title || `${originalPage.title} (Copy)`;
-    
+
     db.get('SELECT id FROM integrity_pages WHERE slug = ?', [newSlug], (err, existing) => {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -9315,21 +9317,21 @@ app.post('/api/integrity-pages/:id/duplicate', (req, res) => {
         res.status(409).json({ error: 'Page with this slug already exists' });
         return;
       }
-      
+
       // Create duplicate
       db.run(`INSERT INTO integrity_pages (slug, title, description, content, is_visible) 
               VALUES (?, ?, ?, ?, ?)`,
         [newSlug, newTitle, originalPage.description || null, originalPage.content, 0], // Default to hidden
-        function(err) {
+        function (err) {
           if (err) {
             res.status(500).json({ error: err.message });
             return;
           }
-          res.json({ 
-            id: this.lastID, 
-            slug: newSlug, 
+          res.json({
+            id: this.lastID,
+            slug: newSlug,
             title: newTitle,
-            message: 'Page duplicated successfully' 
+            message: 'Page duplicated successfully'
           });
         });
     });
@@ -9345,7 +9347,7 @@ app.get('/api/contact', (req, res) => {
   const { all } = req.query;
   const showAll = all === 'true';
   const contactData = {};
-  
+
   // Get hero section
   db.get('SELECT * FROM contact_hero_section WHERE id = 1', (err, hero) => {
     if (err) {
@@ -9353,24 +9355,24 @@ app.get('/api/contact', (req, res) => {
       return;
     }
     contactData.hero = hero || {};
-    
+
     // Get contact info items
     const itemsQuery = showAll
       ? 'SELECT * FROM contact_info_items ORDER BY order_index ASC'
       : 'SELECT * FROM contact_info_items WHERE is_visible = 1 ORDER BY order_index ASC';
-    
+
     db.all(itemsQuery, (err, items) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       contactData.items = items || [];
-      
+
       // Get social media links
       const socialLinksQuery = showAll
         ? 'SELECT * FROM contact_social_links ORDER BY order_index ASC'
         : 'SELECT * FROM contact_social_links WHERE is_visible = 1 ORDER BY order_index ASC';
-      
+
       db.all(socialLinksQuery, (err, socialLinks) => {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -9385,25 +9387,49 @@ app.get('/api/contact', (req, res) => {
 
 // Update hero section
 app.put('/api/contact/hero', (req, res) => {
-  const { title, highlighted_text, description } = req.body;
-  
+  const {
+    title, highlighted_text, description,
+    contact_section_title, contact_section_description,
+    form_section_title, follow_us_title,
+    map_section_title, map_office_name,
+    map_address_line1, map_address_line2, map_address_line3, map_url,
+    success_message, phone_verification_text
+  } = req.body;
+
   db.run(`UPDATE contact_hero_section SET 
     title = COALESCE(?, title),
     highlighted_text = COALESCE(?, highlighted_text),
     description = COALESCE(?, description),
+    contact_section_title = COALESCE(?, contact_section_title),
+    contact_section_description = COALESCE(?, contact_section_description),
+    form_section_title = COALESCE(?, form_section_title),
+    follow_us_title = COALESCE(?, follow_us_title),
+    map_section_title = COALESCE(?, map_section_title),
+    map_office_name = COALESCE(?, map_office_name),
+    map_address_line1 = COALESCE(?, map_address_line1),
+    map_address_line2 = COALESCE(?, map_address_line2),
+    map_address_line3 = COALESCE(?, map_address_line3),
+    map_url = COALESCE(?, map_url),
+    success_message = COALESCE(?, success_message),
+    phone_verification_text = COALESCE(?, phone_verification_text),
     updated_at = CURRENT_TIMESTAMP
-    WHERE id = 1`, 
-    [title, highlighted_text, description], 
-    function(err) {
+    WHERE id = 1`,
+    [title, highlighted_text, description,
+      contact_section_title, contact_section_description,
+      form_section_title, follow_us_title,
+      map_section_title, map_office_name,
+      map_address_line1, map_address_line2, map_address_line3, map_url,
+      success_message, phone_verification_text],
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       if (this.changes === 0) {
         // Insert if doesn't exist
-        db.run(`INSERT INTO contact_hero_section (id, title, highlighted_text, description) VALUES (1, ?, ?, ?)`, 
-          [title || 'Get in Touch', highlighted_text || 'Touch', description || 'Have questions? We\'d love to hear from you. Send us a message and we\'ll respond as soon as possible.'], 
-          function(err) {
+        db.run(`INSERT INTO contact_hero_section (id, title, highlighted_text, description) VALUES (1, ?, ?, ?)`,
+          [title || 'Get in Touch', highlighted_text || 'Touch', description || 'Have questions? We\'d love to hear from you. Send us a message and we\'ll respond as soon as possible.'],
+          function (err) {
             if (err) {
               res.status(500).json({ error: err.message });
               return;
@@ -9436,7 +9462,7 @@ app.post('/api/contact/items', (req, res) => {
   const { icon_type, title, content, sub_content, order_index, is_visible } = req.body;
   db.run(`INSERT INTO contact_info_items (icon_type, title, content, sub_content, order_index, is_visible) VALUES (?, ?, ?, ?, ?, ?)`,
     [icon_type || 'map', title, content, sub_content || null, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -9459,7 +9485,7 @@ app.put('/api/contact/items/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [icon_type, title, content, sub_content, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -9471,7 +9497,7 @@ app.put('/api/contact/items/:id', (req, res) => {
 // Delete contact info item
 app.delete('/api/contact/items/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM contact_info_items WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM contact_info_items WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9494,7 +9520,7 @@ app.put('/api/contact/items/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = item.is_visible === 1 ? 0 : 1;
     db.run('UPDATE contact_info_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -9533,7 +9559,7 @@ app.put('/api/contact/social-links/:id', (req, res) => {
     updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [platform, url, icon_name, order_index, is_visible, id],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -9547,7 +9573,7 @@ app.post('/api/contact/social-links', (req, res) => {
   const { platform, url, icon_name, order_index, is_visible } = req.body;
   db.run(`INSERT INTO contact_social_links (platform, url, icon_name, order_index, is_visible) VALUES (?, ?, ?, ?, ?)`,
     [platform, url, icon_name || platform, order_index || 0, is_visible !== undefined ? is_visible : 1],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -9559,7 +9585,7 @@ app.post('/api/contact/social-links', (req, res) => {
 // Delete social media link
 app.delete('/api/contact/social-links/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM contact_social_links WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM contact_social_links WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9582,7 +9608,7 @@ app.put('/api/contact/social-links/:id/toggle-visibility', (req, res) => {
     }
     const newVisibility = link.is_visible === 1 ? 0 : 1;
     db.run('UPDATE contact_social_links SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [newVisibility, id], function(err) {
+      [newVisibility, id], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
@@ -9599,7 +9625,7 @@ app.put('/api/contact/social-links/:id/toggle-visibility', (req, res) => {
 // Submit contact form (only verified submissions)
 app.post('/api/contact/submit', (req, res) => {
   const { name, email, phone, subject, message, phone_verified, verification_timestamp, ip_address, user_agent } = req.body;
-  
+
   // Only accept verified submissions
   if (!phone_verified) {
     res.status(400).json({ error: 'Phone number must be verified before submission' });
@@ -9610,13 +9636,13 @@ app.post('/api/contact/submit', (req, res) => {
     (name, email, phone, subject, message, phone_verified, verification_timestamp, ip_address, user_agent, status) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'leads')`,
     [name, email, phone, subject, message, phone_verified ? 1 : 0, verification_timestamp, ip_address, user_agent],
-    function(err) {
+    function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ 
-        id: this.lastID, 
+      res.json({
+        id: this.lastID,
         message: 'Contact form submitted successfully',
         submission_id: this.lastID
       });
@@ -9626,28 +9652,28 @@ app.post('/api/contact/submit', (req, res) => {
 // Get all contact submissions with filters
 app.get('/api/contact/submissions', (req, res) => {
   const { status, page = 1, limit = 20, search, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
-  
+
   let query = 'SELECT * FROM contact_submissions WHERE 1=1';
   const params = [];
-  
+
   if (status) {
     query += ' AND status = ?';
     params.push(status);
   }
-  
+
   if (search) {
     query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ?)';
     const searchTerm = `%${search}%`;
     params.push(searchTerm, searchTerm, searchTerm, searchTerm);
   }
-  
+
   // Validate sortBy to prevent SQL injection
   const allowedSortBy = ['created_at', 'name', 'email', 'phone', 'status'];
   const sortColumn = allowedSortBy.includes(sortBy) ? sortBy : 'created_at';
   const sortDir = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-  
+
   query += ` ORDER BY ${sortColumn} ${sortDir}`;
-  
+
   // Get total count
   const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
   db.get(countQuery, params, (err, countResult) => {
@@ -9655,12 +9681,12 @@ app.get('/api/contact/submissions', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const total = countResult.total;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     query += ' LIMIT ? OFFSET ?';
     params.push(parseInt(limit), offset);
-    
+
     db.all(query, params, (err, submissions) => {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -9690,7 +9716,7 @@ app.get('/api/contact/submissions/stats', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    
+
     const statsObj = {
       leads: 0,
       contacted: 0,
@@ -9698,12 +9724,12 @@ app.get('/api/contact/submissions/stats', (req, res) => {
       final_customer: 0,
       total: 0
     };
-    
+
     stats.forEach(stat => {
       statsObj[stat.status] = stat.count;
       statsObj.total += stat.count;
     });
-    
+
     res.json(statsObj);
   });
 });
@@ -9728,16 +9754,16 @@ app.get('/api/contact/submissions/:id', (req, res) => {
 app.put('/api/contact/submissions/:id/status', (req, res) => {
   const { id } = req.params;
   const { status, admin_notes } = req.body;
-  
+
   const allowedStatuses = ['leads', 'contacted', 're_contact', 'final_customer'];
   if (!allowedStatuses.includes(status)) {
     res.status(400).json({ error: 'Invalid status' });
     return;
   }
-  
+
   let updateQuery = `UPDATE contact_submissions SET status = ?, updated_at = CURRENT_TIMESTAMP`;
   const params = [status];
-  
+
   // Update timestamps based on status
   if (status === 'contacted' && !req.body.contacted_at) {
     updateQuery += ', contacted_at = CURRENT_TIMESTAMP';
@@ -9746,16 +9772,16 @@ app.put('/api/contact/submissions/:id/status', (req, res) => {
   } else if (status === 'final_customer' && !req.body.converted_at) {
     updateQuery += ', converted_at = CURRENT_TIMESTAMP';
   }
-  
+
   if (admin_notes !== undefined) {
     updateQuery += ', admin_notes = ?';
     params.push(admin_notes);
   }
-  
+
   updateQuery += ' WHERE id = ?';
   params.push(id);
-  
-  db.run(updateQuery, params, function(err) {
+
+  db.run(updateQuery, params, function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9772,9 +9798,9 @@ app.put('/api/contact/submissions/:id/status', (req, res) => {
 app.put('/api/contact/submissions/:id/notes', (req, res) => {
   const { id } = req.params;
   const { admin_notes } = req.body;
-  
+
   db.run('UPDATE contact_submissions SET admin_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [admin_notes, id], function(err) {
+    [admin_notes, id], function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -9790,7 +9816,7 @@ app.put('/api/contact/submissions/:id/notes', (req, res) => {
 // Delete contact submission
 app.delete('/api/contact/submissions/:id', (req, res) => {
   const { id } = req.params;
-  db.run('DELETE FROM contact_submissions WHERE id = ?', [id], function(err) {
+  db.run('DELETE FROM contact_submissions WHERE id = ?', [id], function (err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -9809,7 +9835,7 @@ const otpStorage = {};
 // Send OTP via Phone.Email API
 app.post('/api/contact/send-otp', async (req, res) => {
   const { phone } = req.body;
-  
+
   if (!phone) {
     res.status(400).json({ error: 'Phone number is required' });
     return;
@@ -9818,26 +9844,26 @@ app.post('/api/contact/send-otp', async (req, res) => {
   try {
     // Check if phone is already verified (within last 24 hours)
     db.get(`SELECT * FROM verified_phone_numbers 
-      WHERE phone = ? AND expires_at > datetime('now')`, 
+      WHERE phone = ? AND expires_at > datetime('now')`,
       [phone], async (err, verified) => {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
+
         if (verified) {
-          res.json({ 
+          res.json({
             message: 'Phone number already verified',
             verified: true,
             expires_at: verified.expires_at
           });
           return;
         }
-        
+
         // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Store OTP (valid for 1 minute as per requirement)
         otpStorage[sessionId] = {
           phone: phone,
@@ -9845,14 +9871,14 @@ app.post('/api/contact/send-otp', async (req, res) => {
           expiresAt: Date.now() + 60000, // 1 minute
           createdAt: Date.now()
         };
-        
+
         // Clean up expired OTPs
         Object.keys(otpStorage).forEach(key => {
           if (otpStorage[key].expiresAt < Date.now()) {
             delete otpStorage[key];
           }
         });
-        
+
         // TODO: Integrate Phone.Email API here
         // Uncomment and configure when you have Phone.Email API key
         /*
@@ -9886,12 +9912,12 @@ app.post('/api/contact/send-otp', async (req, res) => {
           }
         }
         */
-        
+
         // Log OTP for testing (REMOVE IN PRODUCTION!)
         console.log(`\n🔐 OTP for ${phone}: ${otp}`);
         console.log(`⏰ Valid for 1 minute. Session ID: ${sessionId}\n`);
-        
-        res.json({ 
+
+        res.json({
           message: 'OTP sent successfully',
           phone: phone,
           session_id: sessionId,
@@ -9909,7 +9935,7 @@ app.post('/api/contact/send-otp', async (req, res) => {
 // Verify OTP
 app.post('/api/contact/verify-otp', async (req, res) => {
   const { phone, otp, session_id } = req.body;
-  
+
   if (!phone || !otp) {
     res.status(400).json({ error: 'Phone number and OTP are required' });
     return;
@@ -9922,7 +9948,7 @@ app.post('/api/contact/verify-otp', async (req, res) => {
 
   try {
     let isValid = false;
-    
+
     // Check stored OTP (test mode)
     const storedOTP = otpStorage[session_id];
     if (storedOTP) {
@@ -9932,13 +9958,13 @@ app.post('/api/contact/verify-otp', async (req, res) => {
         res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
         return;
       }
-      
+
       // Verify phone matches
       if (storedOTP.phone !== phone) {
         res.status(400).json({ error: 'Phone number mismatch' });
         return;
       }
-      
+
       // Verify OTP
       if (storedOTP.otp === otp) {
         isValid = true;
@@ -9946,7 +9972,7 @@ app.post('/api/contact/verify-otp', async (req, res) => {
         delete otpStorage[session_id];
       }
     }
-    
+
     // TODO: Verify with Phone.Email API if API key is configured
     /*
     const PHONE_EMAIL_API_KEY = process.env.PHONE_EMAIL_API_KEY;
@@ -9974,23 +10000,23 @@ app.post('/api/contact/verify-otp', async (req, res) => {
       }
     }
     */
-    
+
     if (!isValid) {
       res.status(400).json({ error: 'Invalid OTP. Please check and try again.' });
       return;
     }
-    
+
     // Store verified phone number (valid for 24 hours)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    
+
     db.run(`INSERT OR REPLACE INTO verified_phone_numbers (phone, expires_at) VALUES (?, ?)`,
-      [phone, expiresAt], function(err) {
+      [phone, expiresAt], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
-        res.json({ 
+
+        res.json({
           verified: true,
           message: 'Phone number verified successfully',
           expires_at: expiresAt,
@@ -10006,16 +10032,16 @@ app.post('/api/contact/verify-otp', async (req, res) => {
 // Check if phone is verified
 app.get('/api/contact/check-verification/:phone', (req, res) => {
   const { phone } = req.params;
-  
+
   db.get(`SELECT * FROM verified_phone_numbers 
-    WHERE phone = ? AND expires_at > datetime('now')`, 
+    WHERE phone = ? AND expires_at > datetime('now')`,
     [phone], (err, verified) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
-      
-      res.json({ 
+
+      res.json({
         verified: !!verified,
         expires_at: verified ? verified.expires_at : null
       });
@@ -10025,7 +10051,7 @@ app.get('/api/contact/check-verification/:phone', (req, res) => {
 // Verify Phone.Email user_json_url
 app.post('/api/contact/verify-phone-email', async (req, res) => {
   const { user_json_url } = req.body;
-  
+
   if (!user_json_url) {
     res.status(400).json({ error: 'user_json_url is required' });
     return;
@@ -10035,17 +10061,17 @@ app.post('/api/contact/verify-phone-email', async (req, res) => {
     // Fetch user data from Phone.Email
     const https = require('https');
     const url = require('url');
-    
+
     const parsedUrl = url.parse(user_json_url);
-    
+
     const phoneEmailData = await new Promise((resolve, reject) => {
       https.get(user_json_url, (response) => {
         let data = '';
-        
+
         response.on('data', (chunk) => {
           data += chunk;
         });
-        
+
         response.on('end', () => {
           try {
             const jsonData = JSON.parse(data);
@@ -10058,28 +10084,28 @@ app.post('/api/contact/verify-phone-email', async (req, res) => {
         reject(err);
       });
     });
-    
+
     // Extract phone data
     const user_country_code = phoneEmailData.user_country_code || '';
     const user_phone_number = phoneEmailData.user_phone_number || '';
     const fullPhone = `${user_country_code}${user_phone_number}`;
-    
+
     if (!user_phone_number) {
       res.status(400).json({ error: 'Invalid phone data from Phone.Email' });
       return;
     }
-    
+
     // Store verified phone number (valid for 24 hours)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    
+
     db.run(`INSERT OR REPLACE INTO verified_phone_numbers (phone, expires_at) VALUES (?, ?)`,
-      [fullPhone, expiresAt], function(err) {
+      [fullPhone, expiresAt], function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        
-        res.json({ 
+
+        res.json({
           verified: true,
           message: 'Phone number verified successfully via Phone.Email',
           expires_at: expiresAt,
@@ -10099,11 +10125,17 @@ app.post('/api/contact/verify-phone-email', async (req, res) => {
   }
 });
 
+// Initialize Price Estimator routes
+initPriceEstimatorRoutes(app, db);
+
+// Initialize Export routes
+initExportRoutes(app, db);
+
 // Start server
 
 app.listen(PORT, async () => {
   console.log(`🚀 Cloud4India CMS Server running on http://localhost:${PORT}`);
-  
+
   // Cleanup orphaned entries on server start
   setTimeout(() => {
     cleanupOrphanedMainMarketplacesSections();
@@ -10113,12 +10145,12 @@ app.listen(PORT, async () => {
   console.log(`📊 Admin API available at http://localhost:${PORT}/api/homepage`);
   console.log(`💰 Pricing API available at http://localhost:${PORT}/api/pricing`);
   console.log(`❤️  Health check at http://localhost:${PORT}/api/health`);
-  
+
   // Always ensure media columns exist (critical for marketplace_sections)
   console.log('🔄 Ensuring media columns exist in marketplace_sections...');
   await addMarketplaceMediaBannerColumns();
   await addProductMediaBannerColumns();
-  
+
   // Run migrations only if RUN_MIGRATIONS environment variable is set to true
   const shouldRunMigrations = process.env.RUN_MIGRATIONS === 'true';
   if (shouldRunMigrations) {
@@ -10127,7 +10159,7 @@ app.listen(PORT, async () => {
   } else {
     console.log('⏭️  RUN_MIGRATIONS=false - Skipping database migrations (using existing database)');
   }
-  
+
   // Always ensure product_sections has required columns (critical for duplication)
   await addProductMediaBannerColumns();
   await addDescriptionColumnToProductSections();
@@ -10137,13 +10169,13 @@ app.listen(PORT, async () => {
   await addSolutionPricingColumnVisibilityColumns();
   await addMarketplacePricingTableHeaderColumns();
   await addMarketplacePricingColumnVisibilityColumns();
-  
+
   // Always ensure product_items has required columns (critical for item duplication)
   await addProductItemsColumns();
-  
+
   // Always ensure section_items has is_visible column
   await addSectionItemsVisibilityColumn();
-  
+
   // Add missing columns to marketplaces and products tables
   setTimeout(() => {
     addMainMarketplacesSectionColumns();

@@ -17,6 +17,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
+import { useCart } from '../context/CartContext';
+import DurationSelectPopup from './PriceEstimator/DurationSelectPopup';
 
 // Icon mapping for dynamic rendering
 const iconMap = {
@@ -51,7 +53,7 @@ const DynamicProductSection = ({ section, items, product, hasNavigation = false 
     case 'features':
       return <FeaturesSection section={section} items={items} />;
     case 'pricing':
-      return <PricingSection section={section} items={items} />;
+      return <PricingSection section={section} items={items} product={product} />;
     case 'specifications':
       return <SpecificationsSection section={section} items={items} />;
     case 'security':
@@ -178,7 +180,7 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
                       // Use product icon if available, otherwise default to ServerIcon
                       const productIcon = product?.icon;
                       const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-                      
+
                       if (productIcon) {
                         // Check if it's a library icon
                         const IconComponent = iconMap[productIcon];
@@ -527,8 +529,13 @@ const FeaturesSection = ({ section, items }) => {
   );
 };
 
-// Pricing Section Component
-const PricingSection = ({ section, items }) => {
+// Pricing Section Component with Cart Integration
+const PricingSection = ({ section, items, product }) => {
+  const { addItem } = useCart();
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedPrices, setSelectedPrices] = useState({});
+
   // Helper function to extract price value from old format (backward compatibility)
   const extractPriceValue = (priceString) => {
     if (!priceString) return null;
@@ -552,6 +559,50 @@ const PricingSection = ({ section, items }) => {
   const showMonthly = section.show_monthly_column !== undefined ? section.show_monthly_column !== 0 : true;
   const showQuarterly = section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true;
   const showYearly = section.show_yearly_column !== undefined ? section.show_yearly_column !== 0 : true;
+
+  const handleActionClick = (item, content) => {
+    // Parse prices
+    let hourlyPrice = content.hourly_price || null;
+    let monthlyPrice = content.monthly_price || null;
+    let quarterlyPrice = content.quarterly_price || null;
+    let yearlyPrice = content.yearly_price || null;
+
+    if (content.price && !hourlyPrice) {
+      hourlyPrice = extractPriceValue(content.price);
+    }
+
+    setSelectedItem({
+      id: item.id,
+      title: item.title,
+      name: product?.name || section.title || 'Product',
+      content: content
+    });
+    setSelectedPrices({
+      hourly_price: hourlyPrice,
+      monthly_price: monthlyPrice,
+      quarterly_price: quarterlyPrice,
+      yearly_price: yearlyPrice
+    });
+    setPopupOpen(true);
+  };
+
+  const handleAddToCart = (duration, price) => {
+    if (!selectedItem) return;
+
+    addItem({
+      item_id: selectedItem.id,
+      item_type: 'product',
+      item_name: selectedItem.name,
+      item_description: selectedItem.content?.description || '',
+      plan_name: selectedItem.title,
+      duration: duration,
+      unit_price: price,
+      quantity: 1,
+      specifications: selectedItem.content?.specifications || [],
+      features: selectedItem.content?.features || [],
+      category: product?.category || ''
+    });
+  };
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-amber-light/20 via-white to-saree-lime-light/20">
@@ -645,20 +696,12 @@ const PricingSection = ({ section, items }) => {
                         </td>
                       )}
                       <td className="px-6 py-4 text-center">
-                        {content.buttonUrl ? (
-                          <a
-                            href={content.buttonUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
-                          >
-                            {content.buttonText || 'Order Now'}
-                          </a>
-                        ) : (
-                          <button className="bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
-                            {content.buttonText || 'Order Now'}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleActionClick(item, content)}
+                          className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                        >
+                          {content.buttonText || 'Order Now'}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -668,6 +711,15 @@ const PricingSection = ({ section, items }) => {
           </div>
         </div>
       </div>
+
+      {/* Duration Select Popup */}
+      <DurationSelectPopup
+        isOpen={popupOpen}
+        onClose={() => setPopupOpen(false)}
+        onConfirm={handleAddToCart}
+        item={selectedItem}
+        prices={selectedPrices}
+      />
     </section>
   );
 };

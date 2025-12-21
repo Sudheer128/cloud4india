@@ -41,21 +41,21 @@ const Header = () => {
       <header className="bg-white text-gray-900 sticky top-0 z-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-16">
-            
+
             {/* Left Side - Logo and Navigation */}
             <div className="flex items-center space-x-8">
-              
+
               {/* Logo */}
               <div className="flex-shrink-0">
                 <Link to="/" className="flex items-center">
-                  <img 
-                    src="/images/cloud4India-logo.png" 
-                    alt="Cloud4India Logo" 
+                  <img
+                    src="/images/cloud4India-logo.png"
+                    alt="Cloud4India Logo"
                     className="h-16 w-auto max-w-[300px] object-contain"
                   />
                 </Link>
               </div>
-              
+
               {/* Main Navigation */}
               <nav className="hidden lg:flex items-center space-x-8">
                 <Link to="/" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
@@ -69,41 +69,39 @@ const Header = () => {
                 <button
                   data-apps-link
                   onClick={handleAppsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
-                    isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                  }`}
+                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                    }`}
                 >
                   Marketplace
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
-                    isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
+                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}></span>
                 </button>
                 <button
                   data-products-link
                   onClick={handleProductsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
-                    isProductsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                  }`}
+                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isProductsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                    }`}
                 >
                   Products
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
-                    isProductsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
+                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isProductsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}></span>
                 </button>
                 <button
                   data-solutions-link
                   onClick={handleSolutionsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${
-                    isSolutionsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                  }`}
+                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isSolutionsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                    }`}
                 >
                   Solutions
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${
-                    isSolutionsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
+                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isSolutionsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}></span>
                 </button>
                 <Link to="/pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
                   Pricing
+                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                </Link>
+                <Link to="/price-estimator" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                  Price Estimator
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
                 <Link to="/contact-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
@@ -112,21 +110,21 @@ const Header = () => {
                 </Link>
               </nav>
             </div>
-            
+
             {/* Right Side - Auth */}
             <div className="hidden lg:flex items-center space-x-4">
               {/* Authentication Buttons */}
-              <a 
-                href="https://portal.cloud4india.com/login" 
-                target="_blank" 
+              <a
+                href="https://portal.cloud4india.com/login"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-700 hover:text-gray-900 text-sm font-medium transition-colors"
               >
                 Sign in
               </a>
-              <a 
-                href="https://portal.cloud4india.com/register" 
-                target="_blank" 
+              <a
+                href="https://portal.cloud4india.com/register"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-200"
               >
@@ -135,7 +133,7 @@ const Header = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <button 
+            <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden text-gray-700 hover:text-gray-900"
             >
@@ -152,15 +150,15 @@ const Header = () => {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200">
             <nav className="px-4 py-4 space-y-3">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
                 Homepage
               </Link>
-              <Link 
-                to="/about" 
+              <Link
+                to="/about"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
@@ -214,32 +212,32 @@ const Header = () => {
                   </div>
                 )}
               </div>
-              <Link 
-                to="/pricing" 
+              <Link
+                to="/pricing"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
                 Pricing
               </Link>
-              <Link 
-                to="/contact-us" 
+              <Link
+                to="/contact-us"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
                 Contact Us
               </Link>
               <div className="pt-4 border-t border-gray-200 space-y-3">
-                <a 
-                  href="https://portal.cloud4india.com/login" 
-                  target="_blank" 
+                <a
+                  href="https://portal.cloud4india.com/login"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="block text-gray-700 hover:text-gray-900 text-sm font-medium transition-colors py-2"
                 >
                   Sign in
                 </a>
-                <a 
-                  href="https://portal.cloud4india.com/register" 
-                  target="_blank" 
+                <a
+                  href="https://portal.cloud4india.com/register"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="block bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 text-center"
                 >
@@ -250,32 +248,32 @@ const Header = () => {
           </div>
         )}
       </header>
-      
+
       {/* Apps Dropdown */}
-      <AppsDropdown 
-        isOpen={isAppsDropdownOpen} 
+      <AppsDropdown
+        isOpen={isAppsDropdownOpen}
         onClose={() => {
           setIsAppsDropdownOpen(false)
           setActiveDropdown(null)
-        }} 
+        }}
       />
-      
+
       {/* Products Dropdown */}
-      <ProductsDropdown 
-        isOpen={isProductsDropdownOpen} 
+      <ProductsDropdown
+        isOpen={isProductsDropdownOpen}
         onClose={() => {
           setIsProductsDropdownOpen(false)
           setActiveDropdown(null)
-        }} 
+        }}
       />
-      
+
       {/* Solutions Dropdown */}
-      <SolutionsDropdown 
-        isOpen={isSolutionsDropdownOpen} 
+      <SolutionsDropdown
+        isOpen={isSolutionsDropdownOpen}
         onClose={() => {
           setIsSolutionsDropdownOpen(false)
           setActiveDropdown(null)
-        }} 
+        }}
       />
     </>
   )

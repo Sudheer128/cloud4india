@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  HomeIcon, 
-  Squares2X2Icon, 
-  ChevronDoubleLeftIcon, 
+import {
+  HomeIcon,
+  Squares2X2Icon,
+  ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
-  PuzzlePieceIcon
+  PuzzlePieceIcon,
+  DocumentTextIcon,
+  CogIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 
 const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) => {
@@ -54,6 +57,20 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
       icon: PuzzlePieceIcon,
       href: '/admin/marketplace-main',
       isActive: activeSection === 'marketplace-main'
+    },
+    {
+      id: 'quotations',
+      label: 'Quotations',
+      icon: DocumentTextIcon,
+      href: '/admin/quotations',
+      isActive: activeSection === 'quotations'
+    },
+    {
+      id: 'price-estimator-config',
+      label: 'Price Estimator',
+      icon: CalculatorIcon,
+      href: '/admin/price-estimator-config',
+      isActive: activeSection === 'price-estimator-config'
     }
   ];
 
@@ -80,22 +97,21 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
             )}
           </button>
         </div>
-        
+
         <nav className="mt-6">
           <div className={`${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
             {navigationItems.map((item) => {
               const IconComponent = item.icon;
-              
+
               if (item.onClick) {
                 return (
                   <button
                     key={item.id}
                     onClick={item.onClick}
-                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                      item.isActive
+                    className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${item.isActive
                         ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
                         : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                      }`}
                     title={item.label}
                   >
                     <IconComponent className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
@@ -108,11 +124,10 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
                 <a
                   key={item.id}
                   href={item.href}
-                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                    item.isActive
+                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${item.isActive
                       ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                   title={item.label}
                 >
                   <IconComponent className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />

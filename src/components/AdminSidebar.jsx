@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  HomeIcon, 
-  Squares2X2Icon, 
-  ChevronDoubleLeftIcon, 
+import {
+  HomeIcon,
+  Squares2X2Icon,
+  ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   PuzzlePieceIcon,
   InformationCircleIcon,
@@ -98,6 +98,13 @@ const AdminSidebar = () => {
       matchPaths: ['/admin/contact-dashboard']
     },
     {
+      id: 'quotations',
+      label: 'Quotations',
+      icon: DocumentTextIcon,
+      path: '/admin/quotations',
+      matchPaths: ['/admin/quotations']
+    },
+    {
       id: 'integrity',
       label: 'Integrity',
       icon: ShieldCheckIcon,
@@ -136,22 +143,21 @@ const AdminSidebar = () => {
           )}
         </button>
       </div>
-      
+
       <nav className="mt-6">
         <div className={`${sidebarCollapsed ? 'px-2' : 'px-3'}`}>
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
             const active = isActive(item);
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavigation(item)}
-                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${
-                  active
+                className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${active
                     ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
                     : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
                 title={item.label}
               >
                 <IconComponent className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />

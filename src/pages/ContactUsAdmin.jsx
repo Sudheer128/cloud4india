@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PencilIcon, 
-  EyeIcon, 
+import {
+  PencilIcon,
+  EyeIcon,
   EyeSlashIcon,
   CheckIcon,
   XMarkIcon,
@@ -10,7 +10,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon
 } from '@heroicons/react/24/outline';
-import { 
+import {
   getContactUsContent,
   updateContactHero,
   getContactInfoItems,
@@ -29,38 +29,50 @@ const ContactUsAdmin = () => {
   const [contactData, setContactData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Hero Section
   const [editingHero, setEditingHero] = useState(false);
   const [heroForm, setHeroForm] = useState({
     title: '',
     highlighted_text: '',
-    description: ''
+    description: '',
+    contact_section_title: '',
+    contact_section_description: '',
+    form_section_title: '',
+    follow_us_title: '',
+    map_section_title: '',
+    map_office_name: '',
+    map_address_line1: '',
+    map_address_line2: '',
+    map_address_line3: '',
+    map_url: '',
+    success_message: '',
+    phone_verification_text: ''
   });
 
   // Contact Info Items
   const [contactItems, setContactItems] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [showItemModal, setShowItemModal] = useState(false);
-  const [itemForm, setItemForm] = useState({ 
-    icon_type: 'map', 
-    title: '', 
-    content: '', 
-    sub_content: '', 
-    order_index: 0, 
-    is_visible: 1 
+  const [itemForm, setItemForm] = useState({
+    icon_type: 'map',
+    title: '',
+    content: '',
+    sub_content: '',
+    order_index: 0,
+    is_visible: 1
   });
 
   // Social Media Links
   const [socialLinks, setSocialLinks] = useState([]);
   const [editingSocialLink, setEditingSocialLink] = useState(null);
   const [showSocialLinkModal, setShowSocialLinkModal] = useState(false);
-  const [socialLinkForm, setSocialLinkForm] = useState({ 
-    platform: 'linkedin', 
-    url: '', 
-    icon_name: 'linkedin', 
-    order_index: 0, 
-    is_visible: 1 
+  const [socialLinkForm, setSocialLinkForm] = useState({
+    platform: 'linkedin',
+    url: '',
+    icon_name: 'linkedin',
+    order_index: 0,
+    is_visible: 1
   });
 
   // Fetch all Contact Us content
@@ -70,13 +82,25 @@ const ContactUsAdmin = () => {
       setError(null);
       const data = await getContactUsContent(true); // all=true for admin
       setContactData(data);
-      
+
       // Initialize hero form
       if (data.hero) {
         setHeroForm({
           title: data.hero.title || 'Get in Touch',
           highlighted_text: data.hero.highlighted_text || 'Touch',
-          description: data.hero.description || ''
+          description: data.hero.description || '',
+          contact_section_title: data.hero.contact_section_title || 'Contact Information',
+          contact_section_description: data.hero.contact_section_description || '',
+          form_section_title: data.hero.form_section_title || 'Send us a Message',
+          follow_us_title: data.hero.follow_us_title || 'Follow Us',
+          map_section_title: data.hero.map_section_title || 'Find Us',
+          map_office_name: data.hero.map_office_name || 'Bengaluru Office',
+          map_address_line1: data.hero.map_address_line1 || '',
+          map_address_line2: data.hero.map_address_line2 || '',
+          map_address_line3: data.hero.map_address_line3 || '',
+          map_url: data.hero.map_url || '',
+          success_message: data.hero.success_message || '',
+          phone_verification_text: data.hero.phone_verification_text || ''
         });
       }
 
@@ -127,13 +151,13 @@ const ContactUsAdmin = () => {
       });
     } else {
       setEditingItem(null);
-      setItemForm({ 
-        icon_type: 'map', 
-        title: '', 
-        content: '', 
-        sub_content: '', 
-        order_index: contactItems.length, 
-        is_visible: 1 
+      setItemForm({
+        icon_type: 'map',
+        title: '',
+        content: '',
+        sub_content: '',
+        order_index: contactItems.length,
+        is_visible: 1
       });
     }
     setShowItemModal(true);
@@ -142,13 +166,13 @@ const ContactUsAdmin = () => {
   const handleCloseItemModal = () => {
     setShowItemModal(false);
     setEditingItem(null);
-    setItemForm({ 
-      icon_type: 'map', 
-      title: '', 
-      content: '', 
-      sub_content: '', 
-      order_index: 0, 
-      is_visible: 1 
+    setItemForm({
+      icon_type: 'map',
+      title: '',
+      content: '',
+      sub_content: '',
+      order_index: 0,
+      is_visible: 1
     });
   };
 
@@ -199,7 +223,7 @@ const ContactUsAdmin = () => {
   const handleMoveItem = async (item, direction) => {
     const currentIndex = item.order_index;
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
+
     // Find item at new position
     const targetItem = contactItems.find(i => i.order_index === newIndex);
     if (!targetItem) return;
@@ -230,12 +254,12 @@ const ContactUsAdmin = () => {
       });
     } else {
       setEditingSocialLink(null);
-      setSocialLinkForm({ 
-        platform: 'linkedin', 
-        url: '', 
-        icon_name: 'linkedin', 
-        order_index: socialLinks.length, 
-        is_visible: 1 
+      setSocialLinkForm({
+        platform: 'linkedin',
+        url: '',
+        icon_name: 'linkedin',
+        order_index: socialLinks.length,
+        is_visible: 1
       });
     }
     setShowSocialLinkModal(true);
@@ -244,12 +268,12 @@ const ContactUsAdmin = () => {
   const handleCloseSocialLinkModal = () => {
     setShowSocialLinkModal(false);
     setEditingSocialLink(null);
-    setSocialLinkForm({ 
-      platform: 'linkedin', 
-      url: '', 
-      icon_name: 'linkedin', 
-      order_index: 0, 
-      is_visible: 1 
+    setSocialLinkForm({
+      platform: 'linkedin',
+      url: '',
+      icon_name: 'linkedin',
+      order_index: 0,
+      is_visible: 1
     });
   };
 
@@ -312,7 +336,7 @@ const ContactUsAdmin = () => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-800">{error}</p>
-        <button 
+        <button
           onClick={fetchContactData}
           className="mt-2 text-red-600 hover:text-red-800 underline"
         >
@@ -373,67 +397,142 @@ const ContactUsAdmin = () => {
         </div>
 
         {editingHero ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title (before highlighted text)
-              </label>
-              <input
-                type="text"
-                value={heroForm.title.split(heroForm.highlighted_text || 'Touch')[0] || ''}
-                onChange={(e) => {
-                  const before = e.target.value;
-                  const after = heroForm.title.split(heroForm.highlighted_text || 'Touch')[1] || '';
-                  setHeroForm({
-                    ...heroForm,
-                    title: before + (heroForm.highlighted_text || 'Touch') + after
-                  });
-                }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Get in "
-              />
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">🎯 Hero Banner</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input type="text" value={heroForm.title}
+                    onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Get in Touch" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Highlighted Text</label>
+                  <input type="text" value={heroForm.highlighted_text}
+                    onChange={(e) => setHeroForm({ ...heroForm, highlighted_text: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Touch" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea value={heroForm.description} rows={2}
+                  onChange={(e) => setHeroForm({ ...heroForm, description: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Have questions?..." />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Highlighted Text
-              </label>
-              <input
-                type="text"
-                value={heroForm.highlighted_text}
-                onChange={(e) => {
-                  const before = heroForm.title.split(heroForm.highlighted_text || 'Touch')[0] || '';
-                  const after = heroForm.title.split(heroForm.highlighted_text || 'Touch')[1] || '';
-                  setHeroForm({
-                    ...heroForm,
-                    highlighted_text: e.target.value,
-                    title: before + e.target.value + after
-                  });
-                }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Touch"
-              />
+
+            {/* Contact Information Section */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">📋 Contact Information Section</h3>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input type="text" value={heroForm.contact_section_title}
+                    onChange={(e) => setHeroForm({ ...heroForm, contact_section_title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Contact Information" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Description</label>
+                  <textarea value={heroForm.contact_section_description} rows={2}
+                    onChange={(e) => setHeroForm({ ...heroForm, contact_section_description: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Reach out to us..." />
+                </div>
+              </div>
             </div>
+
+            {/* Form & Social Sections */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">✉️ Form & Social Section Titles</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Form Section Title</label>
+                  <input type="text" value={heroForm.form_section_title}
+                    onChange={(e) => setHeroForm({ ...heroForm, form_section_title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Send us a Message" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Follow Us Title</label>
+                  <input type="text" value={heroForm.follow_us_title}
+                    onChange={(e) => setHeroForm({ ...heroForm, follow_us_title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Follow Us" />
+                </div>
+              </div>
+            </div>
+
+            {/* Map Section */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">📍 Map / Location Section</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input type="text" value={heroForm.map_section_title}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_section_title: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Find Us" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Office Name</label>
+                  <input type="text" value={heroForm.map_office_name}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_office_name: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Bengaluru Office" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                  <input type="text" value={heroForm.map_address_line1}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_address_line1: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Building name..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                  <input type="text" value={heroForm.map_address_line2}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_address_line2: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Area, Locality..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 3</label>
+                  <input type="text" value={heroForm.map_address_line3}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_address_line3: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="City, Pincode, Country" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Google Maps URL</label>
+                  <input type="url" value={heroForm.map_url}
+                    onChange={(e) => setHeroForm({ ...heroForm, map_url: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="https://www.google.com/maps/..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={heroForm.description}
-                onChange={(e) => setHeroForm({ ...heroForm, description: e.target.value })}
-                rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Have questions? We'd love to hear from you..."
-              />
+              <h3 className="text-lg font-medium text-gray-900 mb-3">💬 Form Messages</h3>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Success Message</label>
+                  <input type="text" value={heroForm.success_message}
+                    onChange={(e) => setHeroForm({ ...heroForm, success_message: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Thank you for your message!" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Verification Text</label>
+                  <input type="text" value={heroForm.phone_verification_text}
+                    onChange={(e) => setHeroForm({ ...heroForm, phone_verification_text: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Phone verification is required..." />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-gray-700">
-              <strong>Title:</strong> {contactData?.hero?.title || 'Get in Touch'}
-            </p>
-            <p className="text-gray-700 mt-2">
-              <strong>Description:</strong> {contactData?.hero?.description || ''}
-            </p>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <p className="text-gray-700"><strong>Title:</strong> {contactData?.hero?.title || 'Get in Touch'}</p>
+            <p className="text-gray-700"><strong>Description:</strong> {contactData?.hero?.description || ''}</p>
+            <p className="text-gray-700"><strong>Contact Section:</strong> {contactData?.hero?.contact_section_title || 'Contact Information'}</p>
+            <p className="text-gray-700"><strong>Form Section:</strong> {contactData?.hero?.form_section_title || 'Send us a Message'}</p>
+            <p className="text-gray-700"><strong>Map Section:</strong> {contactData?.hero?.map_section_title || 'Find Us'}</p>
+            <p className="text-gray-700"><strong>Office:</strong> {contactData?.hero?.map_office_name || 'Bengaluru Office'}</p>
           </div>
         )}
       </div>
@@ -456,7 +555,7 @@ const ContactUsAdmin = () => {
             <p className="text-gray-500 text-center py-8">No contact info items yet. Add one to get started.</p>
           ) : (
             contactItems.map((item) => (
-              <div 
+              <div
                 key={item.id}
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
               >
@@ -533,7 +632,7 @@ const ContactUsAdmin = () => {
       {showItemModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div 
+            <div
               className="fixed inset-0 bg-black/50 backdrop-blur-sm"
               onClick={handleCloseItemModal}
             ></div>
@@ -664,7 +763,7 @@ const ContactUsAdmin = () => {
             <p className="text-gray-500 text-center py-8">No social media links yet. Add one to get started.</p>
           ) : (
             socialLinks.map((link) => (
-              <div 
+              <div
                 key={link.id}
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
               >
@@ -721,7 +820,7 @@ const ContactUsAdmin = () => {
       {showSocialLinkModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div 
+            <div
               className="fixed inset-0 bg-black/50 backdrop-blur-sm"
               onClick={handleCloseSocialLinkModal}
             ></div>
@@ -745,8 +844,8 @@ const ContactUsAdmin = () => {
                     </label>
                     <select
                       value={socialLinkForm.platform}
-                      onChange={(e) => setSocialLinkForm({ 
-                        ...socialLinkForm, 
+                      onChange={(e) => setSocialLinkForm({
+                        ...socialLinkForm,
                         platform: e.target.value,
                         icon_name: e.target.value
                       })}
