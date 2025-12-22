@@ -92,10 +92,17 @@ const AdminSidebar = () => {
     },
     {
       id: 'contact-dashboard',
-      label: 'Contact Dashboard',
+      label: 'Contact (Advanced)',
       icon: ChartBarIcon,
       path: '/admin/contact-dashboard',
       matchPaths: ['/admin/contact-dashboard']
+    },
+    {
+      id: 'contact-dashboard-simple',
+      label: 'Contact (Simple)',
+      icon: ChartBarIcon,
+      path: '/admin/contact-dashboard-simple',
+      matchPaths: ['/admin/contact-dashboard-simple']
     },
     {
       id: 'quotations',
@@ -155,8 +162,8 @@ const AdminSidebar = () => {
                 key={item.id}
                 onClick={() => handleNavigation(item)}
                 className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 text-sm font-medium rounded-xl mb-1 transition-colors ${active
-                    ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
-                    : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200'
+                  : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 title={item.label}
               >

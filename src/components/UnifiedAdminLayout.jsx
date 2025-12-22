@@ -11,7 +11,7 @@ const UnifiedAdminLayout = () => {
 
   const getTitle = () => {
     const path = location.pathname;
-    
+
     switch (path) {
       case '/admin':
         return 'Home Page Management';
@@ -30,7 +30,9 @@ const UnifiedAdminLayout = () => {
       case '/admin/contact-us':
         return 'Contact Us Management';
       case '/admin/contact-dashboard':
-        return 'Contact Dashboard';
+        return 'Contact Dashboard (Advanced)';
+      case '/admin/contact-dashboard-simple':
+        return 'Contact Dashboard (Simplified)';
       default:
         return 'Admin Panel';
     }
@@ -47,7 +49,7 @@ const UnifiedAdminLayout = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex text-gray-900 font-inter">
       {/* Unified Sidebar */}
       <AdminSidebar />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}

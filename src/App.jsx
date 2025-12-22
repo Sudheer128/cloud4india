@@ -21,6 +21,7 @@ import SolutionsMainAdmin from './pages/SolutionsMainAdmin'
 import AboutUsAdmin from './pages/AboutUsAdmin'
 import ContactUsAdmin from './pages/ContactUsAdmin'
 import ContactDashboard from './pages/ContactDashboard'
+import ContactDashboardSimple from './pages/ContactDashboardSimple'
 import PricingAdmin from './pages/PricingAdmin'
 import IntegrityAdmin from './pages/IntegrityAdmin'
 import IntegrityPage from './pages/IntegrityPage'
@@ -86,6 +87,7 @@ function AppContent() {
             <Route path="about-us" element={<AboutUsAdmin />} />
             <Route path="contact-us" element={<ContactUsAdmin />} />
             <Route path="contact-dashboard" element={<ContactDashboard />} />
+            <Route path="contact-dashboard-simple" element={<ContactDashboardSimple />} />
             <Route path="integrity" element={<IntegrityAdmin />} />
             <Route path="quotations" element={<QuotationsAdmin />} />
             <Route path="price-estimator-config" element={<PriceEstimatorAdmin />} />
