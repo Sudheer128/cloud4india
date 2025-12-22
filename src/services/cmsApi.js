@@ -25,7 +25,7 @@ cmsApi.interceptors.request.use((config) => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
     config.url = `${config.url}${separator}_t=${timestamp}&_r=${random}`;
-    
+
     // Ensure no-cache headers
     config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
     config.headers['Pragma'] = 'no-cache';
@@ -224,18 +224,18 @@ export const getMarketplaceByName = async (name) => {
     // First, get all marketplaces and find by name match
     const marketplaces = await getMarketplaces();
     const inputSlug = name.toLowerCase().trim();
-    
+
     // Try multiple matching strategies
     const marketplace = marketplaces.find(s => {
       const marketplaceName = (s.name || '').trim();
       if (!marketplaceName) return false;
-      
+
       // Strategy 1: Exact slug match (convert marketplace name to slug and compare)
       const marketplaceSlug = toSlug(marketplaceName);
       if (marketplaceSlug === inputSlug) {
         return true;
       }
-      
+
       // Strategy 2: Direct name match (case-insensitive, normalize special chars)
       // Remove special characters and compare
       const normalizedName = marketplaceName.toLowerCase()
@@ -245,14 +245,14 @@ export const getMarketplaceByName = async (name) => {
       if (normalizedName === normalizedInput) {
         return true;
       }
-      
+
       // Strategy 3: Match without special characters (e.g., "nodejs" matches "Node.js")
       const nameNoSpecial = marketplaceName.toLowerCase().replace(/[^\w]/g, '');
       const inputNoSpecial = inputSlug.replace(/[^\w]/g, '');
       if (nameNoSpecial === inputNoSpecial) {
         return true;
       }
-      
+
       // Strategy 4: Check if route contains the slug
       if (s.route) {
         const routePart = s.route.split('/').pop(); // Get last part of route
@@ -261,7 +261,7 @@ export const getMarketplaceByName = async (name) => {
           return true;
         }
       }
-      
+
       // Strategy 5: Partial word match (for single-word inputs like "nodejs" matching "Node.js")
       // Check if input (without special chars) is contained in name (without special chars) or vice versa
       if (inputNoSpecial.length > 0 && nameNoSpecial.includes(inputNoSpecial)) {
@@ -270,24 +270,24 @@ export const getMarketplaceByName = async (name) => {
       if (nameNoSpecial.length > 0 && inputNoSpecial.includes(nameNoSpecial)) {
         return true;
       }
-      
+
       return false;
     });
-    
+
     if (!marketplace) {
       // Log available marketplaces for debugging
-      console.warn('Marketplace not found. Available marketplaces:', marketplaces.map(s => ({ 
+      console.warn('Marketplace not found. Available marketplaces:', marketplaces.map(s => ({
         id: s.id,
-        name: s.name, 
+        name: s.name,
         slug: toSlug(s.name),
         route: s.route
       })));
       console.warn('Looking for slug:', inputSlug);
       throw new Error(`Marketplace not found: ${name}`);
     }
-    
+
     console.log('Found marketplace:', { name: marketplace.name, id: marketplace.id, slug: toSlug(marketplace.name) });
-    
+
     return marketplace;
   } catch (error) {
     console.error('Error fetching marketplace by name:', error);
@@ -904,7 +904,7 @@ export { cmsApi };
 export const getMainMarketplacesContent = async (includeHidden = false) => {
   try {
     const timestamp = new Date().getTime();
-    const url = includeHidden 
+    const url = includeHidden
       ? `/main-marketplaces?t=${timestamp}&all=true`
       : `/main-marketplaces?t=${timestamp}`;
     const response = await cmsApi.get(url);
@@ -1134,7 +1134,7 @@ export const getSolutionCategories = async () => {
 export const getMainSolutionsContent = async (includeHidden = false) => {
   try {
     const timestamp = new Date().getTime();
-    const url = includeHidden 
+    const url = includeHidden
       ? `/main-solutions?t=${timestamp}&all=true`
       : `/main-solutions?t=${timestamp}`;
     const response = await cmsApi.get(url);
@@ -1280,18 +1280,18 @@ export const getSolutionByName = async (name) => {
     // First, get all solutions and find by name match
     const solutions = await getSolutions();
     const inputSlug = name.toLowerCase().trim();
-    
+
     // Try multiple matching strategies
     const solution = solutions.find(s => {
       const solutionName = (s.name || '').trim();
       if (!solutionName) return false;
-      
+
       // Strategy 1: Exact slug match
       const solutionSlug = toSlug(solutionName);
       if (solutionSlug === inputSlug) {
         return true;
       }
-      
+
       // Strategy 2: Direct name match
       const normalizedName = solutionName.toLowerCase()
         .replace(/[^\w\s]/g, '')
@@ -1300,14 +1300,14 @@ export const getSolutionByName = async (name) => {
       if (normalizedName === normalizedInput) {
         return true;
       }
-      
+
       // Strategy 3: Match without special characters
       const nameNoSpecial = solutionName.toLowerCase().replace(/[^\w]/g, '');
       const inputNoSpecial = inputSlug.replace(/[^\w]/g, '');
       if (nameNoSpecial === inputNoSpecial) {
         return true;
       }
-      
+
       // Strategy 4: Check if route contains the slug
       if (s.route) {
         const routePart = s.route.split('/').pop();
@@ -1316,19 +1316,19 @@ export const getSolutionByName = async (name) => {
           return true;
         }
       }
-      
+
       // Strategy 5: Partial word match
       if (inputNoSpecial.length > 0 && nameNoSpecial.includes(inputNoSpecial)) {
         return true;
       }
-      
+
       return false;
     });
-    
+
     if (!solution) {
       throw new Error(`Solution not found: ${name}`);
     }
-    
+
     return solution;
   } catch (error) {
     console.error('Error fetching solution by name:', error);
@@ -1807,7 +1807,7 @@ export const deleteProductItem = async (productId, sectionId, itemId) => {
 export const getMainProductsContent = async (includeHidden = false) => {
   try {
     const timestamp = new Date().getTime();
-    const url = includeHidden 
+    const url = includeHidden
       ? `/main-products?t=${timestamp}&all=true`
       : `/main-products?t=${timestamp}`;
     const response = await cmsApi.get(url);
@@ -2196,8 +2196,8 @@ export const getIntegrityPages = async (showAll = false) => {
     // Add cache busting to ensure fresh data
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
-    const url = showAll 
-      ? `/integrity-pages?all=true&t=${timestamp}&r=${random}` 
+    const url = showAll
+      ? `/integrity-pages?all=true&t=${timestamp}&r=${random}`
       : `/integrity-pages?t=${timestamp}&r=${random}`;
     const response = await cmsApi.get(url, {
       headers: {
@@ -2224,8 +2224,8 @@ export const getIntegrityPage = async (slug, showAll = false) => {
     // Add unique timestamp and random number to prevent caching
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(7);
-    const url = showAll 
-      ? `/integrity-pages/${slug}?all=true&t=${timestamp}&r=${random}` 
+    const url = showAll
+      ? `/integrity-pages/${slug}?all=true&t=${timestamp}&r=${random}`
       : `/integrity-pages/${slug}?t=${timestamp}&r=${random}`;
     const response = await cmsApi.get(url, {
       headers: {
@@ -2631,6 +2631,221 @@ export const getContactSubmissionsStats = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching submission stats:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// NEW CRM ENHANCEMENT API FUNCTIONS
+// ============================================
+
+/**
+ * Update contact submission priority
+ * @param {number} id - Submission ID
+ * @param {string} priority - New priority (low, medium, high, urgent)
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactPriority = async (id, priority) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/priority`, { priority });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating priority:', error);
+    throw error;
+  }
+};
+
+/**
+ * Set follow-up date and notes
+ * @param {number} id - Submission ID
+ * @param {string} follow_up_date - Follow-up date (ISO string)
+ * @param {string} follow_up_notes - Follow-up notes
+ * @returns {Promise<Object>} Update response
+ */
+export const setContactFollowUp = async (id, follow_up_date, follow_up_notes) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/follow-up`, { follow_up_date, follow_up_notes });
+    return response.data;
+  } catch (error) {
+    console.error('Error setting follow-up:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clear follow-up date
+ * @param {number} id - Submission ID
+ * @returns {Promise<Object>} Update response
+ */
+export const clearContactFollowUp = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/contact/submissions/${id}/follow-up`);
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing follow-up:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get today's follow-ups
+ * @returns {Promise<Array>} Array of submissions with follow-ups today
+ */
+export const getTodayFollowUps = async () => {
+  try {
+    const response = await cmsApi.get('/contact/submissions/today-followups');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching today follow-ups:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get overdue follow-ups
+ * @returns {Promise<Array>} Array of submissions with overdue follow-ups
+ */
+export const getOverdueFollowUps = async () => {
+  try {
+    const response = await cmsApi.get('/contact/submissions/overdue-followups');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching overdue follow-ups:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update contact source
+ * @param {number} id - Submission ID
+ * @param {string} source - Lead source
+ * @returns {Promise<Object>} Update response
+ */
+export const updateContactSource = async (id, source) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/source`, { source });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating source:', error);
+    throw error;
+  }
+};
+
+/**
+ * Assign contact to agent
+ * @param {number} id - Submission ID
+ * @param {string} assigned_to - Agent name
+ * @returns {Promise<Object>} Update response
+ */
+export const assignContact = async (id, assigned_to) => {
+  try {
+    const response = await cmsApi.put(`/contact/submissions/${id}/assign`, { assigned_to });
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning contact:', error);
+    throw error;
+  }
+};
+
+/**
+ * Increment contact attempts
+ * @param {number} id - Submission ID
+ * @param {string} notes - Optional notes about the contact attempt
+ * @returns {Promise<Object>} Update response with new count
+ */
+export const incrementContactAttempts = async (id, notes = '') => {
+  try {
+    const response = await cmsApi.post(`/contact/submissions/${id}/increment-contact`, { notes });
+    return response.data;
+  } catch (error) {
+    console.error('Error incrementing contact attempts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get activity log for a submission
+ * @param {number} id - Submission ID
+ * @param {number} limit - Max number of activities to return
+ * @returns {Promise<Array>} Array of activity log entries
+ */
+export const getContactActivity = async (id, limit = 50) => {
+  try {
+    const response = await cmsApi.get(`/contact/submissions/${id}/activity?limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching activity log:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add activity log entry
+ * @param {number} id - Submission ID
+ * @param {Object} activityData - Activity data (action_type, notes, performed_by)
+ * @returns {Promise<Object>} Create response
+ */
+export const addContactActivity = async (id, activityData) => {
+  try {
+    const response = await cmsApi.post(`/contact/submissions/${id}/activity`, activityData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding activity:', error);
+    throw error;
+  }
+};
+
+/**
+ * Export contact submissions to CSV
+ * @param {Object} filters - Filter options (status, priority, source, startDate, endDate)
+ * @returns {Promise<Blob>} CSV file blob
+ */
+export const exportContactSubmissions = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/contact/submissions/export?${queryString}` : '/contact/submissions/export';
+
+    const response = await cmsApi.get(url, { responseType: 'blob' });
+    return response.data;
+  } catch (error) {
+    console.error('Error exporting submissions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bulk update contact status
+ * @param {Array<number>} ids - Array of submission IDs
+ * @param {string} status - New status
+ * @returns {Promise<Object>} Update response
+ */
+export const bulkUpdateContactStatus = async (ids, status) => {
+  try {
+    const response = await cmsApi.put('/contact/submissions/bulk-update', { ids, status });
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk updating:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bulk delete contacts
+ * @param {Array<number>} ids - Array of submission IDs
+ * @returns {Promise<Object>} Delete response
+ */
+export const bulkDeleteContacts = async (ids) => {
+  try {
+    const response = await cmsApi.delete('/contact/submissions/bulk-delete', { data: { ids } });
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk deleting:', error);
     throw error;
   }
 };

@@ -9651,38 +9651,98 @@ app.post('/api/contact/submit', (req, res) => {
 
 // Get all contact submissions with filters
 app.get('/api/contact/submissions', (req, res) => {
-  const { status, page = 1, limit = 20, search, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
+  const {
+    status,
+    page = 1,
+    limit = 20,
+    search,
+    sortBy = 'created_at',
+    sortOrder = 'DESC',
+    priority,
+    source,
+    followUpFilter,
+    assigned_to
+  } = req.query;
 
   let query = 'SELECT * FROM contact_submissions WHERE 1=1';
   const params = [];
 
-  if (status) {
-    query += ' AND status = ?';
-    params.push(status);
+  // Status filter
+  if (status && status !== 'all') {
+    // Handle 'closed' which includes both not_interested and lost
+    if (status === 'closed') {
+      query += " AND (status = 'not_interested' OR status = 'lost')";
+    } else {
+      query += ' AND status = ?';
+      params.push(status);
+    }
   }
 
+  // Priority filter
+  if (priority && priority !== 'all') {
+    query += ' AND priority = ?';
+    params.push(priority);
+  }
+
+  // Source filter
+  if (source && source !== 'all') {
+    query += ' AND source = ?';
+    params.push(source);
+  }
+
+  // Assigned to filter
+  if (assigned_to && assigned_to !== 'all') {
+    query += ' AND assigned_to = ?';
+    params.push(assigned_to);
+  }
+
+  // Follow-up date filter
+  if (followUpFilter && followUpFilter !== 'all') {
+    const today = new Date().toISOString().split('T')[0];
+    if (followUpFilter === 'overdue') {
+      query += " AND follow_up_date < date('now') AND follow_up_date IS NOT NULL";
+    } else if (followUpFilter === 'today') {
+      query += " AND date(follow_up_date) = date('now')";
+    } else if (followUpFilter === 'this_week') {
+      query += " AND follow_up_date >= date('now') AND follow_up_date <= date('now', '+7 days')";
+    } else if (followUpFilter === 'no_followup') {
+      query += ' AND follow_up_date IS NULL';
+    }
+  }
+
+  // Search filter
   if (search) {
-    query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ?)';
+    query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ? OR admin_notes LIKE ?)';
     const searchTerm = `%${search}%`;
-    params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
   }
 
   // Validate sortBy to prevent SQL injection
-  const allowedSortBy = ['created_at', 'name', 'email', 'phone', 'status'];
+  const allowedSortBy = ['created_at', 'name', 'email', 'phone', 'status', 'priority', 'follow_up_date', 'contact_attempts', 'source'];
   const sortColumn = allowedSortBy.includes(sortBy) ? sortBy : 'created_at';
   const sortDir = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-  query += ` ORDER BY ${sortColumn} ${sortDir}`;
+  // Special sorting: priority should order as urgent > high > medium > low
+  if (sortColumn === 'priority') {
+    query += ` ORDER BY CASE priority 
+      WHEN 'urgent' THEN 1 
+      WHEN 'high' THEN 2 
+      WHEN 'medium' THEN 3 
+      WHEN 'low' THEN 4 
+      ELSE 5 END ${sortDir}`;
+  } else {
+    query += ` ORDER BY ${sortColumn} ${sortDir}`;
+  }
 
   // Get total count
-  const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+  const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total').replace(/ORDER BY.*$/i, '');
   db.get(countQuery, params, (err, countResult) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
 
-    const total = countResult.total;
+    const total = countResult ? countResult.total : 0;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     query += ' LIMIT ? OFFSET ?';
     params.push(parseInt(limit), offset);
@@ -9707,30 +9767,77 @@ app.get('/api/contact/submissions', (req, res) => {
 
 // Get statistics for dashboard (MUST be before /:id route)
 app.get('/api/contact/submissions/stats', (req, res) => {
+  // Get status counts
   db.all(`SELECT 
     status,
     COUNT(*) as count
     FROM contact_submissions
-    GROUP BY status`, (err, stats) => {
+    GROUP BY status`, (err, statusStats) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
 
-    const statsObj = {
-      leads: 0,
-      contacted: 0,
-      re_contact: 0,
-      final_customer: 0,
-      total: 0
-    };
+    // Get priority counts
+    db.all(`SELECT priority, COUNT(*) as count FROM contact_submissions GROUP BY priority`, (err, priorityStats) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
 
-    stats.forEach(stat => {
-      statsObj[stat.status] = stat.count;
-      statsObj.total += stat.count;
+      // Get follow-up stats
+      db.get(`SELECT 
+        SUM(CASE WHEN follow_up_date < date('now') AND follow_up_date IS NOT NULL THEN 1 ELSE 0 END) as overdue,
+        SUM(CASE WHEN date(follow_up_date) = date('now') THEN 1 ELSE 0 END) as today,
+        SUM(CASE WHEN follow_up_date > date('now') AND follow_up_date <= date('now', '+7 days') THEN 1 ELSE 0 END) as this_week
+        FROM contact_submissions`, (err, followUpStats) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        const statsObj = {
+          // Status counts
+          leads: 0,
+          contacted: 0,
+          qualified: 0,
+          follow_up: 0,
+          negotiation: 0,
+          final_customer: 0,
+          not_interested: 0,
+          lost: 0,
+          total: 0,
+          // Priority counts
+          priority: {
+            urgent: 0,
+            high: 0,
+            medium: 0,
+            low: 0
+          },
+          // Follow-up stats
+          followUp: {
+            overdue: followUpStats?.overdue || 0,
+            today: followUpStats?.today || 0,
+            this_week: followUpStats?.this_week || 0
+          }
+        };
+
+        statusStats.forEach(stat => {
+          if (statsObj.hasOwnProperty(stat.status)) {
+            statsObj[stat.status] = stat.count;
+          }
+          statsObj.total += stat.count;
+        });
+
+        priorityStats.forEach(stat => {
+          if (stat.priority && statsObj.priority.hasOwnProperty(stat.priority)) {
+            statsObj.priority[stat.priority] = stat.count;
+          }
+        });
+
+        res.json(statsObj);
+      });
     });
-
-    res.json(statsObj);
   });
 });
 
@@ -9750,51 +9857,73 @@ app.get('/api/contact/submissions/:id', (req, res) => {
   });
 });
 
-// Update contact submission status
+// Update contact submission status (with activity logging)
 app.put('/api/contact/submissions/:id/status', (req, res) => {
   const { id } = req.params;
   const { status, admin_notes } = req.body;
 
-  const allowedStatuses = ['leads', 'contacted', 're_contact', 'final_customer'];
+  const allowedStatuses = ['leads', 'contacted', 'qualified', 'follow_up', 'negotiation', 'final_customer', 'not_interested', 'lost'];
   if (!allowedStatuses.includes(status)) {
-    res.status(400).json({ error: 'Invalid status' });
+    res.status(400).json({ error: 'Invalid status. Allowed: ' + allowedStatuses.join(', ') });
     return;
   }
 
-  let updateQuery = `UPDATE contact_submissions SET status = ?, updated_at = CURRENT_TIMESTAMP`;
-  const params = [status];
-
-  // Update timestamps based on status
-  if (status === 'contacted' && !req.body.contacted_at) {
-    updateQuery += ', contacted_at = CURRENT_TIMESTAMP';
-  } else if (status === 're_contact' && !req.body.re_contacted_at) {
-    updateQuery += ', re_contacted_at = CURRENT_TIMESTAMP';
-  } else if (status === 'final_customer' && !req.body.converted_at) {
-    updateQuery += ', converted_at = CURRENT_TIMESTAMP';
-  }
-
-  if (admin_notes !== undefined) {
-    updateQuery += ', admin_notes = ?';
-    params.push(admin_notes);
-  }
-
-  updateQuery += ' WHERE id = ?';
-  params.push(id);
-
-  db.run(updateQuery, params, function (err) {
+  // First get the current status for activity logging
+  db.get('SELECT status FROM contact_submissions WHERE id = ?', [id], (err, current) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    if (this.changes === 0) {
+    if (!current) {
       res.status(404).json({ error: 'Submission not found' });
       return;
     }
-    res.json({ message: 'Status updated successfully', changes: this.changes });
+
+    const oldStatus = current.status;
+    let updateQuery = `UPDATE contact_submissions SET status = ?, updated_at = CURRENT_TIMESTAMP`;
+    const params = [status];
+
+    // Update timestamps based on status
+    if (status === 'contacted' && !req.body.contacted_at) {
+      updateQuery += ', contacted_at = CURRENT_TIMESTAMP';
+    } else if (status === 'follow_up' && !req.body.re_contacted_at) {
+      updateQuery += ', re_contacted_at = CURRENT_TIMESTAMP';
+    } else if (status === 'final_customer' && !req.body.converted_at) {
+      updateQuery += ', converted_at = CURRENT_TIMESTAMP';
+    }
+
+    if (admin_notes !== undefined) {
+      updateQuery += ', admin_notes = ?';
+      params.push(admin_notes);
+    }
+
+    updateQuery += ' WHERE id = ?';
+    params.push(id);
+
+    db.run(updateQuery, params, function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+
+      // Log the activity
+      if (oldStatus !== status) {
+        db.run(
+          `INSERT INTO contact_activity_log (submission_id, action_type, old_value, new_value, performed_by) VALUES (?, 'status_change', ?, ?, 'Admin')`,
+          [id, oldStatus, status]
+        );
+      }
+
+      res.json({ message: 'Status updated successfully', changes: this.changes });
+    });
   });
 });
 
-// Update admin notes
+// Update admin notes (with activity logging)
 app.put('/api/contact/submissions/:id/notes', (req, res) => {
   const { id } = req.params;
   const { admin_notes } = req.body;
@@ -9809,6 +9938,13 @@ app.put('/api/contact/submissions/:id/notes', (req, res) => {
         res.status(404).json({ error: 'Submission not found' });
         return;
       }
+
+      // Log the activity
+      db.run(
+        `INSERT INTO contact_activity_log (submission_id, action_type, new_value, performed_by) VALUES (?, 'note_added', ?, 'Admin')`,
+        [id, admin_notes ? admin_notes.substring(0, 100) : '']
+      );
+
       res.json({ message: 'Notes updated successfully', changes: this.changes });
     });
 });
@@ -9823,6 +9959,420 @@ app.delete('/api/contact/submissions/:id', (req, res) => {
     }
     res.json({ message: 'Submission deleted successfully', changes: this.changes });
   });
+});
+
+// ============================================
+// NEW CRM ENHANCEMENT ENDPOINTS
+// ============================================
+
+// Update priority
+app.put('/api/contact/submissions/:id/priority', (req, res) => {
+  const { id } = req.params;
+  const { priority } = req.body;
+
+  const allowedPriorities = ['low', 'medium', 'high', 'urgent'];
+  if (!allowedPriorities.includes(priority)) {
+    res.status(400).json({ error: 'Invalid priority. Allowed: ' + allowedPriorities.join(', ') });
+    return;
+  }
+
+  db.get('SELECT priority FROM contact_submissions WHERE id = ?', [id], (err, current) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    const oldPriority = current?.priority;
+
+    db.run('UPDATE contact_submissions SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [priority, id], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        if (this.changes === 0) {
+          res.status(404).json({ error: 'Submission not found' });
+          return;
+        }
+
+        // Log activity
+        if (oldPriority !== priority) {
+          db.run(
+            `INSERT INTO contact_activity_log (submission_id, action_type, old_value, new_value, performed_by) VALUES (?, 'priority_change', ?, ?, 'Admin')`,
+            [id, oldPriority, priority]
+          );
+        }
+
+        res.json({ message: 'Priority updated successfully', changes: this.changes });
+      });
+  });
+});
+
+// Set follow-up date and notes
+app.put('/api/contact/submissions/:id/follow-up', (req, res) => {
+  const { id } = req.params;
+  const { follow_up_date, follow_up_notes } = req.body;
+
+  db.run(
+    'UPDATE contact_submissions SET follow_up_date = ?, follow_up_notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [follow_up_date, follow_up_notes, id],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+
+      // Log activity
+      db.run(
+        `INSERT INTO contact_activity_log (submission_id, action_type, new_value, notes, performed_by) VALUES (?, 'follow_up_set', ?, ?, 'Admin')`,
+        [id, follow_up_date, follow_up_notes || '']
+      );
+
+      res.json({ message: 'Follow-up set successfully', changes: this.changes });
+    }
+  );
+});
+
+// Clear follow-up
+app.delete('/api/contact/submissions/:id/follow-up', (req, res) => {
+  const { id } = req.params;
+
+  db.run(
+    'UPDATE contact_submissions SET follow_up_date = NULL, follow_up_notes = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [id],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+      res.json({ message: 'Follow-up cleared successfully', changes: this.changes });
+    }
+  );
+});
+
+// Update source
+app.put('/api/contact/submissions/:id/source', (req, res) => {
+  const { id } = req.params;
+  const { source } = req.body;
+
+  const allowedSources = ['website', 'referral', 'advertisement', 'social_media', 'direct', 'email_campaign', 'phone', 'other'];
+  if (!allowedSources.includes(source)) {
+    res.status(400).json({ error: 'Invalid source. Allowed: ' + allowedSources.join(', ') });
+    return;
+  }
+
+  db.run('UPDATE contact_submissions SET source = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [source, id], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+      res.json({ message: 'Source updated successfully', changes: this.changes });
+    });
+});
+
+// Assign to agent
+app.put('/api/contact/submissions/:id/assign', (req, res) => {
+  const { id } = req.params;
+  const { assigned_to } = req.body;
+
+  db.run('UPDATE contact_submissions SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [assigned_to, id], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+
+      // Log activity
+      db.run(
+        `INSERT INTO contact_activity_log (submission_id, action_type, new_value, performed_by) VALUES (?, 'assigned', ?, 'Admin')`,
+        [id, assigned_to]
+      );
+
+      res.json({ message: 'Assignment updated successfully', changes: this.changes });
+    });
+});
+
+// Increment contact attempts
+app.post('/api/contact/submissions/:id/increment-contact', (req, res) => {
+  const { id } = req.params;
+  const { notes } = req.body;
+
+  db.run(
+    'UPDATE contact_submissions SET contact_attempts = COALESCE(contact_attempts, 0) + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [id],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        res.status(404).json({ error: 'Submission not found' });
+        return;
+      }
+
+      // Log activity
+      db.run(
+        `INSERT INTO contact_activity_log (submission_id, action_type, notes, performed_by) VALUES (?, 'contact_attempt', ?, 'Admin')`,
+        [id, notes || 'Contact attempt made']
+      );
+
+      // Get the new count
+      db.get('SELECT contact_attempts FROM contact_submissions WHERE id = ?', [id], (err, row) => {
+        res.json({
+          message: 'Contact attempt recorded',
+          contact_attempts: row ? row.contact_attempts : 1
+        });
+      });
+    }
+  );
+});
+
+// Get activity log for a submission
+app.get('/api/contact/submissions/:id/activity', (req, res) => {
+  const { id } = req.params;
+  const { limit = 50 } = req.query;
+
+  db.all(
+    'SELECT * FROM contact_activity_log WHERE submission_id = ? ORDER BY created_at DESC LIMIT ?',
+    [id, parseInt(limit)],
+    (err, activities) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(activities || []);
+    }
+  );
+});
+
+// Add activity log entry
+app.post('/api/contact/submissions/:id/activity', (req, res) => {
+  const { id } = req.params;
+  const { action_type, notes, performed_by = 'Admin' } = req.body;
+
+  const allowedActions = ['call_made', 'email_sent', 'meeting_scheduled', 'document_sent', 'custom_note'];
+  if (!allowedActions.includes(action_type)) {
+    res.status(400).json({ error: 'Invalid action_type. Allowed: ' + allowedActions.join(', ') });
+    return;
+  }
+
+  db.run(
+    `INSERT INTO contact_activity_log (submission_id, action_type, notes, performed_by) VALUES (?, ?, ?, ?)`,
+    [id, action_type, notes, performed_by],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Activity logged successfully', id: this.lastID });
+    }
+  );
+});
+
+// Get today's follow-ups
+app.get('/api/contact/submissions/today-followups', (req, res) => {
+  db.all(
+    `SELECT * FROM contact_submissions 
+     WHERE date(follow_up_date) = date('now') 
+     ORDER BY follow_up_date ASC`,
+    (err, submissions) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(submissions || []);
+    }
+  );
+});
+
+// Get overdue follow-ups
+app.get('/api/contact/submissions/overdue-followups', (req, res) => {
+  db.all(
+    `SELECT * FROM contact_submissions 
+     WHERE follow_up_date < date('now') AND follow_up_date IS NOT NULL
+     ORDER BY follow_up_date ASC`,
+    (err, submissions) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(submissions || []);
+    }
+  );
+});
+
+// Export submissions to CSV
+app.get('/api/contact/submissions/export', (req, res) => {
+  const { status, priority, source, startDate, endDate } = req.query;
+
+  let query = 'SELECT * FROM contact_submissions WHERE 1=1';
+  const params = [];
+
+  if (status && status !== 'all') {
+    if (status === 'closed') {
+      query += " AND (status = 'not_interested' OR status = 'lost')";
+    } else {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+  }
+
+  if (priority && priority !== 'all') {
+    query += ' AND priority = ?';
+    params.push(priority);
+  }
+
+  if (source && source !== 'all') {
+    query += ' AND source = ?';
+    params.push(source);
+  }
+
+  if (startDate) {
+    query += ' AND date(created_at) >= date(?)';
+    params.push(startDate);
+  }
+
+  if (endDate) {
+    query += ' AND date(created_at) <= date(?)';
+    params.push(endDate);
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  db.all(query, params, (err, submissions) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    // Generate CSV
+    const headers = [
+      'ID', 'Name', 'Email', 'Phone', 'Subject', 'Message', 'Status', 'Priority',
+      'Source', 'Contact Attempts', 'Follow-up Date', 'Follow-up Notes', 'Admin Notes',
+      'Assigned To', 'Created At', 'Updated At'
+    ];
+
+    const csvRows = [headers.join(',')];
+
+    submissions.forEach(s => {
+      const row = [
+        s.id,
+        `"${(s.name || '').replace(/"/g, '""')}"`,
+        `"${(s.email || '').replace(/"/g, '""')}"`,
+        `"${(s.phone || '').replace(/"/g, '""')}"`,
+        `"${(s.subject || '').replace(/"/g, '""')}"`,
+        `"${(s.message || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+        s.status,
+        s.priority,
+        s.source,
+        s.contact_attempts || 0,
+        s.follow_up_date || '',
+        `"${(s.follow_up_notes || '').replace(/"/g, '""')}"`,
+        `"${(s.admin_notes || '').replace(/"/g, '""')}"`,
+        s.assigned_to || '',
+        s.created_at,
+        s.updated_at
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csv = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=contact_submissions_${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csv);
+  });
+});
+
+// Bulk update status
+app.put('/api/contact/submissions/bulk-update', (req, res) => {
+  const { ids, status } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: 'ids array is required' });
+    return;
+  }
+
+  const allowedStatuses = ['leads', 'contacted', 'qualified', 'follow_up', 'negotiation', 'final_customer', 'not_interested', 'lost'];
+  if (!allowedStatuses.includes(status)) {
+    res.status(400).json({ error: 'Invalid status' });
+    return;
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+  db.run(
+    `UPDATE contact_submissions SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`,
+    [status, ...ids],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      // Log activities for each
+      ids.forEach(id => {
+        db.run(
+          `INSERT INTO contact_activity_log (submission_id, action_type, new_value, performed_by, notes) VALUES (?, 'status_change', ?, 'Admin', 'Bulk update')`,
+          [id, status]
+        );
+      });
+
+      res.json({ message: `${this.changes} submissions updated`, changes: this.changes });
+    }
+  );
+});
+
+// Bulk delete
+app.delete('/api/contact/submissions/bulk-delete', (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: 'ids array is required' });
+    return;
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+
+  // First delete activity logs
+  db.run(
+    `DELETE FROM contact_activity_log WHERE submission_id IN (${placeholders})`,
+    ids,
+    (err) => {
+      if (err) {
+        console.error('Error deleting activity logs:', err.message);
+      }
+
+      // Then delete submissions
+      db.run(
+        `DELETE FROM contact_submissions WHERE id IN (${placeholders})`,
+        ids,
+        function (err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ message: `${this.changes} submissions deleted`, changes: this.changes });
+        }
+      );
+    }
+  );
 });
 
 // ============================================
