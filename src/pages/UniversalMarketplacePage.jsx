@@ -1153,9 +1153,9 @@ const UniversalMarketplacePage = () => {
                       if (heroSection.icon.startsWith('/uploads')) {
                         const cmsUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
                         return (
-                          <img 
-                            src={`${cmsUrl}${heroSection.icon}`} 
-                            alt="Marketplace icon" 
+                          <img
+                            src={`${cmsUrl}${heroSection.icon}`}
+                            alt="Marketplace icon"
                             className="w-10 h-10 object-contain"
                           />
                         );
@@ -1196,27 +1196,6 @@ const UniversalMarketplacePage = () => {
             <DynamicMarketplaceSection
               section={mediaBannerSection}
               items={itemsBySection[mediaBannerSection.id] || []}
-              marketplace={marketplace}
-              hasNavigation={navigationItems.length > 0}
-            />
-          </div>
-        );
-      })()}
-
-      {/* Pricing Section - Uses DynamicMarketplaceSection */}
-      {(() => {
-        const pricingSection = sections.find(s =>
-          s.section_type === 'pricing' &&
-          s.is_visible !== 0
-        );
-
-        if (!pricingSection) return null;
-
-        return (
-          <div data-section-id="pricing">
-            <DynamicMarketplaceSection
-              section={pricingSection}
-              items={itemsBySection[pricingSection.id] || []}
               marketplace={marketplace}
               hasNavigation={navigationItems.length > 0}
             />
@@ -1402,6 +1381,27 @@ const UniversalMarketplacePage = () => {
               <CTAButtons marketplaceId={marketplace?.id} sectionId={ctaSection.id} />
             </div>
           </section>
+        );
+      })()}
+
+      {/* Pricing Section - Uses DynamicMarketplaceSection */}
+      {(() => {
+        const pricingSection = sections.find(s =>
+          s.section_type === 'pricing' &&
+          s.is_visible !== 0
+        );
+
+        if (!pricingSection) return null;
+
+        return (
+          <div data-section-id="pricing">
+            <DynamicMarketplaceSection
+              section={pricingSection}
+              items={itemsBySection[pricingSection.id] || []}
+              marketplace={marketplace}
+              hasNavigation={navigationItems.length > 0}
+            />
+          </div>
         );
       })()}
 
