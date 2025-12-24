@@ -9,6 +9,9 @@ import SolutionsSectionNew from '../components/SolutionsSectionNew'
 // import InfrastructureSection from '../components/InfrastructureSection'
 
 const Home = () => {
+  // Section visibility flags - set to true to show, false to hide
+  const SHOW_MARKETPLACES_SECTION = false
+
   return (
     <div>
       <HeroSectionNew />
@@ -16,7 +19,7 @@ const Home = () => {
       <WhySectionNew />
       <FeatureBannersSection />
       <ProductsSectionNew />
-      <MarketplacesSectionNew />
+      {SHOW_MARKETPLACES_SECTION && <MarketplacesSectionNew />}
       <SolutionsSectionNew />
       {/* <InfrastructureSection /> */}
     </div>

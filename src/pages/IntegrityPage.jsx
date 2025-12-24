@@ -11,10 +11,10 @@ const IntegrityPage = () => {
   // Use description directly from database, with fallback extraction
   const description = useMemo(() => {
     if (!page) return null
-    
+
     // Priority 1: Use description field from database
     if (page.description) return page.description
-    
+
     // Priority 2: Extract from first meaningful paragraph in content
     if (page.content && typeof window !== 'undefined') {
       try {
@@ -46,8 +46,8 @@ const IntegrityPage = () => {
         const timestamp = forceRefresh ? `refresh-${Date.now()}-${Math.random()}` : Date.now()
         // Always fetch with cache busting
         const data = await getIntegrityPage(slug, false)
-        console.log('📥 Fetched page data:', { 
-          eyebrow: data?.eyebrow, 
+        console.log('📥 Fetched page data:', {
+          eyebrow: data?.eyebrow,
           description: data?.description,
           title: data?.title,
           timestamp: new Date().toISOString()
@@ -84,7 +84,7 @@ const IntegrityPage = () => {
         }
       }
     }
-    
+
     // Track when page was hidden to avoid refreshing on quick Alt+Tab
     let hiddenTime = null
     const MIN_HIDDEN_TIME = 2000 // Page must be hidden for at least 2 seconds before refresh on return
@@ -101,7 +101,7 @@ const IntegrityPage = () => {
         // Page is becoming visible
         const timeSinceLastFetch = Date.now() - lastFetchTime
         const wasHiddenFor = hiddenTime ? Date.now() - hiddenTime : 0
-        
+
         // Only refresh if:
         // 1. Page was hidden for at least MIN_HIDDEN_TIME (not just a quick Alt+Tab)
         // 2. It's been at least MIN_REFRESH_INTERVAL since last fetch
@@ -180,8 +180,8 @@ const IntegrityPage = () => {
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
           <p className="text-xl text-gray-600 mb-8">The page you're looking for doesn't exist.</p>
-          <button 
-            onClick={() => window.history.back()} 
+          <button
+            onClick={() => window.history.back()}
             className="bg-saree-teal text-white px-8 py-3 rounded-lg hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl"
           >
             Go Back
@@ -202,8 +202,8 @@ const IntegrityPage = () => {
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Page Not Available</h1>
           <p className="text-xl text-gray-600 mb-8">This page is currently not available.</p>
-          <button 
-            onClick={() => window.history.back()} 
+          <button
+            onClick={() => window.history.back()}
             className="bg-saree-teal text-white px-8 py-3 rounded-lg hover:bg-saree-teal-dark transition-all duration-300 shadow-lg hover:shadow-xl"
           >
             Go Back
@@ -259,8 +259,8 @@ const IntegrityPage = () => {
       </section>
 
       {/* Content Section with Enhanced Card Styling */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-12 px-4 sm:px-6 lg:px-12 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-6xl mx-auto">
           {/* Main Content Card */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             {/* Content Container */}
@@ -376,6 +376,17 @@ const IntegrityPage = () => {
                 .integrity-content ol[type="a"] li:before {
                   content: counter(alpha, lower-alpha) ")";
                 }
+                /* Nested ordered lists with inline style attribute should use native list styling */
+                .integrity-content ol[style*="list-style-type"] {
+                  list-style: lower-roman;
+                  padding-left: 2.5rem;
+                }
+                .integrity-content ol[style*="list-style-type"] li {
+                  padding-left: 0.5rem;
+                }
+                .integrity-content ol[style*="list-style-type"] li:before {
+                  content: none;
+                }
                 .integrity-content ul ul,
                 .integrity-content ol ol,
                 .integrity-content ul ol,
@@ -465,7 +476,7 @@ const IntegrityPage = () => {
           margin-bottom: 0;
         }
               `}</style>
-              <div 
+              <div
                 className="integrity-content"
                 dangerouslySetInnerHTML={{ __html: page.content }}
               />
@@ -475,12 +486,12 @@ const IntegrityPage = () => {
             <div className="bg-gray-50 border-t border-gray-200 px-8 md:px-12 lg:px-16 py-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-sm text-gray-600">
-                  <p>Last updated: {page.updated_at 
+                  <p>Last updated: {page.updated_at
                     ? new Date(page.updated_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
                     : 'N/A'}
                   </p>
                 </div>
@@ -509,8 +520,8 @@ const IntegrityPage = () => {
                 <p className="text-gray-700 mb-4">
                   If you have any questions or concerns about our policies, please don't hesitate to contact us.
                 </p>
-                <a 
-                  href="/contact" 
+                <a
+                  href="/contact-us"
                   className="inline-flex items-center gap-2 text-saree-teal font-semibold hover:text-saree-teal-dark transition-colors"
                 >
                   Contact Support

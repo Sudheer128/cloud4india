@@ -185,55 +185,55 @@ const Pricing = () => {
             </div>
           ) : cardType === 'storage' ? (
             // Storage format - 4 columns
-            <div className="grid grid-cols-4 gap-4 text-sm">
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.name}</div>
+            <div className="grid grid-cols-4 gap-2 md:gap-4 text-xs md:text-sm">
+              <div className="text-center min-w-[120px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.name}</div>
               </div>
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.description || 'High Performance'}</div>
+              <div className="text-center min-w-[150px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.description || 'High Performance'}</div>
               </div>
-              <div className="text-center">
-                <div className="font-bold text-lg text-saree-teal mb-1">
+              <div className="text-center min-w-[100px]">
+                <div className="font-bold text-base md:text-lg text-saree-teal mb-1">
                   {plan.price_per_gb || plan.pricePerGB}
                 </div>
                 <div className="text-xs text-gray-500">/GB per month</div>
               </div>
-              <div className="text-center">
-                <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+              <div className="text-center min-w-[100px]">
+                <button className="bg-saree-teal hover:bg-saree-teal-dark text-white px-4 md:px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                   <ArrowRightIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ) : (
             // Regular format - Fixed grid layout for compute and other services
-            <div className="grid grid-cols-7 gap-4 text-sm">
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.ram || plan.name || 'N/A'}</div>
+            <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm">
+              <div className="text-center min-w-[100px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.ram || plan.name || 'N/A'}</div>
               </div>
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.vcpu || plan.type || 'N/A'}</div>
+              <div className="text-center min-w-[80px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.vcpu || plan.type || 'N/A'}</div>
               </div>
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.storage || plan.features || 'N/A'}</div>
+              <div className="text-center min-w-[120px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.storage || plan.features || 'N/A'}</div>
               </div>
-              <div className="text-center">
-                <div className="font-semibold text-gray-900 mb-1">{plan.bandwidth || 'N/A'}</div>
+              <div className="text-center min-w-[100px]">
+                <div className="font-semibold text-gray-900 mb-1 break-words">{plan.bandwidth || 'N/A'}</div>
               </div>
-              <div className="text-center">
+              <div className="text-center min-w-[80px]">
                 <div className="font-semibold text-saree-teal mb-1">
                   {plan.discount && plan.discount !== 0 ? (plan.discount.toString().includes('%') ? plan.discount : `${plan.discount}%`) : '0%'}
                 </div>
               </div>
-              <div className="text-center">
-                <div className="font-bold text-lg text-gray-900 mb-1">
+              <div className="text-center min-w-[100px]">
+                <div className="font-bold text-base md:text-lg text-gray-900 mb-1">
                   {plan.hourly_price || plan.hourlyPrice || 'Contact Sales'}
                 </div>
                 {(plan.hourly_price || plan.hourlyPrice) && (
                   <div className="text-xs text-gray-500">/hour</div>
                 )}
               </div>
-              <div className="text-center">
-                <div className="font-bold text-lg text-gray-900 mb-1">
+              <div className="text-center min-w-[100px]">
+                <div className="font-bold text-base md:text-lg text-gray-900 mb-1">
                   {plan.monthly_price || plan.monthlyPrice || 'Contact Sales'}
                 </div>
                 {(plan.monthly_price || plan.monthlyPrice) && (
@@ -367,62 +367,67 @@ const Pricing = () => {
                     </nav>
                   </div>
 
-                  {/* Table Header */}
-                  <div className="bg-gradient-to-r from-saree-teal-light to-saree-amber-light rounded-t-2xl p-6 text-gray-900 shadow-md">
-                    <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
-                      <div className="text-center">{pageConfig?.compute_table_header_name || 'Name'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_vcpu || 'vCPU'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_memory || 'Memory RAM'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
-                      <div className="text-center">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
-                    </div>
-                  </div>
-
-                  {/* Pricing Table Rows */}
-                  <div className="space-y-0">
-                    {computePlanTabs[activeComputePlanTab]?.map((plan, index) => (
-                      <div
-                        key={plan.name}
-                        onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
-                        className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group ${
-                          index === computePlanTabs[activeComputePlanTab].length - 1 
-                            ? 'rounded-b-2xl border-gray-200' 
-                            : 'border-gray-200 border-b-0'
-                        }`}
-                      >
-                        <div className="p-6">
-                          <div className="grid grid-cols-7 gap-4 text-sm items-center">
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-900">{plan.name}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-900">{plan.vcpu}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-900">{plan.memory}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-bold text-lg text-gray-900">{plan.hourlyPrice}</div>
-                              <div className="text-xs text-gray-500">/Hour</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-bold text-lg text-gray-900">{plan.monthlyPrice}</div>
-                              <div className="text-xs text-gray-500">/Month</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-bold text-lg text-gray-900">{plan.quarterlyPrice}</div>
-                              <div className="text-xs text-gray-500">/Quarter</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-bold text-lg text-gray-900">{plan.yearlyPrice}</div>
-                              <div className="text-xs text-gray-500">/Year</div>
-                            </div>
-                          </div>
+                  {/* Table Container with Horizontal Scroll on Mobile */}
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <div className="min-w-[800px]">
+                      {/* Table Header */}
+                      <div className="bg-gradient-to-r from-saree-teal-light to-saree-amber-light rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md">
+                        <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                          <div className="text-center min-w-[100px]">{pageConfig?.compute_table_header_name || 'Name'}</div>
+                          <div className="text-center min-w-[80px]">{pageConfig?.compute_table_header_vcpu || 'vCPU'}</div>
+                          <div className="text-center min-w-[100px]">{pageConfig?.compute_table_header_memory || 'Memory RAM'}</div>
+                          <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
+                          <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
+                          <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                          <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                         </div>
                       </div>
-                    ))}
+
+                      {/* Pricing Table Rows */}
+                      <div className="space-y-0">
+                        {computePlanTabs[activeComputePlanTab]?.map((plan, index) => (
+                          <div
+                            key={plan.name}
+                            onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
+                            className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-teal hover:bg-saree-teal-light/20 cursor-pointer group ${
+                              index === computePlanTabs[activeComputePlanTab].length - 1 
+                                ? 'rounded-b-2xl border-gray-200' 
+                                : 'border-gray-200 border-b-0'
+                            }`}
+                          >
+                            <div className="p-4 md:p-6">
+                              <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm items-center">
+                                <div className="text-center min-w-[100px]">
+                                  <div className="font-semibold text-gray-900 break-words">{plan.name}</div>
+                                </div>
+                                <div className="text-center min-w-[80px]">
+                                  <div className="font-semibold text-gray-900">{plan.vcpu}</div>
+                                </div>
+                                <div className="text-center min-w-[100px]">
+                                  <div className="font-semibold text-gray-900">{plan.memory}</div>
+                                </div>
+                                <div className="text-center min-w-[110px]">
+                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.hourlyPrice}</div>
+                                  <div className="text-xs text-gray-500">/Hour</div>
+                                </div>
+                                <div className="text-center min-w-[110px]">
+                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.monthlyPrice}</div>
+                                  <div className="text-xs text-gray-500">/Month</div>
+                                </div>
+                                <div className="text-center min-w-[120px]">
+                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.quarterlyPrice}</div>
+                                  <div className="text-xs text-gray-500">/Quarter</div>
+                                </div>
+                                <div className="text-center min-w-[110px]">
+                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.yearlyPrice}</div>
+                                  <div className="text-xs text-gray-500">/Year</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -436,62 +441,67 @@ const Pricing = () => {
                   </p>
                 </div>
 
-                {/* Table Header */}
-                <div className="bg-gradient-to-r from-saree-lime-light to-saree-rose-light rounded-t-2xl p-6 text-gray-900 shadow-md">
-                  <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
-                    <div className="text-center">{pageConfig?.disk_table_header_name || 'Name'}</div>
-                    <div className="text-center">{pageConfig?.disk_table_header_type || 'Storage Type'}</div>
-                    <div className="text-center">{pageConfig?.disk_table_header_size || 'Size'}</div>
-                    <div className="text-center">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
-                    <div className="text-center">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
-                    <div className="text-center">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
-                    <div className="text-center">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
-                  </div>
-                </div>
-
-                {/* Disk Offering Table Rows */}
-                <div className="space-y-0">
-                  {diskOfferings.map((disk, index) => (
-                    <div
-                      key={disk.name}
-                      onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
-                      className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-amber hover:bg-saree-amber-light/20 cursor-pointer group ${
-                        index === diskOfferings.length - 1 
-                          ? 'rounded-b-2xl border-gray-200' 
-                          : 'border-gray-200 border-b-0'
-                      }`}
-                    >
-                      <div className="p-6">
-                        <div className="grid grid-cols-7 gap-4 text-sm items-center">
-                          <div className="text-center">
-                            <div className="font-semibold text-gray-900">{disk.name}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-gray-900">{disk.storageType}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-gray-900">{disk.size}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-bold text-lg text-gray-900">{disk.hourlyPrice}</div>
-                            <div className="text-xs text-gray-500">/Hour</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-bold text-lg text-gray-900">{disk.monthlyPrice}</div>
-                            <div className="text-xs text-gray-500">/Month</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-bold text-lg text-gray-900">{disk.quarterlyPrice}</div>
-                            <div className="text-xs text-gray-500">/Quarter</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-bold text-lg text-gray-900">{disk.yearlyPrice}</div>
-                            <div className="text-xs text-gray-500">/Year</div>
-                          </div>
-                        </div>
+                {/* Table Container with Horizontal Scroll on Mobile */}
+                <div className="overflow-x-auto -mx-6 px-6">
+                  <div className="min-w-[800px]">
+                    {/* Table Header */}
+                    <div className="bg-gradient-to-r from-saree-lime-light to-saree-rose-light rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md">
+                      <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                        <div className="text-center min-w-[100px]">{pageConfig?.disk_table_header_name || 'Name'}</div>
+                        <div className="text-center min-w-[110px]">{pageConfig?.disk_table_header_type || 'Storage Type'}</div>
+                        <div className="text-center min-w-[80px]">{pageConfig?.disk_table_header_size || 'Size'}</div>
+                        <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
+                        <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
+                        <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                        <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Disk Offering Table Rows */}
+                    <div className="space-y-0">
+                      {diskOfferings.map((disk, index) => (
+                        <div
+                          key={disk.name}
+                          onClick={() => window.location.href = hero?.redirect_url || 'https://portal.cloud4india.com/register'}
+                          className={`bg-white border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-saree-amber hover:bg-saree-amber-light/20 cursor-pointer group ${
+                            index === diskOfferings.length - 1 
+                              ? 'rounded-b-2xl border-gray-200' 
+                              : 'border-gray-200 border-b-0'
+                          }`}
+                        >
+                          <div className="p-4 md:p-6">
+                            <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm items-center">
+                              <div className="text-center min-w-[100px]">
+                                <div className="font-semibold text-gray-900 break-words">{disk.name}</div>
+                              </div>
+                              <div className="text-center min-w-[110px]">
+                                <div className="font-semibold text-gray-900 break-words">{disk.storageType}</div>
+                              </div>
+                              <div className="text-center min-w-[80px]">
+                                <div className="font-semibold text-gray-900">{disk.size}</div>
+                              </div>
+                              <div className="text-center min-w-[110px]">
+                                <div className="font-bold text-base md:text-lg text-gray-900">{disk.hourlyPrice}</div>
+                                <div className="text-xs text-gray-500">/Hour</div>
+                              </div>
+                              <div className="text-center min-w-[110px]">
+                                <div className="font-bold text-base md:text-lg text-gray-900">{disk.monthlyPrice}</div>
+                                <div className="text-xs text-gray-500">/Month</div>
+                              </div>
+                              <div className="text-center min-w-[120px]">
+                                <div className="font-bold text-base md:text-lg text-gray-900">{disk.quarterlyPrice}</div>
+                                <div className="text-xs text-gray-500">/Quarter</div>
+                              </div>
+                              <div className="text-center min-w-[110px]">
+                                <div className="font-bold text-base md:text-lg text-gray-900">{disk.yearlyPrice}</div>
+                                <div className="text-xs text-gray-500">/Year</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -504,12 +514,16 @@ const Pricing = () => {
                   </div>
 
                   {/* Storage Table Header */}
-                  <div className="bg-gradient-to-r from-phulkari-turquoise-light to-saree-coral-light rounded-t-2xl p-6 text-gray-900 shadow-md">
-                    <div className="grid grid-cols-4 gap-4 text-sm font-semibold">
-                      <div className="text-center">{pageConfig?.storage_table_header_type || 'Storage Type'}</div>
-                      <div className="text-center">{pageConfig?.storage_table_header_description || 'Description'}</div>
-                      <div className="text-center">{pageConfig?.storage_table_header_price || 'Price'}</div>
-                      <div className="text-center">{pageConfig?.storage_table_header_action || 'Action'}</div>
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <div className="min-w-[600px]">
+                      <div className="bg-gradient-to-r from-phulkari-turquoise-light to-saree-coral-light rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md">
+                        <div className="grid grid-cols-4 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                          <div className="text-center min-w-[120px]">{pageConfig?.storage_table_header_type || 'Storage Type'}</div>
+                          <div className="text-center min-w-[150px]">{pageConfig?.storage_table_header_description || 'Description'}</div>
+                          <div className="text-center min-w-[100px]">{pageConfig?.storage_table_header_price || 'Price'}</div>
+                          <div className="text-center min-w-[100px]">{pageConfig?.storage_table_header_action || 'Action'}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -542,42 +556,47 @@ const Pricing = () => {
                         </p>
                       </div>
 
-                      {/* Table Header */}
-                      <div className={`rounded-t-2xl p-6 text-gray-900 shadow-md ${
-                        activeTab === 'networking' ? 'bg-gradient-to-r from-phulkari-fuchsia-light to-phulkari-peach-light' :
-                        activeTab === 'databases' ? 'bg-gradient-to-r from-phulkari-blue-light to-phulkari-gold-light' :
-                        activeTab === 'security' ? 'bg-gradient-to-r from-saree-rose-light to-phulkari-red-light' :
-                        'bg-gradient-to-r from-saree-teal-light to-saree-lime-light'
-                      }`}>
-                        <div className="grid grid-cols-7 gap-4 text-sm font-semibold">
-                          <div className="text-center">{pageConfig?.service_table_header_service || 'Service'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_type || 'Type'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_features || 'Features'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_bandwidth || 'Bandwidth'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_discount || 'Discount'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_price || 'Price'}</div>
-                          <div className="text-center">{pageConfig?.service_table_header_action || 'Action'}</div>
-                        </div>
-                      </div>
+                      {/* Table Container with Horizontal Scroll on Mobile */}
+                      <div className="overflow-x-auto -mx-6 px-6">
+                        <div className="min-w-[800px]">
+                          {/* Table Header */}
+                          <div className={`rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md ${
+                            activeTab === 'networking' ? 'bg-gradient-to-r from-phulkari-fuchsia-light to-phulkari-peach-light' :
+                            activeTab === 'databases' ? 'bg-gradient-to-r from-phulkari-blue-light to-phulkari-gold-light' :
+                            activeTab === 'security' ? 'bg-gradient-to-r from-saree-rose-light to-phulkari-red-light' :
+                            'bg-gradient-to-r from-saree-teal-light to-saree-lime-light'
+                          }`}>
+                            <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                              <div className="text-center min-w-[100px]">{pageConfig?.service_table_header_service || 'Service'}</div>
+                              <div className="text-center min-w-[80px]">{pageConfig?.service_table_header_type || 'Type'}</div>
+                              <div className="text-center min-w-[120px]">{pageConfig?.service_table_header_features || 'Features'}</div>
+                              <div className="text-center min-w-[100px]">{pageConfig?.service_table_header_bandwidth || 'Bandwidth'}</div>
+                              <div className="text-center min-w-[80px]">{pageConfig?.service_table_header_discount || 'Discount'}</div>
+                              <div className="text-center min-w-[100px]">{pageConfig?.service_table_header_price || 'Price'}</div>
+                              <div className="text-center min-w-[100px]">{pageConfig?.service_table_header_action || 'Action'}</div>
+                            </div>
+                          </div>
 
-                      {/* Service Cards */}
-                      <div className="space-y-0">
-                        {subcategories.map((subcategory, index) => (
-                          <PricingCard 
-                            key={subcategory.id} 
-                            plan={{
-                              name: subcategory.name,
-                              type: 'Enterprise',
-                              features: subcategory.description || 'Advanced Features',
-                              bandwidth: 'Unlimited',
-                              discount: '10%',
-                              monthly_price: 'Contact Sales'
-                            }}
-                            cardType="service"
-                            isFirst={index === 0}
-                            isLast={index === subcategories.length - 1}
-                          />
-                        ))}
+                          {/* Service Cards */}
+                          <div className="space-y-0">
+                            {subcategories.map((subcategory, index) => (
+                              <PricingCard 
+                                key={subcategory.id} 
+                                plan={{
+                                  name: subcategory.name,
+                                  type: 'Enterprise',
+                                  features: subcategory.description || 'Advanced Features',
+                                  bandwidth: 'Unlimited',
+                                  discount: '10%',
+                                  monthly_price: 'Contact Sales'
+                                }}
+                                cardType="service"
+                                isFirst={index === 0}
+                                isLast={index === subcategories.length - 1}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (

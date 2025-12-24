@@ -33,6 +33,8 @@ import MainProductsPage from './pages/MainProductsPage'
 import MainSolutionsPage from './pages/MainSolutionsPage'
 import Pricing from './pages/Pricing'
 import ContactUs from './pages/ContactUs'
+import Certifications from './pages/Certifications'
+import CompanyDocs from './pages/CompanyDocs'
 import Footer from './components/Footer'
 import { CartProvider } from './context/CartContext'
 import BottomCartBar from './components/PriceEstimator/BottomCartBar'
@@ -58,6 +60,8 @@ function AppContent() {
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/certifications" element={<Certifications />} />
+          <Route path="/company-docs" element={<CompanyDocs />} />
           <Route path="/integrity/:slug" element={<IntegrityPage />} />
           <Route path="/marketplace" element={<MainMarketplacesPage />} />
           <Route path="/products" element={<MainProductsPage />} />

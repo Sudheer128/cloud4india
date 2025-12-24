@@ -21,12 +21,12 @@ export const useSolutionItems = (solutionId, sectionId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/solutions/${solutionId}/sections/${sectionId}/items`);
-      
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL}/api/solutions/${solutionId}/sections/${sectionId}/items`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       // Ensure result is always an array
       setItems(Array.isArray(result) ? result : []);

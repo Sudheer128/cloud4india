@@ -20,12 +20,12 @@ export const useMarketplaceSections = (marketplaceId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/marketplaces/${marketplaceId}/sections`);
-      
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL}/api/marketplaces/${marketplaceId}/sections`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       // Filter out hidden sections (is_visible = 0 or false)
       const visibleSections = result.filter(section => section.is_visible !== 0);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingCartIcon, CheckIcon, EyeIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, EyeIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import BottomCartBar from '../components/PriceEstimator/BottomCartBar';
@@ -20,7 +20,7 @@ const DURATIONS = [
 ];
 
 // Card component that shows the PRODUCT/APP with plan selection
-function ServiceCard({ item, itemType, onAdd, onView, addedPlans }) {
+function ServiceCard({ item, itemType, onAdd, onView, cartItems, onUpdateQuantity, onRemoveItem }) {
     const [selectedPlan, setSelectedPlan] = useState(item.plans?.[0] || null);
     const [selectedDuration, setSelectedDuration] = useState('monthly');
 
@@ -42,7 +42,19 @@ function ServiceCard({ item, itemType, onAdd, onView, addedPlans }) {
         return price;
     };
 
-    const isCurrentPlanAdded = selectedPlan && addedPlans[`${itemType}-${selectedPlan.item_id}`];
+    // Find if current plan+duration is in cart
+    const cartItem = selectedPlan && cartItems.find(
+        ci => ci.item_id === selectedPlan.item_id &&
+            ci.item_type === itemType &&
+            ci.duration === selectedDuration
+    );
+
+    const isInCart = !!cartItem;
+    const quantity = cartItem?.quantity || 0;
+
+    // Check if there's a valid price for the selected plan+duration
+    const currentPrice = getPrice(selectedPlan, selectedDuration);
+    const hasValidPrice = currentPrice && currentPrice !== 'N/A' && currentPrice !== 'Contact Sales';
 
     const handleAdd = () => {
         if (!selectedPlan) return;
@@ -58,6 +70,20 @@ function ServiceCard({ item, itemType, onAdd, onView, addedPlans }) {
             features: selectedPlan.features || [],
             category: item.category || ''
         });
+    };
+
+    const handleIncrement = () => {
+        if (cartItem) {
+            onUpdateQuantity(cartItem.id, quantity + 1);
+        }
+    };
+
+    const handleDecrement = () => {
+        if (cartItem && quantity > 1) {
+            onUpdateQuantity(cartItem.id, quantity - 1);
+        } else if (cartItem && quantity === 1) {
+            onRemoveItem(cartItem.id);
+        }
     };
 
     return (
@@ -132,35 +158,65 @@ function ServiceCard({ item, itemType, onAdd, onView, addedPlans }) {
                 </select>
             </div>
 
-            {/* Price */}
-            <div className="mb-4">
-                <span className="text-xl font-bold text-gray-900">
-                    {hasPlan ? formatPrice(getPrice(selectedPlan, selectedDuration)) : 'Contact Sales'}
-                </span>
-                <span className="text-sm text-gray-500">/{selectedDuration}</span>
+            {/* Price Display - Highlighted */}
+            <div className="mb-4 p-3 bg-gradient-to-r from-saree-teal/5 to-phulkari-turquoise/5 border border-saree-teal/20 rounded-lg">
+                <div className="flex items-baseline justify-between">
+                    <div>
+                        <span className="text-2xl font-bold text-saree-teal">
+                            {hasPlan ? formatPrice(getPrice(selectedPlan, selectedDuration)) : 'Contact Sales'}
+                        </span>
+                        <span className="text-sm text-gray-500 ml-1">/{selectedDuration}</span>
+                    </div>
+                    {hasPlan && getPrice(selectedPlan, selectedDuration) !== 'N/A' && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            Per {selectedDuration}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-auto">
-                <button
-                    onClick={handleAdd}
-                    disabled={isCurrentPlanAdded || !hasPlan}
-                    className={`flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-1 transition-all ${isCurrentPlanAdded
-                            ? 'bg-green-500 text-white'
-                            : !hasPlan
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-saree-teal text-white hover:bg-saree-teal-dark'
-                        }`}
-                >
-                    {isCurrentPlanAdded ? (
-                        <><CheckIcon className="w-4 h-4" /> Added</>
-                    ) : (
-                        <><ShoppingCartIcon className="w-4 h-4" /> Add to Quote</>
-                    )}
-                </button>
+                {isInCart ? (
+                    /* Quantity Controls */
+                    <div className="flex-1 flex items-center justify-center gap-2 py-1 bg-green-50 border border-green-200 rounded-lg">
+                        <button
+                            onClick={handleDecrement}
+                            className="w-8 h-8 flex items-center justify-center text-lg font-bold text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-all"
+                            title={quantity === 1 ? 'Remove from cart' : 'Decrease quantity'}
+                        >
+                            {quantity === 1 ? '×' : '−'}
+                        </button>
+                        <span className="w-8 text-center font-semibold text-green-700">{quantity}</span>
+                        <button
+                            onClick={handleIncrement}
+                            className="w-8 h-8 flex items-center justify-center text-lg font-bold text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition-all"
+                            title="Increase quantity"
+                        >
+                            +
+                        </button>
+                    </div>
+                ) : (
+                    /* Add to Quote Button */
+                    <button
+                        onClick={handleAdd}
+                        disabled={!hasPlan || !hasValidPrice}
+                        className={`flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-1 transition-all ${(!hasPlan || !hasValidPrice)
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-saree-teal text-white hover:bg-saree-teal-dark'
+                            }`}
+                        title={!hasValidPrice ? 'Contact Sales for pricing' : ''}
+                    >
+                        {!hasValidPrice ? (
+                            'Contact Sales'
+                        ) : (
+                            <><ShoppingCartIcon className="w-4 h-4" /> Add to Quote</>
+                        )}
+                    </button>
+                )}
                 {item.route && (
                     <button
-                        onClick={() => onView(item.route)}
+                        onClick={() => onView(item.route, itemType)}
                         className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-all"
                         title="View Details"
                     >
@@ -174,12 +230,11 @@ function ServiceCard({ item, itemType, onAdd, onView, addedPlans }) {
 
 export default function PriceEstimator() {
     const navigate = useNavigate();
-    const { addItem, items: cartItems } = useCart();
+    const { addItem, items: cartItems, updateQuantity, removeItem } = useCart();
     const [activeTab, setActiveTab] = useState('marketplace');
     const [data, setData] = useState({ marketplaces: [], products: [], solutions: [] });
     const [config, setConfig] = useState({});
     const [loading, setLoading] = useState(true);
-    const [addedPlans, setAddedPlans] = useState({});
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -202,16 +257,22 @@ export default function PriceEstimator() {
     }, [activeTab]);
 
     const handleAdd = (item) => {
-        const key = `${item.item_type}-${item.item_id}`;
         addItem(item);
-        setAddedPlans(prev => ({ ...prev, [key]: true }));
-        setTimeout(() => {
-            setAddedPlans(prev => ({ ...prev, [key]: false }));
-        }, 2000);
     };
 
-    const handleView = (route) => {
-        if (route) navigate(route);
+    const handleView = (route, itemType) => {
+        if (!route) return;
+
+        // Build the correct path based on item type
+        const prefixMap = {
+            'marketplace': '/marketplace/',
+            'product': '/products/',
+            'solution': '/solutions/'
+        };
+
+        const prefix = prefixMap[itemType] || '/';
+        const fullPath = prefix + route;
+        navigate(fullPath);
     };
 
     const getTabData = () => {
@@ -400,7 +461,9 @@ export default function PriceEstimator() {
                                             itemType={itemType}
                                             onAdd={handleAdd}
                                             onView={handleView}
-                                            addedPlans={addedPlans}
+                                            cartItems={cartItems}
+                                            onUpdateQuantity={updateQuantity}
+                                            onRemoveItem={removeItem}
                                         />
                                     ))}
                                 </div>
@@ -426,7 +489,9 @@ export default function PriceEstimator() {
                                     itemType={itemType}
                                     onAdd={handleAdd}
                                     onView={handleView}
-                                    addedPlans={addedPlans}
+                                    cartItems={cartItems}
+                                    onUpdateQuantity={updateQuantity}
+                                    onRemoveItem={removeItem}
                                 />
                             ))}
                         </div>

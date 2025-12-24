@@ -6,6 +6,11 @@ import ProductsDropdown from './ProductsDropdown'
 import SolutionsDropdown from './SolutionsDropdown'
 
 const Header = () => {
+  // Navigation visibility flags - set to true to show, false to hide
+  const SHOW_MARKETPLACE = false
+  const SHOW_PRICE_ESTIMATOR = false
+  const SHOW_SOLUTIONS = false
+
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false)
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false)
@@ -66,16 +71,18 @@ const Header = () => {
                   About Us
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
-                <button
-                  data-apps-link
-                  onClick={handleAppsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                    }`}
-                >
-                  Marketplace
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                    }`}></span>
-                </button>
+                {SHOW_MARKETPLACE && (
+                  <button
+                    data-apps-link
+                    onClick={handleAppsClick}
+                    className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isAppsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                      }`}
+                  >
+                    Marketplace
+                    <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isAppsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}></span>
+                  </button>
+                )}
                 <button
                   data-products-link
                   onClick={handleProductsClick}
@@ -86,24 +93,28 @@ const Header = () => {
                   <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isProductsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
                     }`}></span>
                 </button>
-                <button
-                  data-solutions-link
-                  onClick={handleSolutionsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isSolutionsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                    }`}
-                >
-                  Solutions
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isSolutionsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                    }`}></span>
-                </button>
+                {SHOW_SOLUTIONS && (
+                  <button
+                    data-solutions-link
+                    onClick={handleSolutionsClick}
+                    className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isSolutionsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                      }`}
+                  >
+                    Solutions
+                    <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isSolutionsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}></span>
+                  </button>
+                )}
                 <Link to="/pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
                   Pricing
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
-                <Link to="/price-estimator" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Price Estimator
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                {SHOW_PRICE_ESTIMATOR && (
+                  <Link to="/price-estimator" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                    Price Estimator
+                    <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  </Link>
+                )}
                 <Link to="/contact-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
                   Contact Us
                   <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
@@ -164,22 +175,24 @@ const Header = () => {
               >
                 About Us
               </Link>
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    handleAppsClick(e)
-                  }}
-                  className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-                >
-                  <span>Marketplace</span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isAppsDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isAppsDropdownOpen && (
-                  <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
-                    <p className="text-xs text-gray-500 py-2">Tap Marketplace in desktop view to see categories</p>
-                  </div>
-                )}
-              </div>
+              {SHOW_MARKETPLACE && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      handleAppsClick(e)
+                    }}
+                    className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                  >
+                    <span>Marketplace</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${isAppsDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isAppsDropdownOpen && (
+                    <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
+                      <p className="text-xs text-gray-500 py-2">Tap Marketplace in desktop view to see categories</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="relative">
                 <button
                   onClick={(e) => {
@@ -196,22 +209,24 @@ const Header = () => {
                   </div>
                 )}
               </div>
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    handleSolutionsClick(e)
-                  }}
-                  className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-                >
-                  <span>Solutions</span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isSolutionsDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isSolutionsDropdownOpen && (
-                  <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
-                    <p className="text-xs text-gray-500 py-2">Tap Solutions in desktop view to see categories</p>
-                  </div>
-                )}
-              </div>
+              {SHOW_SOLUTIONS && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      handleSolutionsClick(e)
+                    }}
+                    className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                  >
+                    <span>Solutions</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${isSolutionsDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isSolutionsDropdownOpen && (
+                    <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
+                      <p className="text-xs text-gray-500 py-2">Tap Solutions in desktop view to see categories</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <Link
                 to="/pricing"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -268,13 +283,15 @@ const Header = () => {
       />
 
       {/* Solutions Dropdown */}
-      <SolutionsDropdown
-        isOpen={isSolutionsDropdownOpen}
-        onClose={() => {
-          setIsSolutionsDropdownOpen(false)
-          setActiveDropdown(null)
-        }}
-      />
+      {SHOW_SOLUTIONS && (
+        <SolutionsDropdown
+          isOpen={isSolutionsDropdownOpen}
+          onClose={() => {
+            setIsSolutionsDropdownOpen(false)
+            setActiveDropdown(null)
+          }}
+        />
+      )}
     </>
   )
 }

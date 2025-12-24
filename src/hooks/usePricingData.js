@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002');
+const API_BASE_URL = import.meta.env.VITE_CMS_URL;
 
 /**
  * Custom hook to fetch pricing hero section
@@ -15,11 +15,11 @@ export const usePricingHero = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/hero`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setHero(result);
     } catch (err) {
@@ -56,11 +56,11 @@ export const usePricingCategories = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/categories`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setCategories(result);
     } catch (err) {
@@ -103,11 +103,11 @@ export const usePricingSubcategories = (categoryId) => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/categories/${categoryId}/subcategories`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setSubcategories(result);
     } catch (err) {
@@ -150,11 +150,11 @@ export const usePricingPlans = (subcategoryId) => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/subcategories/${subcategoryId}/plans`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setPlans(result);
     } catch (err) {
@@ -191,11 +191,11 @@ export const useStorageOptions = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/storage`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       // Parse features JSON for each storage option
       const parsedResult = result.map(option => ({
@@ -237,11 +237,11 @@ export const useComputePlans = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/compute-plans`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setComputePlans(result);
     } catch (err) {
@@ -278,11 +278,11 @@ export const useDiskOfferings = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/disk-offerings`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setDiskOfferings(result);
     } catch (err) {
@@ -319,11 +319,11 @@ export const usePricingFAQs = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/faqs`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setFaqs(result);
     } catch (err) {
@@ -360,11 +360,11 @@ export const usePricingPageConfig = () => {
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_BASE_URL}/api/pricing/page-config`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setConfig(result);
     } catch (err) {

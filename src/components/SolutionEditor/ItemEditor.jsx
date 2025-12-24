@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import IconSelector, { AVAILABLE_ICONS } from './IconSelector';
 
+// Global visibility flag - set to true to show, false to hide
+const SHOW_QUARTERLY_COLUMN = false;
+
 const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     item_type: '',
@@ -308,18 +311,20 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
             <p className="text-xs text-gray-500 mt-1">Price per month</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price Quarterly</label>
-            <input
-              type="text"
-              value={contentJSON.quarterly_price || ''}
-              onChange={(e) => setContentJSON(prev => ({ ...prev, quarterly_price: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder="e.g., ₹1,459"
-            />
-            <p className="text-xs text-gray-500 mt-1">Price per quarter (optional)</p>
-          </div>
+        <div className={`grid ${SHOW_QUARTERLY_COLUMN ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+          {SHOW_QUARTERLY_COLUMN && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Price Quarterly</label>
+              <input
+                type="text"
+                value={contentJSON.quarterly_price || ''}
+                onChange={(e) => setContentJSON(prev => ({ ...prev, quarterly_price: e.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                placeholder="e.g., ₹1,459"
+              />
+              <p className="text-xs text-gray-500 mt-1">Price per quarter (optional)</p>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Price Yearly</label>
             <input

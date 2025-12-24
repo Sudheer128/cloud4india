@@ -10,6 +10,9 @@ import {
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
+// Global visibility flag - set to true to show, false to hide
+const SHOW_QUARTERLY_COLUMN = false;
+
 // Section type configurations with icons and help text
 const SECTION_TYPES = [
   { 
@@ -852,16 +855,18 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
                 placeholder="Price Monthly"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
-              <input
-                type="text"
-                value={formData.pricing_table_header_quarterly}
-                onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_quarterly: e.target.value }))}
-                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                placeholder="Price Quarterly"
-              />
-            </div>
+            {SHOW_QUARTERLY_COLUMN && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
+                <input
+                  type="text"
+                  value={formData.pricing_table_header_quarterly}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pricing_table_header_quarterly: e.target.value }))}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                  placeholder="Price Quarterly"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Header: Yearly</label>
               <input
@@ -909,15 +914,17 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
                 />
                 <span className="text-sm text-gray-700">Show Monthly Column</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.show_quarterly_column === 1}
-                  onChange={(e) => setFormData(prev => ({ ...prev, show_quarterly_column: e.target.checked ? 1 : 0 }))}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Show Quarterly Column</span>
-              </label>
+              {SHOW_QUARTERLY_COLUMN && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.show_quarterly_column === 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, show_quarterly_column: e.target.checked ? 1 : 0 }))}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Show Quarterly Column</span>
+                </label>
+              )}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"

@@ -18,6 +18,9 @@ import {
 import { useCart } from '../context/CartContext';
 import DurationSelectPopup from './PriceEstimator/DurationSelectPopup';
 
+// Global visibility flag - set to true to show, false to hide
+const SHOW_QUARTERLY_COLUMN = false;
+
 // Icon mapping for dynamic rendering
 const iconMap = {
   'CpuChipIcon': CpuChipIcon,
@@ -555,7 +558,7 @@ const PricingSection = ({ section, items, solution }) => {
   // Get column visibility flags
   const showHourly = section.show_hourly_column !== undefined ? section.show_hourly_column !== 0 : true;
   const showMonthly = section.show_monthly_column !== undefined ? section.show_monthly_column !== 0 : true;
-  const showQuarterly = section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true;
+  const showQuarterly = SHOW_QUARTERLY_COLUMN && (section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true);
   const showYearly = section.show_yearly_column !== undefined ? section.show_yearly_column !== 0 : true;
 
   const handleActionClick = (item, content) => {

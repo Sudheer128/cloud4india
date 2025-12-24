@@ -98,14 +98,6 @@ const ChooseImageSection = () => {
   return (
     <section className="py-16 pb-24 bg-gradient-to-br from-saree-teal-light/30 via-white to-phulkari-turquoise-light/30 mb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Choose Image</h2>
-          <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-            Pick an operating system or application template to install on your server. You can also upload a custom ISO image for greater flexibility.
-          </p>
-        </div>
-
         {/* Tab Navigation */}
         <div className="mb-8 border-b-2 border-gray-200">
           <nav className="flex space-x-8">

@@ -18,6 +18,11 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { useCart } from '../context/CartContext';
+
+// Global visibility flag - set to true to show, false to hide
+const SHOW_QUARTERLY_COLUMN = false;
+// Global flag to hide/show cart functionality - set to false to hide cart/popup, true to show
+const SHOW_CART_FUNCTIONALITY = false;
 import DurationSelectPopup from './PriceEstimator/DurationSelectPopup';
 
 // Icon mapping for dynamic rendering
@@ -557,10 +562,22 @@ const PricingSection = ({ section, items, product }) => {
   // Get column visibility flags (default to true for backward compatibility)
   const showHourly = section.show_hourly_column !== undefined ? section.show_hourly_column !== 0 : true;
   const showMonthly = section.show_monthly_column !== undefined ? section.show_monthly_column !== 0 : true;
-  const showQuarterly = section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true;
+  const showQuarterly = SHOW_QUARTERLY_COLUMN && (section.show_quarterly_column !== undefined ? section.show_quarterly_column !== 0 : true);
   const showYearly = section.show_yearly_column !== undefined ? section.show_yearly_column !== 0 : true;
 
   const handleActionClick = (item, content) => {
+    // If cart functionality is hidden and buttonUrl exists, redirect to URL
+    if (!SHOW_CART_FUNCTIONALITY && content.buttonUrl) {
+      window.location.href = content.buttonUrl;
+      return;
+    }
+
+    // If cart functionality is disabled, exit early
+    if (!SHOW_CART_FUNCTIONALITY) {
+      return;
+    }
+
+    // Original cart functionality (only executed if SHOW_CART_FUNCTIONALITY is true)
     // Parse prices
     let hourlyPrice = content.hourly_price || null;
     let monthlyPrice = content.monthly_price || null;
@@ -696,12 +713,32 @@ const PricingSection = ({ section, items, product }) => {
                         </td>
                       )}
                       <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => handleActionClick(item, content)}
-                          className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
-                        >
-                          {content.buttonText || 'Order Now'}
-                        </button>
+                        {SHOW_CART_FUNCTIONALITY ? (
+                          <button
+                            onClick={() => handleActionClick(item, content)}
+                            className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                          >
+                            {content.buttonText || 'Order Now'}
+                          </button>
+                        ) : (
+                          content.buttonUrl ? (
+                            <a
+                              href={content.buttonUrl}
+                              target={content.buttonUrl.startsWith('http') ? '_blank' : '_self'}
+                              rel={content.buttonUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+                              className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                            >
+                              {content.buttonText || 'Order Now'}
+                            </a>
+                          ) : (
+                            <button
+                              onClick={() => handleActionClick(item, content)}
+                              className="inline-block bg-saree-amber hover:bg-saree-amber-dark text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                            >
+                              {content.buttonText || 'Order Now'}
+                            </button>
+                          )
+                        )}
                       </td>
                     </tr>
                   );
@@ -712,14 +749,16 @@ const PricingSection = ({ section, items, product }) => {
         </div>
       </div>
 
-      {/* Duration Select Popup */}
-      <DurationSelectPopup
-        isOpen={popupOpen}
-        onClose={() => setPopupOpen(false)}
-        onConfirm={handleAddToCart}
-        item={selectedItem}
-        prices={selectedPrices}
-      />
+      {/* Duration Select Popup - Only render when cart functionality is enabled */}
+      {SHOW_CART_FUNCTIONALITY && (
+        <DurationSelectPopup
+          isOpen={popupOpen}
+          onClose={() => setPopupOpen(false)}
+          onConfirm={handleAddToCart}
+          item={selectedItem}
+          prices={selectedPrices}
+        />
+      )}
     </section>
   );
 };

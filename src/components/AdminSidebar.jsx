@@ -15,6 +15,12 @@ import {
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
+  // Navigation visibility flags - set to true to show, false to hide
+  const SHOW_MARKETPLACE = false
+  const SHOW_MARKETPLACE_MAIN = false
+  const SHOW_SOLUTIONS = false
+  const SHOW_SOLUTIONS_MAIN = false
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,7 +124,15 @@ const AdminSidebar = () => {
       path: '/admin/integrity',
       matchPaths: ['/admin/integrity']
     }
-  ];
+  ].filter(item => {
+    // Filter out marketplace items if they should be hidden
+    if (item.id === 'marketplace' && !SHOW_MARKETPLACE) return false;
+    if (item.id === 'marketplace-main' && !SHOW_MARKETPLACE_MAIN) return false;
+    // Filter out solutions items if they should be hidden
+    if (item.id === 'solutions' && !SHOW_SOLUTIONS) return false;
+    if (item.id === 'solutions-main' && !SHOW_SOLUTIONS_MAIN) return false;
+    return true;
+  });
 
   const isActive = (item) => {
     const pathname = location.pathname;

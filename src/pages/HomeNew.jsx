@@ -5,12 +5,15 @@ import WhySectionNew from '../components/WhySectionNew'
 import MarketplacesSectionNew from '../components/MarketplacesSectionNew'
 
 const HomeNew = () => {
+  // Section visibility flags - set to true to show, false to hide
+  const SHOW_MARKETPLACES_SECTION = false
+
   return (
     <div>
       <HeroSectionNew />
       <ComprehensiveSectionNew />
       <WhySectionNew />
-      <MarketplacesSectionNew />
+      {SHOW_MARKETPLACES_SECTION && <MarketplacesSectionNew />}
     </div>
   )
 }

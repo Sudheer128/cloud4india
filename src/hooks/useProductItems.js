@@ -21,12 +21,12 @@ export const useProductItems = (productId, sectionId) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || (import.meta.env.PROD ? 'http://38.242.248.213:4002' : 'http://localhost:4002')}/api/products/${productId}/sections/${sectionId}/items`);
-      
+      const response = await fetch(`${import.meta.env.VITE_CMS_URL}/api/products/${productId}/sections/${sectionId}/items`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setItems(result);
     } catch (err) {
