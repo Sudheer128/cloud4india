@@ -99,7 +99,9 @@ const Footer = () => {
 
         {/* Top Section - Brand */}
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold mb-4">Cloud4India</h2>
+          <a href="https://cloud4india.com/" target="_blank" rel="noopener noreferrer" className="inline-block">
+            <h2 className="text-3xl font-bold mb-4 hover:text-orange-500 transition-colors">cloud4india.com</h2>
+          </a>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             India's Premier Cloud Infrastructure Provider
           </p>

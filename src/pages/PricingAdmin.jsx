@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -6,6 +6,26 @@ import {
 } from '@heroicons/react/24/outline';
 
 const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+
+// Global flag to hide/show quarterly column in pricing tables
+const SHOW_QUARTERLY_COLUMN = false;
+
+// Helper function to extract numeric value from price string (removes currency symbols, commas, etc.)
+const extractNumericValue = (priceString) => {
+  if (!priceString || priceString === '') return 0;
+  // Remove currency symbols, commas, and spaces, then parse
+  const cleaned = priceString.toString().replace(/[₹,₹\s]/g, '').trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+// Helper function to format price with currency symbol and commas
+const formatPrice = (value) => {
+  if (!value || value === 0) return '';
+  // Round to 2 decimal places and format with commas
+  const rounded = Math.round(value * 100) / 100;
+  return `₹${rounded.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 
 const PricingAdmin = () => {
@@ -349,6 +369,47 @@ const PricingAdmin = () => {
       yearly_price: ''
     });
 
+    // Handle hourly price change and auto-calculate monthly and yearly
+    const handleHourlyPriceChange = (hourlyPrice) => {
+      const hourlyNumeric = extractNumericValue(hourlyPrice);
+      
+      // Calculate monthly: Hourly × 730
+      const monthlyNumeric = hourlyNumeric * 730;
+      
+      // Calculate yearly: Monthly × 12
+      const yearlyNumeric = monthlyNumeric * 12;
+      
+      // Format prices
+      const formattedMonthly = formatPrice(monthlyNumeric);
+      const formattedYearly = formatPrice(yearlyNumeric);
+      
+      setFormData({
+        ...formData,
+        hourly_price: hourlyPrice,
+        monthly_price: formattedMonthly,
+        yearly_price: formattedYearly
+      });
+    };
+
+    // Auto-calculate monthly and yearly on initial load if hourly price exists
+    useEffect(() => {
+      if (formData.hourly_price && formData.hourly_price.trim() !== '') {
+        const hourlyNumeric = extractNumericValue(formData.hourly_price);
+        if (hourlyNumeric > 0) {
+          const monthlyNumeric = hourlyNumeric * 730;
+          const yearlyNumeric = monthlyNumeric * 12;
+          const formattedMonthly = formatPrice(monthlyNumeric);
+          const formattedYearly = formatPrice(yearlyNumeric);
+          
+          setFormData(prev => ({
+            ...prev,
+            monthly_price: formattedMonthly,
+            yearly_price: formattedYearly
+          }));
+        }
+      }
+    }, []); // Run only on mount
+
     const handleSubmit = (e) => {
       e.preventDefault();
       onSave(formData);
@@ -417,47 +478,59 @@ const PricingAdmin = () => {
                 <input
                   type="text"
                   value={formData.hourly_price}
-                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  onChange={(e) => handleHourlyPriceChange(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   placeholder="e.g., ₹0.7"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price (Auto-calculated)</label>
                 <input
                   type="text"
                   value={formData.monthly_price}
-                  onChange={(e) => setFormData({...formData, monthly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹512"
-                  required
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-calculated from hourly price"
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
-                <input
-                  type="text"
-                  value={formData.quarterly_price}
-                  onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹1,459.20"
-                />
+            {SHOW_QUARTERLY_COLUMN ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
+                  <input
+                    type="text"
+                    value={formData.quarterly_price}
+                    onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., ₹1,459.20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                  <input
+                    type="text"
+                    value={formData.yearly_price}
+                    onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., ₹5,529.60"
+                  />
+                </div>
               </div>
+            ) : (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price (Auto-calculated)</label>
                 <input
                   type="text"
                   value={formData.yearly_price}
-                  onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹5,529.60"
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-calculated from hourly price"
                 />
               </div>
-            </div>
+            )}
             
             <div className="flex gap-4 pt-4">
               <button
@@ -492,6 +565,47 @@ const PricingAdmin = () => {
       quarterly_price: '',
       yearly_price: ''
     });
+
+    // Handle hourly price change and auto-calculate monthly and yearly
+    const handleHourlyPriceChange = (hourlyPrice) => {
+      const hourlyNumeric = extractNumericValue(hourlyPrice);
+      
+      // Calculate monthly: Hourly × 730
+      const monthlyNumeric = hourlyNumeric * 730;
+      
+      // Calculate yearly: Monthly × 12
+      const yearlyNumeric = monthlyNumeric * 12;
+      
+      // Format prices
+      const formattedMonthly = formatPrice(monthlyNumeric);
+      const formattedYearly = formatPrice(yearlyNumeric);
+      
+      setFormData({
+        ...formData,
+        hourly_price: hourlyPrice,
+        monthly_price: formattedMonthly,
+        yearly_price: formattedYearly
+      });
+    };
+
+    // Auto-calculate monthly and yearly on initial load if hourly price exists
+    useEffect(() => {
+      if (formData.hourly_price && formData.hourly_price.trim() !== '') {
+        const hourlyNumeric = extractNumericValue(formData.hourly_price);
+        if (hourlyNumeric > 0) {
+          const monthlyNumeric = hourlyNumeric * 730;
+          const yearlyNumeric = monthlyNumeric * 12;
+          const formattedMonthly = formatPrice(monthlyNumeric);
+          const formattedYearly = formatPrice(yearlyNumeric);
+          
+          setFormData(prev => ({
+            ...prev,
+            monthly_price: formattedMonthly,
+            yearly_price: formattedYearly
+          }));
+        }
+      }
+    }, []); // Run only on mount
 
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -546,47 +660,59 @@ const PricingAdmin = () => {
                 <input
                   type="text"
                   value={formData.hourly_price}
-                  onChange={(e) => setFormData({...formData, hourly_price: e.target.value})}
+                  onChange={(e) => handleHourlyPriceChange(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   placeholder="e.g., ₹0.25"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Price (Auto-calculated)</label>
                 <input
                   type="text"
                   value={formData.monthly_price}
-                  onChange={(e) => setFormData({...formData, monthly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹160"
-                  required
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-calculated from hourly price"
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
-                <input
-                  type="text"
-                  value={formData.quarterly_price}
-                  onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹456.00"
-                />
+            {SHOW_QUARTERLY_COLUMN ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quarterly Price</label>
+                  <input
+                    type="text"
+                    value={formData.quarterly_price}
+                    onChange={(e) => setFormData({...formData, quarterly_price: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., ₹456.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price (Auto-calculated)</label>
+                  <input
+                    type="text"
+                    value={formData.yearly_price}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    placeholder="Auto-calculated from hourly price"
+                  />
+                </div>
               </div>
+            ) : (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Price (Auto-calculated)</label>
                 <input
                   type="text"
                   value={formData.yearly_price}
-                  onChange={(e) => setFormData({...formData, yearly_price: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="e.g., ₹1,728.00"
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-calculated from hourly price"
                 />
               </div>
-            </div>
+            )}
             
             <div className="flex gap-4 pt-4">
               <button
@@ -835,16 +961,18 @@ const PricingAdmin = () => {
                         placeholder="Price Monthly"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
-                      <input
-                        type="text"
-                        value={pageConfig.compute_table_header_quarterly || ''}
-                        onChange={(e) => setPageConfig({...pageConfig, compute_table_header_quarterly: e.target.value})}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                        placeholder="Price Quarterly"
-                      />
-                    </div>
+                    {SHOW_QUARTERLY_COLUMN && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Header: Quarterly</label>
+                        <input
+                          type="text"
+                          value={pageConfig.compute_table_header_quarterly || ''}
+                          onChange={(e) => setPageConfig({...pageConfig, compute_table_header_quarterly: e.target.value})}
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                          placeholder="Price Quarterly"
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Header: Yearly</label>
                       <input
@@ -1024,7 +1152,7 @@ const PricingAdmin = () => {
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Memory RAM</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>
+                      {SHOW_QUARTERLY_COLUMN && <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>}
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Yearly</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                     </tr>
@@ -1039,7 +1167,7 @@ const PricingAdmin = () => {
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.memory}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.hourly_price}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{plan.quarterly_price || '-'}</td>
+                          {SHOW_QUARTERLY_COLUMN && <td className="px-4 py-3 text-sm text-gray-900">{plan.quarterly_price || '-'}</td>}
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.yearly_price || '-'}</td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
@@ -1061,7 +1189,7 @@ const PricingAdmin = () => {
                       ))}
                     {computePlans.filter(plan => plan.plan_type === activeComputePlanTab).length === 0 && (
                       <tr>
-                        <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan={SHOW_QUARTERLY_COLUMN ? "8" : "7"} className="px-4 py-8 text-center text-gray-500">
                           No plans found for this category. Click "Add Compute Plan" to create one.
                         </td>
                       </tr>
@@ -1096,7 +1224,7 @@ const PricingAdmin = () => {
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Size</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Hourly</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Monthly</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>
+                    {SHOW_QUARTERLY_COLUMN && <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Quarterly</th>}
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price Yearly</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                   </tr>
@@ -1109,7 +1237,7 @@ const PricingAdmin = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.size}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.hourly_price}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.monthly_price}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{offering.quarterly_price || '-'}</td>
+                      {SHOW_QUARTERLY_COLUMN && <td className="px-4 py-3 text-sm text-gray-900">{offering.quarterly_price || '-'}</td>}
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.yearly_price || '-'}</td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
@@ -1131,7 +1259,7 @@ const PricingAdmin = () => {
                   ))}
                   {diskOfferings.length === 0 && (
                     <tr>
-                      <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={SHOW_QUARTERLY_COLUMN ? "8" : "7"} className="px-4 py-8 text-center text-gray-500">
                         No disk offerings found. Click "Add Disk Offering" to create one.
                       </td>
                     </tr>

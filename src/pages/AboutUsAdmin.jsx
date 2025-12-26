@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PencilIcon, 
-  EyeIcon, 
+import {
+  PencilIcon,
+  EyeIcon,
   EyeSlashIcon,
   CheckIcon,
   XMarkIcon,
@@ -10,7 +10,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon
 } from '@heroicons/react/24/outline';
-import { 
+import {
   getAboutUsContent,
   updateAboutHero,
   updateAboutStory,
@@ -52,12 +52,13 @@ import {
   deleteAboutCoreValue,
   toggleAboutCoreValueVisibility
 } from '../services/cmsApi';
+import { uploadImage } from '../services/uploadApi';
 
 const AboutUsAdmin = () => {
   const [aboutData, setAboutData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Hero Section
   const [editingHero, setEditingHero] = useState(false);
   const [heroForm, setHeroForm] = useState({
@@ -165,7 +166,7 @@ const AboutUsAdmin = () => {
       const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/about?all=true&t=${timestamp}`);
       const data = await response.json();
       setAboutData(data);
-      
+
       // Initialize hero form
       if (data.hero) {
         setHeroForm({
@@ -188,8 +189,8 @@ const AboutUsAdmin = () => {
         let storyItems = [];
         if (data.story.story_items) {
           try {
-            storyItems = typeof data.story.story_items === 'string' 
-              ? JSON.parse(data.story.story_items) 
+            storyItems = typeof data.story.story_items === 'string'
+              ? JSON.parse(data.story.story_items)
               : data.story.story_items;
           } catch (e) {
             storyItems = Array.isArray(data.story.story_items) ? data.story.story_items : [];
@@ -331,17 +332,49 @@ const AboutUsAdmin = () => {
   const handleStoryItemChange = (index, value) => {
     const newItems = [...storyForm.story_items];
     newItems[index] = value;
-    setStoryForm({...storyForm, story_items: newItems});
+    setStoryForm({ ...storyForm, story_items: newItems });
   };
 
   const addStoryItem = () => {
-    setStoryForm({...storyForm, story_items: [...storyForm.story_items, '']});
+    setStoryForm({ ...storyForm, story_items: [...storyForm.story_items, ''] });
   };
 
   const removeStoryItem = (index) => {
     const newItems = storyForm.story_items.filter((_, i) => i !== index);
-    setStoryForm({...storyForm, story_items: newItems});
+    setStoryForm({ ...storyForm, story_items: newItems });
   };
+
+  const handleStoryImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('Image size should not exceed 5MB');
+      return;
+    }
+
+    try {
+      const response = await uploadImage(file);
+      if (response.filePath) {
+        // Update the story form with the uploaded image path
+        setStoryForm({ ...storyForm, image_url: response.filePath });
+        alert('Image uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
 
   // Legacy Section Handlers
   const handleLegacyUpdate = async () => {
@@ -768,7 +801,7 @@ const AboutUsAdmin = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h3 className="text-red-800 font-medium">Error Loading Content</h3>
           <p className="text-red-600 mt-1">{error}</p>
-          <button 
+          <button
             onClick={fetchAboutUsContent}
             className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
           >
@@ -838,7 +871,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.badge_text}
-                onChange={(e) => setHeroForm({...heroForm, badge_text: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, badge_text: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -847,7 +880,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.title}
-                onChange={(e) => setHeroForm({...heroForm, title: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -856,7 +889,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.highlighted_text}
-                onChange={(e) => setHeroForm({...heroForm, highlighted_text: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, highlighted_text: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -865,7 +898,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.title_after}
-                onChange={(e) => setHeroForm({...heroForm, title_after: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, title_after: e.target.value })}
                 placeholder="Control"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -875,7 +908,7 @@ const AboutUsAdmin = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
                 value={heroForm.description}
-                onChange={(e) => setHeroForm({...heroForm, description: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, description: e.target.value })}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -885,7 +918,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.button_text}
-                onChange={(e) => setHeroForm({...heroForm, button_text: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, button_text: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -894,7 +927,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.button_link}
-                onChange={(e) => setHeroForm({...heroForm, button_link: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, button_link: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -903,7 +936,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={heroForm.image_url}
-                onChange={(e) => setHeroForm({...heroForm, image_url: e.target.value})}
+                onChange={(e) => setHeroForm({ ...heroForm, image_url: e.target.value })}
                 placeholder="https://example.com/image.jpg or /path/to/image.jpg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -911,9 +944,9 @@ const AboutUsAdmin = () => {
                 <div className="mt-2">
                   <p className="text-xs text-gray-500 mb-2">Image Preview:</p>
                   <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
-                    <img 
-                      src={heroForm.image_url} 
-                      alt="Hero preview" 
+                    <img
+                      src={heroForm.image_url}
+                      alt="Hero preview"
                       className="w-full h-auto max-h-48 object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
@@ -931,7 +964,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={heroForm.stat_value}
-                  onChange={(e) => setHeroForm({...heroForm, stat_value: e.target.value})}
+                  onChange={(e) => setHeroForm({ ...heroForm, stat_value: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -940,7 +973,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={heroForm.stat_label}
-                  onChange={(e) => setHeroForm({...heroForm, stat_label: e.target.value})}
+                  onChange={(e) => setHeroForm({ ...heroForm, stat_label: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1017,7 +1050,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={missionVisionForm.header_title}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, header_title: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Our Mission & Vision"
               />
@@ -1026,7 +1059,7 @@ const AboutUsAdmin = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Section Header Description</label>
               <textarea
                 value={missionVisionForm.header_description}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, header_description: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, header_description: e.target.value })}
                 rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Brief description of the section..."
@@ -1042,7 +1075,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={missionVisionForm.mission_title}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, mission_title: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, mission_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Our Mission"
               />
@@ -1053,7 +1086,7 @@ const AboutUsAdmin = () => {
               </label>
               <textarea
                 value={missionVisionForm.mission_description}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, mission_description: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, mission_description: e.target.value })}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe your mission..."
@@ -1066,7 +1099,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={missionVisionForm.vision_title}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, vision_title: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, vision_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Our Vision"
               />
@@ -1077,7 +1110,7 @@ const AboutUsAdmin = () => {
               </label>
               <textarea
                 value={missionVisionForm.vision_description}
-                onChange={(e) => setMissionVisionForm({...missionVisionForm, vision_description: e.target.value})}
+                onChange={(e) => setMissionVisionForm({ ...missionVisionForm, vision_description: e.target.value })}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe your vision..."
@@ -1169,7 +1202,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={storyForm.header_title}
-                onChange={(e) => setStoryForm({...storyForm, header_title: e.target.value})}
+                onChange={(e) => setStoryForm({ ...storyForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1177,7 +1210,7 @@ const AboutUsAdmin = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Header Description</label>
               <textarea
                 value={storyForm.header_description}
-                onChange={(e) => setStoryForm({...storyForm, header_description: e.target.value})}
+                onChange={(e) => setStoryForm({ ...storyForm, header_description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -1187,7 +1220,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={storyForm.founding_year}
-                onChange={(e) => setStoryForm({...storyForm, founding_year: e.target.value})}
+                onChange={(e) => setStoryForm({ ...storyForm, founding_year: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1211,21 +1244,46 @@ const AboutUsAdmin = () => {
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-              <input
-                type="text"
-                value={storyForm.image_url}
-                onChange={(e) => setStoryForm({...storyForm, image_url: e.target.value})}
-                placeholder="https://example.com/image.jpg or /path/to/image.jpg"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+
+              {/* URL Input Option */}
+              <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">Option 1: Enter Image URL</label>
+                <input
+                  type="text"
+                  value={storyForm.image_url}
+                  onChange={(e) => setStoryForm({ ...storyForm, image_url: e.target.value })}
+                  placeholder="https://example.com/image.jpg or /path/to/image.jpg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* OR Divider */}
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="text-xs text-gray-500 font-medium">OR</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+
+              {/* File Upload Option */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Option 2: Upload from Local</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={handleStoryImageUpload}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</p>
+              </div>
+
               {storyForm.image_url && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <p className="text-xs text-gray-500 mb-2">Image Preview:</p>
                   <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
-                    <img 
-                      src={storyForm.image_url} 
-                      alt="Story preview" 
+                    <img
+                      src={storyForm.image_url}
+                      alt="Story preview"
                       className="w-full h-auto max-h-48 object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
@@ -1233,7 +1291,6 @@ const AboutUsAdmin = () => {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Enter a valid image URL (jpg, png, gif, webp, etc.)</p>
                 </div>
               )}
             </div>
@@ -1243,7 +1300,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={storyForm.badge_value}
-                  onChange={(e) => setStoryForm({...storyForm, badge_value: e.target.value})}
+                  onChange={(e) => setStoryForm({ ...storyForm, badge_value: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1252,7 +1309,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={storyForm.badge_label}
-                  onChange={(e) => setStoryForm({...storyForm, badge_label: e.target.value})}
+                  onChange={(e) => setStoryForm({ ...storyForm, badge_label: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1263,7 +1320,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={storyForm.top_badge_value}
-                  onChange={(e) => setStoryForm({...storyForm, top_badge_value: e.target.value})}
+                  onChange={(e) => setStoryForm({ ...storyForm, top_badge_value: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1272,7 +1329,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={storyForm.top_badge_label}
-                  onChange={(e) => setStoryForm({...storyForm, top_badge_label: e.target.value})}
+                  onChange={(e) => setStoryForm({ ...storyForm, top_badge_label: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1348,7 +1405,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={coreValuesSectionForm.header_title}
-                onChange={(e) => setCoreValuesSectionForm({...coreValuesSectionForm, header_title: e.target.value})}
+                onChange={(e) => setCoreValuesSectionForm({ ...coreValuesSectionForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Our Core Values"
               />
@@ -1359,7 +1416,7 @@ const AboutUsAdmin = () => {
               </label>
               <textarea
                 value={coreValuesSectionForm.header_description}
-                onChange={(e) => setCoreValuesSectionForm({...coreValuesSectionForm, header_description: e.target.value})}
+                onChange={(e) => setCoreValuesSectionForm({ ...coreValuesSectionForm, header_description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe your core values..."
@@ -1475,7 +1532,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={legacyForm.header_title}
-                onChange={(e) => setLegacyForm({...legacyForm, header_title: e.target.value})}
+                onChange={(e) => setLegacyForm({ ...legacyForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1483,7 +1540,7 @@ const AboutUsAdmin = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Header Description</label>
               <textarea
                 value={legacyForm.header_description}
-                onChange={(e) => setLegacyForm({...legacyForm, header_description: e.target.value})}
+                onChange={(e) => setLegacyForm({ ...legacyForm, header_description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -1591,7 +1648,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={testimonialsSectionForm.header_title}
-                onChange={(e) => setTestimonialsSectionForm({...testimonialsSectionForm, header_title: e.target.value})}
+                onChange={(e) => setTestimonialsSectionForm({ ...testimonialsSectionForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1599,7 +1656,7 @@ const AboutUsAdmin = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Header Description</label>
               <textarea
                 value={testimonialsSectionForm.header_description}
-                onChange={(e) => setTestimonialsSectionForm({...testimonialsSectionForm, header_description: e.target.value})}
+                onChange={(e) => setTestimonialsSectionForm({ ...testimonialsSectionForm, header_description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
@@ -1774,7 +1831,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={approachSectionForm.header_title}
-                onChange={(e) => setApproachSectionForm({...approachSectionForm, header_title: e.target.value})}
+                onChange={(e) => setApproachSectionForm({ ...approachSectionForm, header_title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Our Approach"
               />
@@ -1785,7 +1842,7 @@ const AboutUsAdmin = () => {
               </label>
               <textarea
                 value={approachSectionForm.header_description}
-                onChange={(e) => setApproachSectionForm({...approachSectionForm, header_description: e.target.value})}
+                onChange={(e) => setApproachSectionForm({ ...approachSectionForm, header_description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Describe your approach..."
@@ -1796,7 +1853,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={approachSectionForm.cta_button_text}
-                onChange={(e) => setApproachSectionForm({...approachSectionForm, cta_button_text: e.target.value})}
+                onChange={(e) => setApproachSectionForm({ ...approachSectionForm, cta_button_text: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Talk to a Specialist"
               />
@@ -1806,7 +1863,7 @@ const AboutUsAdmin = () => {
               <input
                 type="text"
                 value={approachSectionForm.cta_button_url}
-                onChange={(e) => setApproachSectionForm({...approachSectionForm, cta_button_url: e.target.value})}
+                onChange={(e) => setApproachSectionForm({ ...approachSectionForm, cta_button_url: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="https://example.com/contact or /contact"
 
@@ -1820,7 +1877,7 @@ const AboutUsAdmin = () => {
 
 
 
-                
+
               />
             </div>
           </div>
@@ -1902,7 +1959,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={statForm.label}
-                  onChange={(e) => setStatForm({...statForm, label: e.target.value})}
+                  onChange={(e) => setStatForm({ ...statForm, label: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -1911,7 +1968,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={statForm.value}
-                  onChange={(e) => setStatForm({...statForm, value: e.target.value})}
+                  onChange={(e) => setStatForm({ ...statForm, value: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -1920,7 +1977,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={statForm.order_index}
-                  onChange={(e) => setStatForm({...statForm, order_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setStatForm({ ...statForm, order_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -1928,7 +1985,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="checkbox"
                   checked={statForm.is_visible === 1}
-                  onChange={(e) => setStatForm({...statForm, is_visible: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setStatForm({ ...statForm, is_visible: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-gray-700">Visible</label>
@@ -1967,7 +2024,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Quote</label>
                 <textarea
                   value={testimonialForm.quote}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, quote: e.target.value})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, quote: e.target.value })}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -1977,7 +2034,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={testimonialForm.company}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, company: e.target.value})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, company: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -1986,7 +2043,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={testimonialForm.author}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, author: e.target.value})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, author: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -1995,7 +2052,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={testimonialForm.page_index}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, page_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, page_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2004,7 +2061,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={testimonialForm.order_index}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, order_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, order_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2012,7 +2069,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="checkbox"
                   checked={testimonialForm.is_visible === 1}
-                  onChange={(e) => setTestimonialForm({...testimonialForm, is_visible: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setTestimonialForm({ ...testimonialForm, is_visible: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-gray-700">Visible</label>
@@ -2052,7 +2109,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={ratingForm.platform}
-                  onChange={(e) => setRatingForm({...ratingForm, platform: e.target.value})}
+                  onChange={(e) => setRatingForm({ ...ratingForm, platform: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2061,7 +2118,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={ratingForm.rating_value}
-                  onChange={(e) => setRatingForm({...ratingForm, rating_value: e.target.value})}
+                  onChange={(e) => setRatingForm({ ...ratingForm, rating_value: e.target.value })}
                   placeholder="4.7/5"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -2070,7 +2127,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Platform Icon</label>
                 <select
                   value={ratingForm.platform_icon}
-                  onChange={(e) => setRatingForm({...ratingForm, platform_icon: e.target.value})}
+                  onChange={(e) => setRatingForm({ ...ratingForm, platform_icon: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="G">G (Google)</option>
@@ -2082,7 +2139,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={ratingForm.order_index}
-                  onChange={(e) => setRatingForm({...ratingForm, order_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setRatingForm({ ...ratingForm, order_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2090,7 +2147,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="checkbox"
                   checked={ratingForm.is_visible === 1}
-                  onChange={(e) => setRatingForm({...ratingForm, is_visible: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setRatingForm({ ...ratingForm, is_visible: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-gray-700">Visible</label>
@@ -2130,7 +2187,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={approachItemForm.title}
-                  onChange={(e) => setApproachItemForm({...approachItemForm, title: e.target.value})}
+                  onChange={(e) => setApproachItemForm({ ...approachItemForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2138,7 +2195,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   value={approachItemForm.description}
-                  onChange={(e) => setApproachItemForm({...approachItemForm, description: e.target.value})}
+                  onChange={(e) => setApproachItemForm({ ...approachItemForm, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -2147,7 +2204,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Icon Type</label>
                 <select
                   value={approachItemForm.icon_type}
-                  onChange={(e) => setApproachItemForm({...approachItemForm, icon_type: e.target.value})}
+                  onChange={(e) => setApproachItemForm({ ...approachItemForm, icon_type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="database">Database</option>
@@ -2161,7 +2218,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={approachItemForm.order_index}
-                  onChange={(e) => setApproachItemForm({...approachItemForm, order_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setApproachItemForm({ ...approachItemForm, order_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2169,7 +2226,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="checkbox"
                   checked={approachItemForm.is_visible === 1}
-                  onChange={(e) => setApproachItemForm({...approachItemForm, is_visible: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setApproachItemForm({ ...approachItemForm, is_visible: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-gray-700">Visible</label>
@@ -2209,7 +2266,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="text"
                   value={coreValueForm.title}
-                  onChange={(e) => setCoreValueForm({...coreValueForm, title: e.target.value})}
+                  onChange={(e) => setCoreValueForm({ ...coreValueForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2217,7 +2274,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   value={coreValueForm.description}
-                  onChange={(e) => setCoreValueForm({...coreValueForm, description: e.target.value})}
+                  onChange={(e) => setCoreValueForm({ ...coreValueForm, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
@@ -2226,7 +2283,7 @@ const AboutUsAdmin = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Icon Type</label>
                 <select
                   value={coreValueForm.icon_type}
-                  onChange={(e) => setCoreValueForm({...coreValueForm, icon_type: e.target.value})}
+                  onChange={(e) => setCoreValueForm({ ...coreValueForm, icon_type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="lightbulb">Lightbulb</option>
@@ -2242,7 +2299,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="number"
                   value={coreValueForm.order_index}
-                  onChange={(e) => setCoreValueForm({...coreValueForm, order_index: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setCoreValueForm({ ...coreValueForm, order_index: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -2250,7 +2307,7 @@ const AboutUsAdmin = () => {
                 <input
                   type="checkbox"
                   checked={coreValueForm.is_visible === 1}
-                  onChange={(e) => setCoreValueForm({...coreValueForm, is_visible: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setCoreValueForm({ ...coreValueForm, is_visible: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4"
                 />
                 <label className="text-sm text-gray-700">Visible</label>

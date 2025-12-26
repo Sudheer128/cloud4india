@@ -252,6 +252,7 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
 // Media Banner Section Component - Carousel Gallery for Multiple Photos/Videos
 const MediaBannerSection = ({ section, items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageErrors, setImageErrors] = useState({});
   const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
 
   // Filter visible media items with valid URLs
@@ -259,34 +260,63 @@ const MediaBannerSection = ({ section, items }) => {
   const mediaItems = items.filter(item => {
     // Robust visibility check - item is visible if is_visible is not 0, false, null, or undefined
     if (item.is_visible === 0 || item.is_visible === false || item.is_visible === null || item.is_visible === undefined) {
-      console.log('MediaBannerSection: Item filtered out (not visible):', item.id, item.title, 'is_visible:', item.is_visible);
       return false;
     }
     try {
       const content = item.content ? JSON.parse(item.content) : {};
       const hasMediaUrl = content.media_url && content.media_url.trim() !== '';
-      if (!hasMediaUrl) {
-        console.log('MediaBannerSection: Item filtered out (no media_url):', item.id, item.title, 'content:', content);
-      }
       return hasMediaUrl;
     } catch (e) {
-      console.error('MediaBannerSection: Error parsing item content:', item.id, item.title, e);
       return false;
     }
   });
 
-  // Debug logging
-  console.log('MediaBannerSection - Section:', {
-    sectionId: section.id,
-    sectionTitle: section.title,
-    sectionVisible: section.is_visible,
-    totalItems: items?.length || 0,
-    visibleItems: mediaItems.length
-  });
-
+  // If no valid media items, show a placeholder section instead of hiding completely
   if (mediaItems.length === 0) {
-    console.warn('MediaBannerSection - No valid media items found. Section will not render. Items received:', items);
-    return null; // Don't render if no valid media items
+    return (
+      <section className="py-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
+        <div className="w-full px-4 sm:px-6 lg:px-12 max-w-[1600px] mx-auto">
+          {section.title && (
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
+                {section.title}
+              </h2>
+              {section.description && (
+                <p className="text-xl text-gray-600 max-w-4xl mx-auto">
+                  {section.description}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+            <div className="text-left space-y-8 order-2 lg:order-1 lg:col-span-5">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-saree-teal/10 text-saree-teal font-bold text-2xl mb-2 shadow-sm">
+                1
+              </div>
+              <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
+                {section.title || 'Gallery'}
+              </h3>
+              <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-medium">
+                Media content coming soon. Please add images or videos through the admin panel.
+              </p>
+            </div>
+            <div className="relative order-1 lg:order-2 lg:col-span-7">
+              <div className="rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-800 to-gray-900 aspect-video flex items-center justify-center ring-1 ring-gray-200/50">
+                <div className="text-center p-8">
+                  <svg className="w-20 h-20 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-500 font-medium">No media uploaded yet</p>
+                  <p className="text-gray-600 text-sm mt-2">Add images or videos from admin panel</p>
+                </div>
+              </div>
+              <div className="absolute -z-10 top-12 -right-12 w-full h-full bg-saree-teal/10 rounded-[3rem] blur-3xl hidden lg:block"></div>
+              <div className="absolute -z-10 -bottom-12 -left-12 w-full h-full bg-saree-amber/10 rounded-[3rem] blur-3xl hidden lg:block"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   // Process media item to get URL and type
@@ -321,10 +351,15 @@ const MediaBannerSection = ({ section, items }) => {
       mediaUrl = `${cmsBaseUrl}${mediaUrl}`;
     }
 
-    return { mediaType, mediaUrl, isYouTube, title: item.title, description: item.description };
+    return { mediaType, mediaUrl, isYouTube, title: item.title, description: item.description, itemId: item.id };
   };
 
   const currentMedia = getMediaInfo(mediaItems[currentIndex]);
+  const hasImageError = imageErrors[currentMedia.itemId];
+
+  const handleImageError = (itemId) => {
+    setImageErrors(prev => ({ ...prev, [itemId]: true }));
+  };
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % mediaItems.length);
@@ -337,6 +372,19 @@ const MediaBannerSection = ({ section, items }) => {
   const goToSlide = (index) => {
     setCurrentIndex(index);
   };
+
+  // Fallback placeholder component for broken images
+  const ImagePlaceholder = () => (
+    <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+      <div className="text-center p-8">
+        <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <p className="text-gray-500 font-medium">Image not available</p>
+        <p className="text-gray-600 text-sm mt-1">Please re-upload from admin panel</p>
+      </div>
+    </div>
+  );
 
   return (
     <section className="py-16 bg-gradient-to-br from-saree-teal-light via-white to-saree-amber-light">
@@ -421,23 +469,27 @@ const MediaBannerSection = ({ section, items }) => {
                 >
                   Your browser does not support the video tag.
                 </video>
+              ) : hasImageError ? (
+                // Image failed to load - show placeholder
+                <ImagePlaceholder />
               ) : (
-                // Image
+                // Image with error handling
                 <img
                   key={`image-${currentIndex}`}
                   src={currentMedia.mediaUrl}
                   alt={currentMedia.title || 'Gallery image'}
                   className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
+                  onError={() => handleImageError(currentMedia.itemId)}
                 />
               )}
 
-              {/* Desktop Navigation Arrows (Biq Arrows on Sides) */}
+              {/* Desktop Navigation Arrows (Big Arrows on Sides) */}
               {mediaItems.length > 1 && (
                 <>
                   <button
                     onClick={prevSlide}
-                    className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-saree-teal/90 backdrop-blur-md text-white p-5 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center focus:outline-none transform hover:scale-110 hover:rotate-180deg group/btn"
+                    className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-saree-teal/90 backdrop-blur-md text-white p-5 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center focus:outline-none transform hover:scale-110 group/btn"
                     aria-label="Previous"
                   >
                     <svg className="w-8 h-8 group-hover/btn:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>

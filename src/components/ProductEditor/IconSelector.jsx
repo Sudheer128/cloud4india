@@ -37,8 +37,8 @@ const IconSelector = ({ value, onChange, optional = false }) => {
 
   const handleIconUpload = async (file) => {
     // Validate file
-    if (file.size > 50 * 1024) {
-      alert('Icon file too large. Maximum 50KB');
+    if (file.size > 500 * 1024) {
+      alert('Icon file too large. Maximum 500KB');
       return;
     }
 
@@ -176,11 +176,8 @@ const IconSelector = ({ value, onChange, optional = false }) => {
               <li>• Size: <strong>24x24px to 64x64px</strong></li>
               <li>• Style: <strong>Outline/stroke</strong> (matches library)</li>
               <li>• Color: <strong>Monochrome</strong> (single color)</li>
-              <li>• File size: <strong>Under 50KB</strong></li>
+              <li>• File size: <strong>Under 500KB</strong></li>
             </ul>
-            <p className="text-xs text-blue-700 mt-2">
-              💡 Get free icons: <a href="https://heroicons.com" target="_blank" rel="noopener noreferrer" className="underline">heroicons.com</a>
-            </p>
           </div>
           
           <div>
@@ -196,7 +193,7 @@ const IconSelector = ({ value, onChange, optional = false }) => {
               disabled={uploading}
             />
             <p className="text-xs text-gray-500 mt-1">
-              SVG or PNG • Max 50KB
+              SVG or PNG • Max 500KB
             </p>
           </div>
           

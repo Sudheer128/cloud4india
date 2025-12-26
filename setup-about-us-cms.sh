@@ -28,7 +28,7 @@ if [ $? -eq 0 ]; then
     echo "2. Access admin panel:"
     echo "   http://149.13.60.6/login"
     echo "   Username: admin"
-    echo "   Password: admin123"
+    echo "   Password: r0h!th"
     echo ""
     echo "3. Navigate to About Us admin:"
     echo "   http://149.13.60.6/admin/about-us"

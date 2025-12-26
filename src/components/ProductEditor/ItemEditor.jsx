@@ -857,11 +857,8 @@ const ItemEditor = ({ item, sectionType, sectionId, productId, onSave, onCancel 
                     <li>• Size: <strong>24x24px to 64x64px</strong></li>
                     <li>• Style: <strong>Outline/stroke</strong> (not filled)</li>
                     <li>• Color: <strong>Monochrome</strong> (single color)</li>
-                    <li>• File size: <strong>Under 50KB</strong></li>
+                    <li>• File size: <strong>Under 500KB</strong></li>
                   </ul>
-                  <p className="text-xs text-blue-700 mt-2">
-                    💡 Get free icons from: <a href="https://heroicons.com" target="_blank" className="underline">heroicons.com</a>
-                  </p>
                 </div>
                 
                 <div>
@@ -874,8 +871,8 @@ const ItemEditor = ({ item, sectionType, sectionId, productId, onSave, onCancel 
                       if (!file) return;
                       
                       // Validate file size
-                      if (file.size > 50 * 1024) {
-                        alert('Icon file too large. Maximum 50KB');
+                      if (file.size > 500 * 1024) {
+                        alert('Icon file too large. Maximum 500KB');
                         return;
                       }
                       
@@ -904,7 +901,7 @@ const ItemEditor = ({ item, sectionType, sectionId, productId, onSave, onCancel 
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    SVG or PNG with transparent background • Max 50KB
+                    SVG or PNG with transparent background • Max 500KB
                   </p>
                 </div>
                 

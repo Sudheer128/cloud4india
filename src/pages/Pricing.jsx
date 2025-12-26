@@ -21,6 +21,9 @@ import {
 } from '../hooks/usePricingData'
 import ChooseImageSection from '../components/ChooseImageSection'
 
+// Global flag to hide/show quarterly column in pricing tables
+const SHOW_QUARTERLY_COLUMN = false
+
 const Pricing = () => {
   const [activeTab, setActiveTab] = useState('compute')
   const [activeComputeSection, setActiveComputeSection] = useState('shared-cpu')
@@ -372,13 +375,13 @@ const Pricing = () => {
                     <div className="min-w-[800px]">
                       {/* Table Header */}
                       <div className="bg-gradient-to-r from-saree-teal-light to-saree-amber-light rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md">
-                        <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                        <div className={`grid gap-2 md:gap-4 text-xs md:text-sm font-semibold ${SHOW_QUARTERLY_COLUMN ? 'grid-cols-7' : 'grid-cols-6'}`}>
                           <div className="text-center min-w-[100px]">{pageConfig?.compute_table_header_name || 'Name'}</div>
                           <div className="text-center min-w-[80px]">{pageConfig?.compute_table_header_vcpu || 'vCPU'}</div>
                           <div className="text-center min-w-[100px]">{pageConfig?.compute_table_header_memory || 'Memory RAM'}</div>
                           <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
                           <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
-                          <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                          {SHOW_QUARTERLY_COLUMN && <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>}
                           <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                         </div>
                       </div>
@@ -396,7 +399,7 @@ const Pricing = () => {
                             }`}
                           >
                             <div className="p-4 md:p-6">
-                              <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm items-center">
+                              <div className={`grid gap-2 md:gap-4 text-xs md:text-sm items-center ${SHOW_QUARTERLY_COLUMN ? 'grid-cols-7' : 'grid-cols-6'}`}>
                                 <div className="text-center min-w-[100px]">
                                   <div className="font-semibold text-gray-900 break-words">{plan.name}</div>
                                 </div>
@@ -414,10 +417,12 @@ const Pricing = () => {
                                   <div className="font-bold text-base md:text-lg text-gray-900">{plan.monthlyPrice}</div>
                                   <div className="text-xs text-gray-500">/Month</div>
                                 </div>
-                                <div className="text-center min-w-[120px]">
-                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.quarterlyPrice}</div>
-                                  <div className="text-xs text-gray-500">/Quarter</div>
-                                </div>
+                                {SHOW_QUARTERLY_COLUMN && (
+                                  <div className="text-center min-w-[120px]">
+                                    <div className="font-bold text-base md:text-lg text-gray-900">{plan.quarterlyPrice}</div>
+                                    <div className="text-xs text-gray-500">/Quarter</div>
+                                  </div>
+                                )}
                                 <div className="text-center min-w-[110px]">
                                   <div className="font-bold text-base md:text-lg text-gray-900">{plan.yearlyPrice}</div>
                                   <div className="text-xs text-gray-500">/Year</div>
@@ -446,13 +451,13 @@ const Pricing = () => {
                   <div className="min-w-[800px]">
                     {/* Table Header */}
                     <div className="bg-gradient-to-r from-saree-lime-light to-saree-rose-light rounded-t-2xl p-4 md:p-6 text-gray-900 shadow-md">
-                      <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm font-semibold">
+                      <div className={`grid gap-2 md:gap-4 text-xs md:text-sm font-semibold ${SHOW_QUARTERLY_COLUMN ? 'grid-cols-7' : 'grid-cols-6'}`}>
                         <div className="text-center min-w-[100px]">{pageConfig?.disk_table_header_name || 'Name'}</div>
                         <div className="text-center min-w-[110px]">{pageConfig?.disk_table_header_type || 'Storage Type'}</div>
                         <div className="text-center min-w-[80px]">{pageConfig?.disk_table_header_size || 'Size'}</div>
                         <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_hourly || 'Price Hourly'}</div>
                         <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_monthly || 'Price Monthly'}</div>
-                        <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>
+                        {SHOW_QUARTERLY_COLUMN && <div className="text-center min-w-[120px]">{pageConfig?.compute_table_header_quarterly || 'Price Quarterly'}</div>}
                         <div className="text-center min-w-[110px]">{pageConfig?.compute_table_header_yearly || 'Price Yearly'}</div>
                       </div>
                     </div>
@@ -470,7 +475,7 @@ const Pricing = () => {
                           }`}
                         >
                           <div className="p-4 md:p-6">
-                            <div className="grid grid-cols-7 gap-2 md:gap-4 text-xs md:text-sm items-center">
+                            <div className={`grid gap-2 md:gap-4 text-xs md:text-sm items-center ${SHOW_QUARTERLY_COLUMN ? 'grid-cols-7' : 'grid-cols-6'}`}>
                               <div className="text-center min-w-[100px]">
                                 <div className="font-semibold text-gray-900 break-words">{disk.name}</div>
                               </div>
@@ -488,10 +493,12 @@ const Pricing = () => {
                                 <div className="font-bold text-base md:text-lg text-gray-900">{disk.monthlyPrice}</div>
                                 <div className="text-xs text-gray-500">/Month</div>
                               </div>
-                              <div className="text-center min-w-[120px]">
-                                <div className="font-bold text-base md:text-lg text-gray-900">{disk.quarterlyPrice}</div>
-                                <div className="text-xs text-gray-500">/Quarter</div>
-                              </div>
+                              {SHOW_QUARTERLY_COLUMN && (
+                                <div className="text-center min-w-[120px]">
+                                  <div className="font-bold text-base md:text-lg text-gray-900">{disk.quarterlyPrice}</div>
+                                  <div className="text-xs text-gray-500">/Quarter</div>
+                                </div>
+                              )}
                               <div className="text-center min-w-[110px]">
                                 <div className="font-bold text-base md:text-lg text-gray-900">{disk.yearlyPrice}</div>
                                 <div className="text-xs text-gray-500">/Year</div>

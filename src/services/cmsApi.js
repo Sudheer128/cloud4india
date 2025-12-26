@@ -143,6 +143,99 @@ export const deleteWhyItem = async (id) => {
   }
 };
 
+// ===== CLIENT LOGOS API FUNCTIONS =====
+
+/**
+ * Get all client logos (for frontend - only visible)
+ * @returns {Promise<Array>} Array of client logos
+ */
+export const getClientLogos = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/client-logos?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching client logos:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all client logos (for admin - includes hidden)
+ * @returns {Promise<Array>} Array of all client logos
+ */
+export const getAdminClientLogos = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await cmsApi.get(`/admin/client-logos?t=${timestamp}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin client logos:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create new client logo
+ * @param {Object} logoData - Logo data (logo_path, alt_text)
+ * @returns {Promise<Object>} Created logo data
+ */
+export const createClientLogo = async (logoData) => {
+  try {
+    const response = await cmsApi.post('/admin/client-logos', logoData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating client logo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update client logo
+ * @param {number} id - Logo ID
+ * @param {Object} logoData - Logo data to update
+ * @returns {Promise<Object>} Updated logo data
+ */
+export const updateClientLogo = async (id, logoData) => {
+  try {
+    const response = await cmsApi.put(`/admin/client-logos/${id}`, logoData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating client logo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete client logo
+ * @param {number} id - Logo ID
+ * @returns {Promise<Object>} Deletion result
+ */
+export const deleteClientLogo = async (id) => {
+  try {
+    const response = await cmsApi.delete(`/admin/client-logos/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting client logo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle client logo visibility
+ * @param {number} id - Logo ID
+ * @returns {Promise<Object>} Toggle result
+ */
+export const toggleClientLogoVisibility = async (id) => {
+  try {
+    const response = await cmsApi.put(`/admin/client-logos/${id}/toggle-visibility`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling client logo visibility:', error);
+    throw error;
+  }
+};
+
 /**
  * Check CMS health
  * @returns {Promise<Object>} Health status

@@ -22,7 +22,7 @@ const AboutHeroSection = () => {
 
   if (loading) {
     return (
-      <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise py-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise pt-20 pb-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center text-white">
           <p>Loading...</p>
         </div>
@@ -39,7 +39,7 @@ const AboutHeroSection = () => {
   const highlightedText = content.highlighted_text || 'Next-generation'
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise py-20 px-4 sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-gradient-to-br from-saree-teal via-saree-teal-dark to-phulkari-turquoise pt-20 pb-6 px-4 sm:px-6 lg:px-8">
       {/* Animated Background Patterns */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-full h-full">

@@ -631,6 +631,17 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Client Logos table
+  db.run(`CREATE TABLE IF NOT EXISTS client_logos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logo_path TEXT NOT NULL,
+    alt_text TEXT NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    is_visible INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Marketplaces table
   db.run(`CREATE TABLE IF NOT EXISTS marketplaces (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1661,18 +1672,26 @@ app.get('/api/homepage', (req, res) => {
         if (err) {
           // If table doesn't exist yet, continue without it
           homepageData.sectionsConfig = null;
-          res.json(homepageData);
-          return;
+        } else {
+          // Convert array to object keyed by section_name
+          const configsObj = {};
+          sectionsConfig.forEach(config => {
+            configsObj[config.section_name] = config;
+          });
+          homepageData.sectionsConfig = configsObj;
         }
 
-        // Convert array to object keyed by section_name
-        const configsObj = {};
-        sectionsConfig.forEach(config => {
-          configsObj[config.section_name] = config;
+        // Get client logos (only visible ones for frontend)
+        db.all('SELECT * FROM client_logos WHERE is_visible = 1 ORDER BY order_index ASC', (err, logos) => {
+          if (err) {
+            // If table doesn't exist yet, continue without it
+            homepageData.clientLogos = [];
+          } else {
+            homepageData.clientLogos = logos || [];
+          }
+          
+          res.json(homepageData);
         });
-        homepageData.sectionsConfig = configsObj;
-
-        res.json(homepageData);
       });
     });
   });
@@ -1799,6 +1818,148 @@ app.delete('/api/why-items/:id', (req, res) => {
       return;
     }
     res.json({ message: 'Why item deleted successfully', changes: this.changes });
+  });
+});
+
+// ========== CLIENT LOGOS API ENDPOINTS ==========
+
+// Get all client logos (for admin - includes hidden)
+app.get('/api/admin/client-logos', (req, res) => {
+  db.all('SELECT * FROM client_logos ORDER BY order_index ASC', (err, logos) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(logos);
+  });
+});
+
+// Get visible client logos (for frontend)
+app.get('/api/client-logos', (req, res) => {
+  db.all('SELECT * FROM client_logos WHERE is_visible = 1 ORDER BY order_index ASC', (err, logos) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(logos);
+  });
+});
+
+// Create new client logo
+app.post('/api/admin/client-logos', (req, res) => {
+  const { logo_path, alt_text } = req.body;
+
+  if (!logo_path || !alt_text) {
+    res.status(400).json({ error: 'logo_path and alt_text are required' });
+    return;
+  }
+
+  // Get the next order index
+  db.get('SELECT MAX(order_index) as max_order FROM client_logos', (err, result) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    const nextOrder = (result.max_order || -1) + 1;
+
+    db.run(`INSERT INTO client_logos (logo_path, alt_text, order_index) VALUES (?, ?, ?)`,
+      [logo_path, alt_text, nextOrder],
+      function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: 'Client logo created successfully',
+          id: this.lastID,
+          changes: this.changes
+        });
+      });
+  });
+});
+
+// Update client logo
+app.put('/api/admin/client-logos/:id', (req, res) => {
+  const { id } = req.params;
+  const { logo_path, alt_text, order_index } = req.body;
+
+  const updateFields = [];
+  const values = [];
+
+  if (logo_path !== undefined) {
+    updateFields.push('logo_path = ?');
+    values.push(logo_path);
+  }
+  if (alt_text !== undefined) {
+    updateFields.push('alt_text = ?');
+    values.push(alt_text);
+  }
+  if (order_index !== undefined) {
+    updateFields.push('order_index = ?');
+    values.push(order_index);
+  }
+
+  if (updateFields.length === 0) {
+    res.status(400).json({ error: 'No fields to update' });
+    return;
+  }
+
+  updateFields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+
+  db.run(`UPDATE client_logos SET ${updateFields.join(', ')} WHERE id = ?`,
+    values,
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Client logo updated successfully', changes: this.changes });
+    });
+});
+
+// Delete client logo
+app.delete('/api/admin/client-logos/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.run(`DELETE FROM client_logos WHERE id = ?`, [id], function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Client logo deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle client logo visibility
+app.put('/api/admin/client-logos/:id/toggle-visibility', (req, res) => {
+  const { id } = req.params;
+
+  db.get('SELECT is_visible FROM client_logos WHERE id = ?', [id], (err, logo) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!logo) {
+      res.status(404).json({ error: 'Client logo not found' });
+      return;
+    }
+
+    const newVisibility = logo.is_visible === 1 ? 0 : 1;
+
+    db.run('UPDATE client_logos SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newVisibility, id], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: 'Visibility toggled successfully',
+          is_visible: newVisibility,
+          changes: this.changes
+        });
+      });
   });
 });
 
@@ -2887,6 +3048,37 @@ app.delete('/api/marketplaces/:id/sections/:sectionId/items/:itemId', (req, res)
       return;
     }
     res.json({ message: 'Section item deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle section item visibility
+app.put('/api/marketplaces/:id/sections/:sectionId/items/:itemId/toggle-visibility', (req, res) => {
+  const { itemId, sectionId } = req.params;
+
+  db.get('SELECT is_visible FROM section_items WHERE id = ? AND section_id = ?', [itemId, sectionId], (err, item) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!item) {
+      res.status(404).json({ error: 'Section item not found' });
+      return;
+    }
+
+    const newVisibility = item.is_visible === 1 ? 0 : 1;
+
+    db.run('UPDATE section_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND section_id = ?',
+      [newVisibility, itemId, sectionId], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: 'Section item visibility toggled successfully',
+          is_visible: newVisibility,
+          changes: this.changes
+        });
+      });
   });
 });
 
@@ -4355,6 +4547,37 @@ app.delete('/api/products/:id/sections/:sectionId/items/:itemId', (req, res) => 
       return;
     }
     res.json({ message: 'Section item deleted successfully', changes: this.changes });
+  });
+});
+
+// Toggle product section item visibility
+app.put('/api/products/:id/sections/:sectionId/items/:itemId/toggle-visibility', (req, res) => {
+  const { itemId, sectionId } = req.params;
+
+  db.get('SELECT is_visible FROM product_items WHERE id = ? AND section_id = ?', [itemId, sectionId], (err, item) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!item) {
+      res.status(404).json({ error: 'Product section item not found' });
+      return;
+    }
+
+    const newVisibility = item.is_visible === 1 ? 0 : 1;
+
+    db.run('UPDATE product_items SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND section_id = ?',
+      [newVisibility, itemId, sectionId], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: 'Product section item visibility toggled successfully',
+          is_visible: newVisibility,
+          changes: this.changes
+        });
+      });
   });
 });
 
@@ -6299,16 +6522,25 @@ app.get('/api/feature-banners', (req, res) => {
     }
 
     // Format banners to match frontend expectations
-    const formattedBanners = banners.map(banner => ({
-      id: banner.id,
-      category: banner.category,
-      title: banner.title,
-      subtitle: banner.subtitle,
-      ctaText: banner.cta_text,
-      ctaLink: banner.cta_link,
-      gradient: `from-${banner.gradient_start} via-${banner.gradient_mid} to-${banner.gradient_end}`,
-      accentGradient: `from-${banner.accent_gradient_start} to-${banner.accent_gradient_end}`
-    }));
+    const formattedBanners = banners.map(banner => {
+      // Handle null gradient values - provide defaults if null
+      const gradientStart = banner.gradient_start || 'phulkari-turquoise';
+      const gradientMid = banner.gradient_mid || 'phulkari-blue-light';
+      const gradientEnd = banner.gradient_end || 'saree-teal';
+      const accentStart = banner.accent_gradient_start || 'phulkari-turquoise';
+      const accentEnd = banner.accent_gradient_end || 'saree-teal';
+      
+      return {
+        id: banner.id,
+        category: banner.category,
+        title: banner.title,
+        subtitle: banner.subtitle,
+        ctaText: banner.cta_text,
+        ctaLink: banner.cta_link,
+        gradient: `from-${gradientStart} via-${gradientMid} to-${gradientEnd}`,
+        accentGradient: `from-${accentStart} to-${accentEnd}`
+      };
+    });
 
     res.json(formattedBanners);
   });
@@ -6323,23 +6555,32 @@ app.get('/api/feature-banners/all', (req, res) => {
     }
 
     // Format banners to match frontend expectations
-    const formattedBanners = banners.map(banner => ({
-      id: banner.id,
-      category: banner.category,
-      title: banner.title,
-      subtitle: banner.subtitle,
-      ctaText: banner.cta_text,
-      ctaLink: banner.cta_link,
-      gradient: `from-${banner.gradient_start} via-${banner.gradient_mid} to-${banner.gradient_end}`,
-      accentGradient: `from-${banner.accent_gradient_start} to-${banner.accent_gradient_end}`,
-      gradient_start: banner.gradient_start,
-      gradient_mid: banner.gradient_mid,
-      gradient_end: banner.gradient_end,
-      accent_gradient_start: banner.accent_gradient_start,
-      accent_gradient_end: banner.accent_gradient_end,
-      order_index: banner.order_index,
-      is_visible: banner.is_visible
-    }));
+    const formattedBanners = banners.map(banner => {
+      // Handle null gradient values - provide defaults if null
+      const gradientStart = banner.gradient_start || 'phulkari-turquoise';
+      const gradientMid = banner.gradient_mid || 'phulkari-blue-light';
+      const gradientEnd = banner.gradient_end || 'saree-teal';
+      const accentStart = banner.accent_gradient_start || 'phulkari-turquoise';
+      const accentEnd = banner.accent_gradient_end || 'saree-teal';
+      
+      return {
+        id: banner.id,
+        category: banner.category,
+        title: banner.title,
+        subtitle: banner.subtitle,
+        ctaText: banner.cta_text,
+        ctaLink: banner.cta_link,
+        gradient: `from-${gradientStart} via-${gradientMid} to-${gradientEnd}`,
+        accentGradient: `from-${accentStart} to-${accentEnd}`,
+        gradient_start: banner.gradient_start,
+        gradient_mid: banner.gradient_mid,
+        gradient_end: banner.gradient_end,
+        accent_gradient_start: banner.accent_gradient_start,
+        accent_gradient_end: banner.accent_gradient_end,
+        order_index: banner.order_index,
+        is_visible: banner.is_visible
+      };
+    });
 
     res.json(formattedBanners);
   });
@@ -6422,27 +6663,53 @@ app.put('/api/feature-banners/:id', (req, res) => {
     is_visible
   } = req.body;
 
-  db.run(`
-    UPDATE feature_banners 
-    SET category = ?, title = ?, subtitle = ?, cta_text = ?, cta_link = ?,
-        gradient_start = ?, gradient_mid = ?, gradient_end = ?,
-        accent_gradient_start = ?, accent_gradient_end = ?,
-        order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
-    WHERE id = ?
-  `, [
-    category, title, subtitle, cta_text, cta_link,
-    gradient_start, gradient_mid, gradient_end,
-    accent_gradient_start, accent_gradient_end,
-    order_index, is_visible !== undefined ? is_visible : 1, id
-  ], function (err) {
+  // First, get the current banner to preserve existing values
+  db.get('SELECT * FROM feature_banners WHERE id = ?', [id], (err, existingBanner) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
+    if (!existingBanner) {
+      res.status(404).json({ error: 'Feature banner not found' });
+      return;
+    }
 
-    res.json({
-      message: 'Feature banner updated successfully',
-      changes: this.changes
+    // Use provided values or keep existing values
+    const finalCategory = category !== undefined ? category : existingBanner.category;
+    const finalTitle = title !== undefined ? title : existingBanner.title;
+    const finalSubtitle = subtitle !== undefined ? subtitle : existingBanner.subtitle;
+    const finalCtaText = cta_text !== undefined ? cta_text : existingBanner.cta_text;
+    const finalCtaLink = cta_link !== undefined ? cta_link : existingBanner.cta_link;
+    const finalGradientStart = gradient_start !== undefined ? gradient_start : existingBanner.gradient_start;
+    const finalGradientMid = gradient_mid !== undefined ? gradient_mid : existingBanner.gradient_mid;
+    const finalGradientEnd = gradient_end !== undefined ? gradient_end : existingBanner.gradient_end;
+    const finalAccentStart = accent_gradient_start !== undefined ? accent_gradient_start : existingBanner.accent_gradient_start;
+    const finalAccentEnd = accent_gradient_end !== undefined ? accent_gradient_end : existingBanner.accent_gradient_end;
+    const finalOrderIndex = order_index !== undefined ? order_index : existingBanner.order_index;
+    const finalIsVisible = is_visible !== undefined ? is_visible : existingBanner.is_visible;
+
+    db.run(`
+      UPDATE feature_banners 
+      SET category = ?, title = ?, subtitle = ?, cta_text = ?, cta_link = ?,
+          gradient_start = ?, gradient_mid = ?, gradient_end = ?,
+          accent_gradient_start = ?, accent_gradient_end = ?,
+          order_index = ?, is_visible = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `, [
+      finalCategory, finalTitle, finalSubtitle, finalCtaText, finalCtaLink,
+      finalGradientStart, finalGradientMid, finalGradientEnd,
+      finalAccentStart, finalAccentEnd,
+      finalOrderIndex, finalIsVisible, id
+    ], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      res.json({
+        message: 'Feature banner updated successfully',
+        changes: this.changes
+      });
     });
   });
 });

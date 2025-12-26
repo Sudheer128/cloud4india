@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PencilIcon, 
+import {
+  PencilIcon,
   ArrowLeftIcon,
-  CubeIcon 
+  CubeIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import ItemEditor from './ItemEditor';
 
@@ -45,6 +47,22 @@ const ItemManager = ({ product, section, onBack }) => {
       }
     } catch (err) {
       alert('Error deleting item: ' + err.message);
+    }
+  };
+
+  const handleToggleVisibility = async (itemId) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${section.id}/items/${itemId}/toggle-visibility`,
+        { method: 'PUT' }
+      );
+      if (response.ok) {
+        await loadItems();
+      } else {
+        throw new Error('Failed to toggle visibility');
+      }
+    } catch (err) {
+      alert('Error toggling item visibility: ' + err.message);
     }
   };
 
@@ -96,17 +114,16 @@ const ItemManager = ({ product, section, onBack }) => {
               </p>
               <p className="text-xs text-blue-600 mt-2">{config.help}</p>
             </div>
-            
+
             {/* Add Item Buttons - Only for specific sections */}
             {section.section_type === 'media_banner' && (
               <button
                 onClick={() => setEditingItem({ id: 'new' })}
                 disabled={items.length >= 10}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                  items.length < 10
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${items.length < 10
                     ? 'bg-green-600 text-white hover:bg-green-700 hover:shadow-lg hover:scale-105'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                  }`}
                 title={items.length >= 10 ? 'Maximum 10 media items allowed' : 'Add media to gallery'}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +132,7 @@ const ItemManager = ({ product, section, onBack }) => {
                 Add Media {items.length < 10 ? `(${10 - items.length} slots left)` : '(Limit reached)'}
               </button>
             )}
-            
+
             {section.section_type === 'use_cases' && (
               <button
                 onClick={() => setEditingItem({ id: 'new' })}
@@ -148,7 +165,8 @@ const ItemManager = ({ product, section, onBack }) => {
                 sectionType={section.section_type}
                 onEdit={() => setEditingItem(item)}
                 onDelete={() => handleDelete(item.id)}
-                showDelete={section.section_type === 'use_cases'}
+                onToggleVisibility={() => handleToggleVisibility(item.id)}
+                showDelete={section.section_type === 'use_cases' || section.section_type === 'media_banner'}
               />
             ))}
           </div>
@@ -181,7 +199,7 @@ const ItemManager = ({ product, section, onBack }) => {
 };
 
 // Item Card Component - shows preview based on type
-const ItemCard = ({ item, sectionType, onEdit, onDelete, showDelete = false }) => {
+const ItemCard = ({ item, sectionType, onEdit, onDelete, onToggleVisibility, showDelete = false }) => {
   const renderPreview = () => {
     // Parse content if it's JSON
     let content = {};
@@ -200,7 +218,7 @@ const ItemCard = ({ item, sectionType, onEdit, onDelete, showDelete = false }) =
             {content.features && <div><strong>Features:</strong> {content.features.length} items</div>}
           </div>
         );
-      
+
       case 'hero':
         if (item.item_type === 'stat') {
           return <div className="text-xs text-gray-600 mt-2">Value: <strong>{item.value}</strong> • Label: {item.label}</div>;
@@ -243,6 +261,11 @@ const ItemCard = ({ item, sectionType, onEdit, onDelete, showDelete = false }) =
                 {item.item_type}
               </span>
             )}
+            {item.is_visible === 0 && (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium">
+                Hidden
+              </span>
+            )}
             {item.icon && (
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                 {item.icon}
@@ -261,7 +284,19 @@ const ItemCard = ({ item, sectionType, onEdit, onDelete, showDelete = false }) =
           >
             <PencilIcon className="w-4 h-4" />
           </button>
-          
+
+          <button
+            onClick={onToggleVisibility}
+            className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            title={item.is_visible === 1 ? 'Hide' : 'Show'}
+          >
+            {item.is_visible === 1 ? (
+              <EyeSlashIcon className="w-4 h-4" />
+            ) : (
+              <EyeIcon className="w-4 h-4" />
+            )}
+          </button>
+
           {/* Delete button - Only for use_cases section */}
           {showDelete && (
             <button

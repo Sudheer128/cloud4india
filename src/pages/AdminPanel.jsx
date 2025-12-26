@@ -20,11 +20,19 @@ import {
   createFeatureBanner,
   updateFeatureBanner,
   deleteFeatureBanner,
-  toggleFeatureBannerVisibility
+  toggleFeatureBannerVisibility,
+  // Client Logos API functions
+  getAdminClientLogos,
+  createClientLogo,
+  updateClientLogo,
+  deleteClientLogo,
+  toggleClientLogoVisibility
 } from '../services/cmsApi';
 import PricingAdmin from './PricingAdmin';
 import { toSlug } from '../utils/slugUtils';
 import { PencilSquareIcon, TrashIcon, PlusIcon, XMarkIcon, DocumentDuplicateIcon, DocumentTextIcon, EyeIcon, EyeSlashIcon, CheckIcon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { uploadImage } from '../services/uploadApi';
+import { CMS_URL } from '../utils/config';
 
 // Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -91,20 +99,23 @@ const AdminPanel = () => {
   const [editingMarketplace, setEditingMarketplace] = useState(null);
   const [comprehensiveSectionData, setComprehensiveSectionData] = useState(null);
   const [featureBanners, setFeatureBanners] = useState([]);
+  const [clientLogos, setClientLogos] = useState([]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [homepage, marketplacesData, comprehensiveData, bannersData] = await Promise.all([
+      const [homepage, marketplacesData, comprehensiveData, bannersData, logosData] = await Promise.all([
         getHomepageContent(),
         getAdminMarketplaces(),
         getComprehensiveSectionContent(),
-        getAllFeatureBanners()
+        getAllFeatureBanners(),
+        getAdminClientLogos()
       ]);
       setHomepageData(homepage);
       setMarketplaces(marketplacesData);
       setComprehensiveSectionData(comprehensiveData);
       setFeatureBanners(bannersData);
+      setClientLogos(logosData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -285,6 +296,48 @@ const AdminPanel = () => {
     }
   };
 
+  // Client Logos Handlers
+  const handleCreateClientLogo = async (logoData) => {
+    try {
+      await createClientLogo(logoData);
+      await fetchData();
+      alert('Client logo created successfully!');
+    } catch (err) {
+      alert('Error creating client logo: ' + err.message);
+    }
+  };
+
+  const handleUpdateClientLogo = async (id, logoData) => {
+    try {
+      await updateClientLogo(id, logoData);
+      await fetchData();
+      alert('Client logo updated successfully!');
+    } catch (err) {
+      alert('Error updating client logo: ' + err.message);
+    }
+  };
+
+  const handleDeleteClientLogo = async (id) => {
+    if (window.confirm('Are you sure you want to delete this client logo?')) {
+      try {
+        await deleteClientLogo(id);
+        await fetchData();
+        alert('Client logo deleted successfully!');
+      } catch (err) {
+        alert('Error deleting client logo: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggleClientLogoVisibility = async (id) => {
+    try {
+      await toggleClientLogoVisibility(id);
+      await fetchData();
+    } catch (err) {
+      alert('Error toggling client logo visibility: ' + err.message);
+    }
+  };
+
   // Marketplaces Handlers for Home Page Management
   const handleToggleMarketplaceVisibility = async (marketplace) => {
     try {
@@ -398,6 +451,11 @@ const AdminPanel = () => {
             onUpdateFeatureBanner={handleUpdateFeatureBanner}
             onDeleteFeatureBanner={handleDeleteFeatureBanner}
             onToggleFeatureBannerVisibility={handleToggleFeatureBannerVisibility}
+            clientLogos={clientLogos}
+            onCreateClientLogo={handleCreateClientLogo}
+            onUpdateClientLogo={handleUpdateClientLogo}
+            onDeleteClientLogo={handleDeleteClientLogo}
+            onToggleClientLogoVisibility={handleToggleClientLogoVisibility}
           />
           )}
           
@@ -445,7 +503,12 @@ const HomePageManagement = ({
   onCreateFeatureBanner,
   onUpdateFeatureBanner,
   onDeleteFeatureBanner,
-  onToggleFeatureBannerVisibility
+  onToggleFeatureBannerVisibility,
+  clientLogos,
+  onCreateClientLogo,
+  onUpdateClientLogo,
+  onDeleteClientLogo,
+  onToggleClientLogoVisibility
 }) => {
   return (
     <div>
@@ -454,6 +517,7 @@ const HomePageManagement = ({
         <nav className="flex gap-2 bg-white/60 border border-gray-200 rounded-xl p-1 w-fit">
           {[
             { id: 'hero', label: 'Hero Section' },
+            { id: 'client-logos', label: 'Client Logos' },
             { id: 'why', label: 'Why Items' },
             { id: 'sections-config', label: 'Section Headings' },
             { id: 'comprehensive', label: 'Comprehensive Section' },
@@ -480,6 +544,16 @@ const HomePageManagement = ({
           <HeroEditor 
             hero={homepageData?.hero} 
             onUpdate={onUpdateHero}
+          />
+        )}
+
+        {activeTab === 'client-logos' && (
+          <ClientLogosEditor 
+            logos={clientLogos}
+            onCreate={onCreateClientLogo}
+            onUpdate={onUpdateClientLogo}
+            onDelete={onDeleteClientLogo}
+            onToggleVisibility={onToggleClientLogoVisibility}
           />
         )}
         
@@ -1867,6 +1941,27 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
     }
   };
 
+  const handleToggleItemVisibility = async (itemId) => {
+    try {
+      const apiPath = `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items/${itemId}/toggle-visibility`;
+      const response = await fetch(apiPath, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await loadItems(); // Reload items
+    } catch (err) {
+      console.error('Error toggling item visibility:', err);
+      alert('Failed to toggle item visibility. Please try again.');
+    }
+  };
+
   const itemTypes = [
     { value: 'benefit', label: 'Benefit Card' },
     { value: 'feature', label: 'Feature' },
@@ -1951,6 +2046,11 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
                           }`}>
                             {itemTypes.find(t => t.value === item.item_type)?.label || item.item_type}
                           </span>
+                          {item.is_visible === 0 && (
+                            <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium mr-3">
+                              Hidden
+                            </span>
+                          )}
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                             Order: {item.order_index}
                           </span>
@@ -1986,14 +2086,36 @@ const SectionItemsManager = ({ section, marketplaceId, onCancel, onClose }) => {
                       <div className="flex space-x-2 ml-4">
                         <button
                           onClick={() => setEditingItem(item.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                          className="text-blue-600 hover:text-blue-800 text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
                         >
+                          <PencilSquareIcon className="w-4 h-4" />
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                          onClick={() => handleToggleItemVisibility(item.id)}
+                          className={`text-sm px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1 ${
+                            item.is_visible === 1
+                              ? 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                              : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                          }`}
                         >
+                          {item.is_visible === 1 ? (
+                            <>
+                              <EyeSlashIcon className="w-4 h-4" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <EyeIcon className="w-4 h-4" />
+                              Show
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="text-red-600 hover:text-red-800 text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+                        >
+                          <TrashIcon className="w-4 h-4" />
                           Delete
                         </button>
                       </div>
@@ -2771,7 +2893,7 @@ const FeatureBannersEditor = ({
       cta_text: formData.get('cta_text'),
       cta_link: formData.get('cta_link'),
       order_index: parseInt(formData.get('order_index')) || banners.length + 1,
-      is_visible: formData.get('is_visible') === 'on' ? 1 : 0
+      is_visible: 1  // Always visible when created
     };
     onCreate(bannerData);
     setShowCreateForm(false);
@@ -2788,7 +2910,7 @@ const FeatureBannersEditor = ({
       cta_text: formData.get('cta_text'),
       cta_link: formData.get('cta_link'),
       order_index: parseInt(formData.get('order_index')) || banner.order_index,
-      is_visible: formData.get('is_visible') === 'on' ? 1 : 0
+      is_visible: banner.is_visible  // Preserve existing visibility state
     };
     onUpdate(banner.id, bannerData);
     setEditingBanner(null);
@@ -2869,15 +2991,6 @@ const FeatureBannersEditor = ({
                 />
               </div>
             </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="is_visible"
-                defaultChecked
-                className="mr-2"
-              />
-              <label className="text-sm text-gray-700">Visible</label>
-            </div>
             <button
               type="submit"
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -2953,15 +3066,6 @@ const FeatureBannersEditor = ({
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="is_visible"
-                    defaultChecked={banner.is_visible === 1}
-                    className="mr-2"
-                  />
-                  <label className="text-sm text-gray-700">Visible</label>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -3041,6 +3145,283 @@ const FeatureBannersEditor = ({
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+// Client Logos Editor Component
+const ClientLogosEditor = ({ logos, onCreate, onUpdate, onDelete, onToggleVisibility }) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingLogo, setEditingLogo] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    logo_path: '',
+    alt_text: ''
+  });
+
+  const handleImageUpload = async (file) => {
+    try {
+      setUploading(true);
+      const response = await uploadImage(file);
+      // Extract just the path from the full URL (remove CMS_URL prefix)
+      const path = response.filePath.replace(CMS_URL, '');
+      setFormData({ ...formData, logo_path: path });
+      return path;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Error uploading image: ' + error.message);
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.logo_path || !formData.alt_text) {
+      alert('Please upload an image and enter alt text');
+      return;
+    }
+    await onCreate(formData);
+    setShowCreateForm(false);
+    setFormData({ logo_path: '', alt_text: '' });
+    e.target.reset();
+  };
+
+  const handleUpdateSubmit = async (e, logo) => {
+    e.preventDefault();
+    const formDataObj = new FormData(e.target);
+    const logoData = {
+      logo_path: formData.logo_path || logo.logo_path,
+      alt_text: formDataObj.get('alt_text') || logo.alt_text
+    };
+    await onUpdate(logo.id, logoData);
+    setEditingLogo(null);
+    setFormData({ logo_path: '', alt_text: '' });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Client Logos</h2>
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
+        >
+          <PlusIcon className="w-5 h-5" />
+          {showCreateForm ? 'Cancel' : 'Add New Logo'}
+        </button>
+      </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold mb-4">Create New Logo</h3>
+          <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo Image *</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) handleImageUpload(file);
+                }}
+                disabled={uploading}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+              {formData.logo_path && (
+                <div className="mt-2">
+                  <img 
+                    src={`${CMS_URL}${formData.logo_path}`} 
+                    alt="Preview" 
+                    className="h-20 object-contain border border-gray-200 rounded p-2"
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alt Text *</label>
+              <input
+                type="text"
+                value={formData.alt_text}
+                onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter alt text for the logo"
+                required
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={uploading || !formData.logo_path || !formData.alt_text}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Create Logo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setFormData({ logo_path: '', alt_text: '' });
+                }}
+                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Logos List */}
+      <div className="space-y-4">
+        {logos && logos.length > 0 ? (
+          logos.map((logo) => (
+            <div key={logo.id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+              {editingLogo === logo.id ? (
+                <form onSubmit={(e) => handleUpdateSubmit(e, logo)} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo Image</label>
+                    {formData.logo_path ? (
+                      <div className="mb-2">
+                        <img 
+                          src={`${CMS_URL}${formData.logo_path}`} 
+                          alt="Preview" 
+                          className="h-20 object-contain border border-gray-200 rounded p-2"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-2">
+                        <img 
+                          src={`${CMS_URL}${logo.logo_path}`} 
+                          alt={logo.alt_text} 
+                          className="h-20 object-contain border border-gray-200 rounded p-2"
+                        />
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                      disabled={uploading}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {uploading && <p className="text-sm text-gray-500 mt-1">Uploading...</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Alt Text</label>
+                    <input
+                      type="text"
+                      name="alt_text"
+                      defaultValue={logo.alt_text}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={uploading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLogo(null);
+                        setFormData({ logo_path: '', alt_text: '' });
+                      }}
+                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        {logo.is_visible === 0 && (
+                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">
+                            Hidden
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">Order: {logo.order_index}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <img 
+                          src={`${CMS_URL}${logo.logo_path}`} 
+                          alt={logo.alt_text} 
+                          className="h-20 object-contain border border-gray-200 rounded p-2 bg-gray-50"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const fallback = document.createElement('div');
+                            fallback.className = 'h-20 flex items-center justify-center border border-gray-200 rounded p-2 bg-gray-50 text-gray-400 text-sm';
+                            fallback.textContent = logo.alt_text || 'Logo';
+                            e.target.parentNode.appendChild(fallback);
+                          }}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Alt Text:</p>
+                          <p className="text-sm text-gray-600">{logo.alt_text}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => onToggleVisibility(logo.id)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg ${
+                          logo.is_visible === 1
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {logo.is_visible === 1 ? (
+                          <>
+                            <EyeIcon className="w-4 h-4" />
+                            Visible
+                          </>
+                        ) : (
+                          <>
+                            <EyeSlashIcon className="w-4 h-4" />
+                            Hidden
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setEditingLogo(logo.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                      >
+                        <PencilSquareIcon className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onDelete(logo.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+            <p className="text-gray-500">No client logos yet. Click "Add New Logo" to get started.</p>
+          </div>
+        )}
       </div>
     </div>
   );
