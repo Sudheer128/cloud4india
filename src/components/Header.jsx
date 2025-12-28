@@ -169,7 +169,7 @@ const Header = () => {
                 Homepage
               </Link>
               <Link
-                to="/about"
+                to="/about-us"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
               >
