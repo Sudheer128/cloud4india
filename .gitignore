@@ -4,102 +4,37 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Production builds
+# Build outputs
 dist/
 build/
+.vite/
 
 # Environment variables
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.production
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
+# Persistent data (DO NOT commit to git)
+cloud4india-cms-data/
+cloud4india-cms-uploads/
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # Logs
-logs
+logs/
 *.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# next.js build output
-.next
-
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# Database files (excluding CMS content database)
-# *.db
-# *.sqlite
-# *.sqlite3
-
-# Keep CMS database for deployment
-!cloud4india-cms/cms.db
-
-# Temporary files
-*.tmp
-*.temp
-
-# PowerShell scripts (optional - remove if you want to keep them)
-*.ps1
-
-# Test files
-admin-panel-test.html
+backups/*.zip

@@ -204,7 +204,7 @@ function SaveQuoteModal({ onClose, items, subtotal, taxAmount, grandTotal }) {
                 clearCart();
                 alert(`Quotation ${data.quote_number} created and downloaded successfully!`);
                 onClose();
-                navigate('/admin/quotations');
+                navigate('/rohit/quotations');
             }
         } catch (error) {
             alert('Error creating quotation');

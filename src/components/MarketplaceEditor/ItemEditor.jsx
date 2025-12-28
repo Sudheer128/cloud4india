@@ -144,12 +144,18 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
         featuresField = JSON.stringify(contentJSON.features);
       }
 
+      // Build payload - exclude order_index for new items so backend can auto-calculate
       const payload = {
         ...formData,
         content: finalContent || null,
         features: featuresField,
         is_visible: item?.is_visible !== undefined ? item.is_visible : 1 // Default to visible for new items
       };
+
+      // Remove order_index for new items (let backend auto-calculate next order)
+      if (!item) {
+        delete payload.order_index;
+      }
 
       console.log('Saving payload:', payload);
       console.log('Payload content field:', payload.content);

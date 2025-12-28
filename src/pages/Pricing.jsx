@@ -103,28 +103,40 @@ const Pricing = () => {
       name: p.name,
       vcpu: p.vcpu,
       memory: p.memory,
-      monthlyPrice: p.monthly_price,
+      monthlyPrice: p.monthly_discounted_price || p.monthly_price,
+      monthlyOriginalPrice: p.monthly_discount_percent > 0 ? p.monthly_price : null,
+      monthlyDiscountPercent: p.monthly_discount_percent || 0,
       hourlyPrice: p.hourly_price,
       quarterlyPrice: p.quarterly_price || 'N/A',
-      yearlyPrice: p.yearly_price || 'N/A'
+      yearlyPrice: p.yearly_discounted_price || p.yearly_price || 'N/A',
+      yearlyOriginalPrice: p.yearly_discount_percent > 0 ? p.yearly_price : null,
+      yearlyDiscountPercent: p.yearly_discount_percent || 0
     })),
     cpuIntensive: computePlansData.filter(p => p.plan_type === 'cpuIntensive').map(p => ({
       name: p.name,
       vcpu: p.vcpu,
       memory: p.memory,
-      monthlyPrice: p.monthly_price,
+      monthlyPrice: p.monthly_discounted_price || p.monthly_price,
+      monthlyOriginalPrice: p.monthly_discount_percent > 0 ? p.monthly_price : null,
+      monthlyDiscountPercent: p.monthly_discount_percent || 0,
       hourlyPrice: p.hourly_price,
       quarterlyPrice: p.quarterly_price || 'N/A',
-      yearlyPrice: p.yearly_price || 'N/A'
+      yearlyPrice: p.yearly_discounted_price || p.yearly_price || 'N/A',
+      yearlyOriginalPrice: p.yearly_discount_percent > 0 ? p.yearly_price : null,
+      yearlyDiscountPercent: p.yearly_discount_percent || 0
     })),
     memoryIntensive: computePlansData.filter(p => p.plan_type === 'memoryIntensive').map(p => ({
       name: p.name,
       vcpu: p.vcpu,
       memory: p.memory,
-      monthlyPrice: p.monthly_price,
+      monthlyPrice: p.monthly_discounted_price || p.monthly_price,
+      monthlyOriginalPrice: p.monthly_discount_percent > 0 ? p.monthly_price : null,
+      monthlyDiscountPercent: p.monthly_discount_percent || 0,
       hourlyPrice: p.hourly_price,
       quarterlyPrice: p.quarterly_price || 'N/A',
-      yearlyPrice: p.yearly_price || 'N/A'
+      yearlyPrice: p.yearly_discounted_price || p.yearly_price || 'N/A',
+      yearlyOriginalPrice: p.yearly_discount_percent > 0 ? p.yearly_price : null,
+      yearlyDiscountPercent: p.yearly_discount_percent || 0
     }))
   }
 
@@ -133,10 +145,14 @@ const Pricing = () => {
     name: offering.name,
     storageType: offering.storage_type,
     size: offering.size,
-    monthlyPrice: offering.monthly_price,
+    monthlyPrice: offering.monthly_discounted_price || offering.monthly_price,
+    monthlyOriginalPrice: offering.monthly_discount_percent > 0 ? offering.monthly_price : null,
+    monthlyDiscountPercent: offering.monthly_discount_percent || 0,
     hourlyPrice: offering.hourly_price,
     quarterlyPrice: offering.quarterly_price || 'N/A',
-    yearlyPrice: offering.yearly_price || 'N/A'
+    yearlyPrice: offering.yearly_discounted_price || offering.yearly_price || 'N/A',
+    yearlyOriginalPrice: offering.yearly_discount_percent > 0 ? offering.yearly_price : null,
+    yearlyDiscountPercent: offering.yearly_discount_percent || 0
   }))
 
   const PricingCard = ({ plan, isPopular = false, isFirst = false, isLast = false, cardType = 'compute' }) => {
@@ -414,8 +430,18 @@ const Pricing = () => {
                                   <div className="text-xs text-gray-500">/Hour</div>
                                 </div>
                                 <div className="text-center min-w-[110px]">
-                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.monthlyPrice}</div>
-                                  <div className="text-xs text-gray-500">/Month</div>
+                                  {plan.monthlyOriginalPrice ? (
+                                    <div>
+                                      <div className="line-through text-gray-400 text-xs">{plan.monthlyOriginalPrice}</div>
+                                      <div className="font-bold text-base md:text-lg text-green-600">{plan.monthlyPrice}</div>
+                                      <div className="text-xs text-green-600">({plan.monthlyDiscountPercent}% off)</div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="font-bold text-base md:text-lg text-gray-900">{plan.monthlyPrice}</div>
+                                      <div className="text-xs text-gray-500">/Month</div>
+                                    </>
+                                  )}
                                 </div>
                                 {SHOW_QUARTERLY_COLUMN && (
                                   <div className="text-center min-w-[120px]">
@@ -424,8 +450,18 @@ const Pricing = () => {
                                   </div>
                                 )}
                                 <div className="text-center min-w-[110px]">
-                                  <div className="font-bold text-base md:text-lg text-gray-900">{plan.yearlyPrice}</div>
-                                  <div className="text-xs text-gray-500">/Year</div>
+                                  {plan.yearlyOriginalPrice ? (
+                                    <div>
+                                      <div className="line-through text-gray-400 text-xs">{plan.yearlyOriginalPrice}</div>
+                                      <div className="font-bold text-base md:text-lg text-green-600">{plan.yearlyPrice}</div>
+                                      <div className="text-xs text-green-600">({plan.yearlyDiscountPercent}% off)</div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="font-bold text-base md:text-lg text-gray-900">{plan.yearlyPrice}</div>
+                                      <div className="text-xs text-gray-500">/Year</div>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>

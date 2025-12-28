@@ -20,6 +20,7 @@ const AdminSidebar = () => {
   const SHOW_MARKETPLACE_MAIN = false
   const SHOW_SOLUTIONS = false
   const SHOW_SOLUTIONS_MAIN = false
+  const SHOW_QUOTATIONS = false
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
@@ -30,99 +31,99 @@ const AdminSidebar = () => {
       id: 'home',
       label: 'Home Page',
       icon: HomeIcon,
-      path: '/admin',
-      matchPaths: ['/admin']
+      path: '/rohit',
+      matchPaths: ['/rohit']
     },
     {
       id: 'marketplace',
       label: 'Marketplace',
       icon: Squares2X2Icon,
-      path: '/admin/marketplace',
-      matchPaths: ['/admin/marketplace']
+      path: '/rohit/marketplace',
+      matchPaths: ['/rohit/marketplace']
     },
     {
       id: 'marketplace-main',
       label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
-      path: '/admin/marketplace-main',
-      matchPaths: ['/admin/marketplace-main']
+      path: '/rohit/marketplace-main',
+      matchPaths: ['/rohit/marketplace-main']
     },
     {
       id: 'products',
       label: 'Products',
       icon: Squares2X2Icon,
-      path: '/admin/products',
-      matchPaths: ['/admin/products']
+      path: '/rohit/products',
+      matchPaths: ['/rohit/products']
     },
     {
       id: 'products-main',
       label: 'Products Main',
       icon: PuzzlePieceIcon,
-      path: '/admin/products-main',
-      matchPaths: ['/admin/products-main']
+      path: '/rohit/products-main',
+      matchPaths: ['/rohit/products-main']
     },
     {
       id: 'solutions',
       label: 'Solutions',
       icon: Squares2X2Icon,
-      path: '/admin/solutions',
-      matchPaths: ['/admin/solutions']
+      path: '/rohit/solutions',
+      matchPaths: ['/rohit/solutions']
     },
     {
       id: 'solutions-main',
       label: 'Solutions Main',
       icon: PuzzlePieceIcon,
-      path: '/admin/solutions-main',
-      matchPaths: ['/admin/solutions-main']
+      path: '/rohit/solutions-main',
+      matchPaths: ['/rohit/solutions-main']
     },
     {
       id: 'pricing',
       label: 'Pricing',
       icon: CurrencyDollarIcon,
-      path: '/admin/pricing',
-      matchPaths: ['/admin/pricing']
+      path: '/rohit/pricing',
+      matchPaths: ['/rohit/pricing']
     },
     {
       id: 'about-us',
       label: 'About Us',
       icon: InformationCircleIcon,
-      path: '/admin/about-us',
-      matchPaths: ['/admin/about-us']
+      path: '/rohit/about-us',
+      matchPaths: ['/rohit/about-us']
     },
     {
       id: 'contact-us',
       label: 'Contact Us',
       icon: EnvelopeIcon,
-      path: '/admin/contact-us',
-      matchPaths: ['/admin/contact-us']
+      path: '/rohit/contact-us',
+      matchPaths: ['/rohit/contact-us']
     },
     {
       id: 'contact-dashboard',
       label: 'Contact (Advanced)',
       icon: ChartBarIcon,
-      path: '/admin/contact-dashboard',
-      matchPaths: ['/admin/contact-dashboard']
+      path: '/rohit/contact-dashboard',
+      matchPaths: ['/rohit/contact-dashboard']
     },
     {
       id: 'contact-dashboard-simple',
       label: 'Contact (Simple)',
       icon: ChartBarIcon,
-      path: '/admin/contact-dashboard-simple',
-      matchPaths: ['/admin/contact-dashboard-simple']
+      path: '/rohit/contact-dashboard-simple',
+      matchPaths: ['/rohit/contact-dashboard-simple']
     },
     {
       id: 'quotations',
       label: 'Quotations',
       icon: DocumentTextIcon,
-      path: '/admin/quotations',
-      matchPaths: ['/admin/quotations']
+      path: '/rohit/quotations',
+      matchPaths: ['/rohit/quotations']
     },
     {
       id: 'integrity',
       label: 'Integrity',
       icon: ShieldCheckIcon,
-      path: '/admin/integrity',
-      matchPaths: ['/admin/integrity']
+      path: '/rohit/integrity',
+      matchPaths: ['/rohit/integrity']
     }
   ].filter(item => {
     // Filter out marketplace items if they should be hidden
@@ -131,6 +132,8 @@ const AdminSidebar = () => {
     // Filter out solutions items if they should be hidden
     if (item.id === 'solutions' && !SHOW_SOLUTIONS) return false;
     if (item.id === 'solutions-main' && !SHOW_SOLUTIONS_MAIN) return false;
+    // Filter out quotations if it should be hidden
+    if (item.id === 'quotations' && !SHOW_QUOTATIONS) return false;
     return true;
   });
 

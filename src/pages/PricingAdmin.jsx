@@ -366,7 +366,11 @@ const PricingAdmin = () => {
       monthly_price: '',
       hourly_price: '',
       quarterly_price: '',
-      yearly_price: ''
+      yearly_price: '',
+      monthly_discount_percent: 0,
+      yearly_discount_percent: 0,
+      monthly_discounted_price: '',
+      yearly_discounted_price: ''
     });
 
     // Handle hourly price change and auto-calculate monthly and yearly
@@ -383,11 +387,46 @@ const PricingAdmin = () => {
       const formattedMonthly = formatPrice(monthlyNumeric);
       const formattedYearly = formatPrice(yearlyNumeric);
       
+      // Recalculate discounted prices if discounts are set
+      const monthlyDiscountPercent = formData.monthly_discount_percent || 0;
+      const yearlyDiscountPercent = formData.yearly_discount_percent || 0;
+      
+      const monthlyDiscountedNumeric = monthlyNumeric * (1 - monthlyDiscountPercent / 100);
+      const yearlyDiscountedNumeric = yearlyNumeric * (1 - yearlyDiscountPercent / 100);
+      
       setFormData({
         ...formData,
         hourly_price: hourlyPrice,
         monthly_price: formattedMonthly,
-        yearly_price: formattedYearly
+        yearly_price: formattedYearly,
+        monthly_discounted_price: monthlyDiscountPercent > 0 ? formatPrice(monthlyDiscountedNumeric) : '',
+        yearly_discounted_price: yearlyDiscountPercent > 0 ? formatPrice(yearlyDiscountedNumeric) : ''
+      });
+    };
+
+    // Handle monthly discount change
+    const handleMonthlyDiscountChange = (discountPercent) => {
+      const discount = parseFloat(discountPercent) || 0;
+      const monthlyNumeric = extractNumericValue(formData.monthly_price);
+      const discountedPrice = monthlyNumeric * (1 - discount / 100);
+      
+      setFormData({
+        ...formData,
+        monthly_discount_percent: discount,
+        monthly_discounted_price: discount > 0 ? formatPrice(discountedPrice) : ''
+      });
+    };
+
+    // Handle yearly discount change
+    const handleYearlyDiscountChange = (discountPercent) => {
+      const discount = parseFloat(discountPercent) || 0;
+      const yearlyNumeric = extractNumericValue(formData.yearly_price);
+      const discountedPrice = yearlyNumeric * (1 - discount / 100);
+      
+      setFormData({
+        ...formData,
+        yearly_discount_percent: discount,
+        yearly_discounted_price: discount > 0 ? formatPrice(discountedPrice) : ''
       });
     };
 
@@ -401,10 +440,19 @@ const PricingAdmin = () => {
           const formattedMonthly = formatPrice(monthlyNumeric);
           const formattedYearly = formatPrice(yearlyNumeric);
           
+          // Calculate discounted prices if discounts exist
+          const monthlyDiscountPercent = formData.monthly_discount_percent || 0;
+          const yearlyDiscountPercent = formData.yearly_discount_percent || 0;
+          
+          const monthlyDiscountedNumeric = monthlyNumeric * (1 - monthlyDiscountPercent / 100);
+          const yearlyDiscountedNumeric = yearlyNumeric * (1 - yearlyDiscountPercent / 100);
+          
           setFormData(prev => ({
             ...prev,
             monthly_price: formattedMonthly,
-            yearly_price: formattedYearly
+            yearly_price: formattedYearly,
+            monthly_discounted_price: monthlyDiscountPercent > 0 ? formatPrice(monthlyDiscountedNumeric) : '',
+            yearly_discounted_price: yearlyDiscountPercent > 0 ? formatPrice(yearlyDiscountedNumeric) : ''
           }));
         }
       }
@@ -531,6 +579,87 @@ const PricingAdmin = () => {
                 />
               </div>
             )}
+
+            {/* Discount Section */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-md font-semibold text-gray-800 mb-3">💰 Discount Offers (Optional)</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Discount %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.monthly_discount_percent || ''}
+                    onChange={(e) => handleMonthlyDiscountChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monthly Discounted Price
+                    {formData.monthly_discount_percent > 0 && (
+                      <span className="text-xs text-green-600 ml-2">({formData.monthly_discount_percent}% off)</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.monthly_discounted_price || formData.monthly_price}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    placeholder="Auto-calculated with discount"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Discount %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.yearly_discount_percent || ''}
+                    onChange={(e) => handleYearlyDiscountChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., 15"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Yearly Discounted Price
+                    {formData.yearly_discount_percent > 0 && (
+                      <span className="text-xs text-green-600 ml-2">({formData.yearly_discount_percent}% off)</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.yearly_discounted_price || formData.yearly_price}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    placeholder="Auto-calculated with discount"
+                  />
+                </div>
+              </div>
+
+              {(formData.monthly_discount_percent > 0 || formData.yearly_discount_percent > 0) && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Preview:</strong>
+                    {formData.monthly_discount_percent > 0 && (
+                      <span className="ml-2">Monthly: <del className="text-gray-500">{formData.monthly_price}</del> → <strong className="text-green-600">{formData.monthly_discounted_price}</strong></span>
+                    )}
+                    {formData.yearly_discount_percent > 0 && (
+                      <span className="ml-2">Yearly: <del className="text-gray-500">{formData.yearly_price}</del> → <strong className="text-green-600">{formData.yearly_discounted_price}</strong></span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-4 pt-4">
               <button
@@ -563,7 +692,11 @@ const PricingAdmin = () => {
       monthly_price: '',
       hourly_price: '',
       quarterly_price: '',
-      yearly_price: ''
+      yearly_price: '',
+      monthly_discount_percent: 0,
+      yearly_discount_percent: 0,
+      monthly_discounted_price: '',
+      yearly_discounted_price: ''
     });
 
     // Handle hourly price change and auto-calculate monthly and yearly
@@ -580,11 +713,46 @@ const PricingAdmin = () => {
       const formattedMonthly = formatPrice(monthlyNumeric);
       const formattedYearly = formatPrice(yearlyNumeric);
       
+      // Recalculate discounted prices if discounts are set
+      const monthlyDiscountPercent = formData.monthly_discount_percent || 0;
+      const yearlyDiscountPercent = formData.yearly_discount_percent || 0;
+      
+      const monthlyDiscountedNumeric = monthlyNumeric * (1 - monthlyDiscountPercent / 100);
+      const yearlyDiscountedNumeric = yearlyNumeric * (1 - yearlyDiscountPercent / 100);
+      
       setFormData({
         ...formData,
         hourly_price: hourlyPrice,
         monthly_price: formattedMonthly,
-        yearly_price: formattedYearly
+        yearly_price: formattedYearly,
+        monthly_discounted_price: monthlyDiscountPercent > 0 ? formatPrice(monthlyDiscountedNumeric) : '',
+        yearly_discounted_price: yearlyDiscountPercent > 0 ? formatPrice(yearlyDiscountedNumeric) : ''
+      });
+    };
+
+    // Handle monthly discount change
+    const handleMonthlyDiscountChange = (discountPercent) => {
+      const discount = parseFloat(discountPercent) || 0;
+      const monthlyNumeric = extractNumericValue(formData.monthly_price);
+      const discountedPrice = monthlyNumeric * (1 - discount / 100);
+      
+      setFormData({
+        ...formData,
+        monthly_discount_percent: discount,
+        monthly_discounted_price: discount > 0 ? formatPrice(discountedPrice) : ''
+      });
+    };
+
+    // Handle yearly discount change
+    const handleYearlyDiscountChange = (discountPercent) => {
+      const discount = parseFloat(discountPercent) || 0;
+      const yearlyNumeric = extractNumericValue(formData.yearly_price);
+      const discountedPrice = yearlyNumeric * (1 - discount / 100);
+      
+      setFormData({
+        ...formData,
+        yearly_discount_percent: discount,
+        yearly_discounted_price: discount > 0 ? formatPrice(discountedPrice) : ''
       });
     };
 
@@ -598,10 +766,19 @@ const PricingAdmin = () => {
           const formattedMonthly = formatPrice(monthlyNumeric);
           const formattedYearly = formatPrice(yearlyNumeric);
           
+          // Calculate discounted prices if discounts exist
+          const monthlyDiscountPercent = formData.monthly_discount_percent || 0;
+          const yearlyDiscountPercent = formData.yearly_discount_percent || 0;
+          
+          const monthlyDiscountedNumeric = monthlyNumeric * (1 - monthlyDiscountPercent / 100);
+          const yearlyDiscountedNumeric = yearlyNumeric * (1 - yearlyDiscountPercent / 100);
+          
           setFormData(prev => ({
             ...prev,
             monthly_price: formattedMonthly,
-            yearly_price: formattedYearly
+            yearly_price: formattedYearly,
+            monthly_discounted_price: monthlyDiscountPercent > 0 ? formatPrice(monthlyDiscountedNumeric) : '',
+            yearly_discounted_price: yearlyDiscountPercent > 0 ? formatPrice(yearlyDiscountedNumeric) : ''
           }));
         }
       }
@@ -713,6 +890,87 @@ const PricingAdmin = () => {
                 />
               </div>
             )}
+
+            {/* Discount Section */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-md font-semibold text-gray-800 mb-3">💰 Discount Offers (Optional)</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Discount %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.monthly_discount_percent || ''}
+                    onChange={(e) => handleMonthlyDiscountChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monthly Discounted Price
+                    {formData.monthly_discount_percent > 0 && (
+                      <span className="text-xs text-green-600 ml-2">({formData.monthly_discount_percent}% off)</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.monthly_discounted_price || formData.monthly_price}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    placeholder="Auto-calculated with discount"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Yearly Discount %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.yearly_discount_percent || ''}
+                    onChange={(e) => handleYearlyDiscountChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="e.g., 15"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Yearly Discounted Price
+                    {formData.yearly_discount_percent > 0 && (
+                      <span className="text-xs text-green-600 ml-2">({formData.yearly_discount_percent}% off)</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.yearly_discounted_price || formData.yearly_price}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 cursor-not-allowed"
+                    placeholder="Auto-calculated with discount"
+                  />
+                </div>
+              </div>
+
+              {(formData.monthly_discount_percent > 0 || formData.yearly_discount_percent > 0) && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Preview:</strong>
+                    {formData.monthly_discount_percent > 0 && (
+                      <span className="ml-2">Monthly: <del className="text-gray-500">{formData.monthly_price}</del> → <strong className="text-green-600">{formData.monthly_discounted_price}</strong></span>
+                    )}
+                    {formData.yearly_discount_percent > 0 && (
+                      <span className="ml-2">Yearly: <del className="text-gray-500">{formData.yearly_price}</del> → <strong className="text-green-600">{formData.yearly_discounted_price}</strong></span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-4 pt-4">
               <button
@@ -1166,9 +1424,29 @@ const PricingAdmin = () => {
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.vcpu}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.memory}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{plan.hourly_price}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{plan.monthly_price}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {plan.monthly_discount_percent > 0 ? (
+                              <div>
+                                <del className="text-gray-500 text-xs">{plan.monthly_price}</del>
+                                <div className="font-semibold text-green-600">{plan.monthly_discounted_price}</div>
+                                <span className="text-xs text-green-600">({plan.monthly_discount_percent}% off)</span>
+                              </div>
+                            ) : (
+                              plan.monthly_price
+                            )}
+                          </td>
                           {SHOW_QUARTERLY_COLUMN && <td className="px-4 py-3 text-sm text-gray-900">{plan.quarterly_price || '-'}</td>}
-                          <td className="px-4 py-3 text-sm text-gray-900">{plan.yearly_price || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {plan.yearly_discount_percent > 0 ? (
+                              <div>
+                                <del className="text-gray-500 text-xs">{plan.yearly_price}</del>
+                                <div className="font-semibold text-green-600">{plan.yearly_discounted_price}</div>
+                                <span className="text-xs text-green-600">({plan.yearly_discount_percent}% off)</span>
+                              </div>
+                            ) : (
+                              plan.yearly_price || '-'
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <button
@@ -1236,9 +1514,29 @@ const PricingAdmin = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.storage_type}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.size}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{offering.hourly_price}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{offering.monthly_price}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {offering.monthly_discount_percent > 0 ? (
+                          <div>
+                            <del className="text-gray-500 text-xs">{offering.monthly_price}</del>
+                            <div className="font-semibold text-green-600">{offering.monthly_discounted_price}</div>
+                            <span className="text-xs text-green-600">({offering.monthly_discount_percent}% off)</span>
+                          </div>
+                        ) : (
+                          offering.monthly_price
+                        )}
+                      </td>
                       {SHOW_QUARTERLY_COLUMN && <td className="px-4 py-3 text-sm text-gray-900">{offering.quarterly_price || '-'}</td>}
-                      <td className="px-4 py-3 text-sm text-gray-900">{offering.yearly_price || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {offering.yearly_discount_percent > 0 ? (
+                          <div>
+                            <del className="text-gray-500 text-xs">{offering.yearly_price}</del>
+                            <div className="font-semibold text-green-600">{offering.yearly_discounted_price}</div>
+                            <span className="text-xs text-green-600">({offering.yearly_discount_percent}% off)</span>
+                          </div>
+                        ) : (
+                          offering.yearly_price || '-'
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
                           <button

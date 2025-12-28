@@ -93,10 +93,16 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
         finalContent = JSON.stringify(contentJSON);
       }
 
+      // Build payload - exclude order_index for new items so backend can auto-calculate
       const payload = {
         ...formData,
         content: finalContent || null
       };
+
+      // Remove order_index for new items (let backend auto-calculate next order)
+      if (!item) {
+        delete payload.order_index;
+      }
 
       const url = item
         ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${sectionId}/items/${item.id}`

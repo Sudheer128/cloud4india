@@ -609,7 +609,7 @@ const MarketplacesManagement = ({ marketplaces, onDuplicateMarketplace, onDelete
                 <div className="text-xs text-gray-500 mt-2 md:mt-0">/marketplace/{toSlug(marketplace.name)}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
-                    onClick={() => navigate(`/admin/marketplaces-new/${marketplace.id}`)}
+                    onClick={() => navigate(`/rohit/marketplaces-new/${marketplace.id}`)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
                     title="Edit Marketplace App - New Interface"
                     aria-label="Edit Marketplace App - New Interface"

@@ -46,7 +46,7 @@ import PriceEstimatorAdmin from './pages/PriceEstimatorAdmin'
 
 function AppContent() {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith('/rohit');
   const isLoginRoute = location.pathname === '/login';
   const showHeaderFooter = !isAdminRoute && !isLoginRoute;
 
@@ -72,7 +72,7 @@ function AppContent() {
           {/* Login route */}
           <Route path="/login" element={<Login />} />
           {/* Admin routes with unified layout - Protected */}
-          <Route path="/admin" element={
+          <Route path="/rohit" element={
             <ProtectedRoute>
               <UnifiedAdminLayout />
             </ProtectedRoute>

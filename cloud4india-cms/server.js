@@ -5299,6 +5299,56 @@ db.serialize(() => {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Add discount columns to compute_plans if they don't exist
+  db.run(`ALTER TABLE compute_plans ADD COLUMN monthly_discount_percent REAL DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding monthly_discount_percent to compute_plans:', err.message);
+    }
+  });
+  
+  db.run(`ALTER TABLE compute_plans ADD COLUMN yearly_discount_percent REAL DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding yearly_discount_percent to compute_plans:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE compute_plans ADD COLUMN monthly_discounted_price TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding monthly_discounted_price to compute_plans:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE compute_plans ADD COLUMN yearly_discounted_price TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding yearly_discounted_price to compute_plans:', err.message);
+    }
+  });
+
+  // Add discount columns to disk_offerings if they don't exist
+  db.run(`ALTER TABLE disk_offerings ADD COLUMN monthly_discount_percent REAL DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding monthly_discount_percent to disk_offerings:', err.message);
+    }
+  });
+  
+  db.run(`ALTER TABLE disk_offerings ADD COLUMN yearly_discount_percent REAL DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding yearly_discount_percent to disk_offerings:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE disk_offerings ADD COLUMN monthly_discounted_price TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding monthly_discounted_price to disk_offerings:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE disk_offerings ADD COLUMN yearly_discounted_price TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding yearly_discounted_price to disk_offerings:', err.message);
+    }
+  });
+
   // Seed default compute plans data if table is empty
   db.get('SELECT COUNT(*) as count FROM compute_plans', (err, row) => {
     if (err) {
@@ -5413,7 +5463,8 @@ app.get('/api/pricing/compute-plans', (req, res) => {
 
 // Create compute plan
 app.post('/api/pricing/compute-plans', (req, res) => {
-  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index, 
+          monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price } = req.body;
 
   db.get('SELECT MAX(order_index) as max_order FROM compute_plans WHERE plan_type = ?', [plan_type], (err, result) => {
     if (err) {
@@ -5423,9 +5474,11 @@ app.post('/api/pricing/compute-plans', (req, res) => {
 
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
 
-    db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
+    db.run(`INSERT INTO compute_plans (plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index,
+            monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder,
+       monthly_discount_percent || 0, yearly_discount_percent || 0, monthly_discounted_price || null, yearly_discounted_price || null],
       function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -5439,13 +5492,18 @@ app.post('/api/pricing/compute-plans', (req, res) => {
 // Update compute plan
 app.put('/api/pricing/compute-plans/:id', (req, res) => {
   const { id } = req.params;
-  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
+  const { plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index,
+          monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price } = req.body;
 
   db.run(`UPDATE compute_plans SET
           plan_type = ?, name = ?, vcpu = ?, memory = ?, monthly_price = ?, hourly_price = ?,
-          quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
+          quarterly_price = ?, yearly_price = ?, order_index = ?, 
+          monthly_discount_percent = ?, yearly_discount_percent = ?, 
+          monthly_discounted_price = ?, yearly_discounted_price = ?,
+          updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
-    [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
+    [plan_type, name, vcpu, memory, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0,
+     monthly_discount_percent || 0, yearly_discount_percent || 0, monthly_discounted_price || null, yearly_discounted_price || null, id],
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -5481,7 +5539,8 @@ app.get('/api/pricing/disk-offerings', (req, res) => {
 
 // Create disk offering
 app.post('/api/pricing/disk-offerings', (req, res) => {
-  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
+  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index,
+          monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price } = req.body;
 
   db.get('SELECT MAX(order_index) as max_order FROM disk_offerings', (err, result) => {
     if (err) {
@@ -5491,9 +5550,11 @@ app.post('/api/pricing/disk-offerings', (req, res) => {
 
     const nextOrder = order_index !== undefined ? order_index : ((result?.max_order || -1) + 1);
 
-    db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder],
+    db.run(`INSERT INTO disk_offerings (name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index,
+            monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, nextOrder,
+       monthly_discount_percent || 0, yearly_discount_percent || 0, monthly_discounted_price || null, yearly_discounted_price || null],
       function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -5507,13 +5568,18 @@ app.post('/api/pricing/disk-offerings', (req, res) => {
 // Update disk offering
 app.put('/api/pricing/disk-offerings/:id', (req, res) => {
   const { id } = req.params;
-  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index } = req.body;
+  const { name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index,
+          monthly_discount_percent, yearly_discount_percent, monthly_discounted_price, yearly_discounted_price } = req.body;
 
   db.run(`UPDATE disk_offerings SET
           name = ?, storage_type = ?, size = ?, monthly_price = ?, hourly_price = ?,
-          quarterly_price = ?, yearly_price = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP
+          quarterly_price = ?, yearly_price = ?, order_index = ?, 
+          monthly_discount_percent = ?, yearly_discount_percent = ?, 
+          monthly_discounted_price = ?, yearly_discounted_price = ?,
+          updated_at = CURRENT_TIMESTAMP
           WHERE id = ?`,
-    [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0, id],
+    [name, storage_type, size, monthly_price, hourly_price, quarterly_price, yearly_price, order_index || 0,
+     monthly_discount_percent || 0, yearly_discount_percent || 0, monthly_discounted_price || null, yearly_discounted_price || null, id],
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });

@@ -10,8 +10,8 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get the redirect path from location state, or default to /admin
-  const from = location.state?.from?.pathname || '/admin';
+  // Get the redirect path from location state, or default to /rohit
+  const from = location.state?.from?.pathname || '/rohit';
 
   // Redirect if already authenticated
   useEffect(() => {
