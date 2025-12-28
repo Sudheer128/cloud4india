@@ -30,24 +30,24 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
       id: 'home',
       label: 'Home Page',
       icon: HomeIcon,
-      href: '/admin',
+      href: '/rohit',
       isActive: activeSection === 'home'
     },
     {
       id: 'marketplace',
       label: 'Marketplace',
       icon: Squares2X2Icon,
-      href: '/admin',
+      href: '/rohit',
       isActive: activeSection === 'marketplace',
       onClick: () => {
         // This will be handled by the parent component
-        if (window.location.pathname === '/admin') {
+        if (window.location.pathname === '/rohit') {
           // If we're on the main admin page, trigger the marketplace section
           const event = new CustomEvent('admin-navigate', { detail: { section: 'marketplace' } });
           window.dispatchEvent(event);
         } else {
           // If we're on a different admin page, navigate to main admin
-          window.location.href = '/admin#marketplace';
+          window.location.href = '/rohit#marketplace';
         }
       }
     },
@@ -55,21 +55,21 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
       id: 'marketplace-main',
       label: 'Marketplace Main',
       icon: PuzzlePieceIcon,
-      href: '/admin/marketplace-main',
+      href: '/rohit/marketplace-main',
       isActive: activeSection === 'marketplace-main'
     },
     {
       id: 'quotations',
       label: 'Quotations',
       icon: DocumentTextIcon,
-      href: '/admin/quotations',
+      href: '/rohit/quotations',
       isActive: activeSection === 'quotations'
     },
     {
       id: 'price-estimator-config',
       label: 'Price Estimator',
       icon: CalculatorIcon,
-      href: '/admin/price-estimator-config',
+      href: '/rohit/price-estimator-config',
       isActive: activeSection === 'price-estimator-config'
     }
   ];

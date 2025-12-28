@@ -133,8 +133,8 @@ const AdminPanel = () => {
       } else if (hash === 'pricing') {
         setActiveSection('pricing');
       } else {
-        // If no hash and we're on /admin, show home section
-        if (location.pathname === '/admin') {
+        // If no hash and we're on /rohit, show home section
+        if (location.pathname === '/rohit') {
           setActiveSection('home');
         }
       }

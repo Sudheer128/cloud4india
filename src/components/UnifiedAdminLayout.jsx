@@ -13,25 +13,25 @@ const UnifiedAdminLayout = () => {
     const path = location.pathname;
 
     switch (path) {
-      case '/admin':
+      case '/rohit':
         return 'Home Page Management';
-      case '/admin/marketplace':
+      case '/rohit/marketplace':
         return 'Marketplace Management';
-      case '/admin/marketplace-main':
+      case '/rohit/marketplace-main':
         return 'Marketplace Main Page';
-      case '/admin/products':
+      case '/rohit/products':
         return 'Products Management';
-      case '/admin/products-main':
+      case '/rohit/products-main':
         return 'Products Main Page';
-      case '/admin/pricing':
+      case '/rohit/pricing':
         return 'Pricing Management';
-      case '/admin/about-us':
+      case '/rohit/about-us':
         return 'About Us Management';
-      case '/admin/contact-us':
+      case '/rohit/contact-us':
         return 'Contact Us Management';
-      case '/admin/contact-dashboard':
+      case '/rohit/contact-dashboard':
         return 'Contact Dashboard (Advanced)';
-      case '/admin/contact-dashboard-simple':
+      case '/rohit/contact-dashboard-simple':
         return 'Contact Dashboard (Simplified)';
       default:
         return 'Admin Panel';

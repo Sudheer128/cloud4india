@@ -41,7 +41,7 @@ const MarketplacesAdminNew = () => {
             setMarketplace(currentMarketplace);
           } else {
             // If not found, redirect to new
-            navigate('/admin/marketplaces-new/new');
+            navigate('/rohit/marketplaces-new/new');
           }
         } else {
           setMarketplace({ id: 'new' });
@@ -88,7 +88,7 @@ const MarketplacesAdminNew = () => {
         
         // If new marketplace, redirect to edit page
         if (marketplaceId === 'new') {
-          navigate(`/admin/marketplaces-new/${savedMarketplace.id}`);
+          navigate(`/rohit/marketplaces-new/${savedMarketplace.id}`);
           alert('Marketplace app created! Now add sections to build your page.');
         } else {
           alert('Marketplace app updated successfully!');
@@ -135,7 +135,7 @@ const MarketplacesAdminNew = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/marketplace')}
+                onClick={() => navigate('/rohit/marketplace')}
                 className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
               >
                 <ArrowLeftIcon className="w-5 h-5" />

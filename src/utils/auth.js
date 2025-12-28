@@ -3,10 +3,10 @@
 
 import CryptoJS from 'crypto-js';
 
-// Pre-computed hash of "admin123" using SHA-256
+// Pre-computed hash of "@drohitmIN" using SHA-256
 // In production, this should be done on the backend
-const ADMIN_PASSWORD_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'; // SHA-256 hash of "admin123"
-const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD_HASH = '5f3ce29b47f1bafc67059060fa22e8a1f4d5b843447b3812985a30186473c11c'; // SHA-256 hash of "@drohitmIN"
+const ADMIN_USERNAME = 'adrohitmin';
 
 /**
  * Hash a string using SHA-256

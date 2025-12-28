@@ -41,7 +41,7 @@ const ProductsAdminNew = () => {
             setProduct(currentProduct);
           } else {
             // If not found, redirect to new
-            navigate('/admin/products-new/new');
+            navigate('/rohit/products-new/new');
           }
         } else {
           setProduct({ id: 'new' });
@@ -88,7 +88,7 @@ const ProductsAdminNew = () => {
         
         // If new product, redirect to edit page
         if (productId === 'new') {
-          navigate(`/admin/products-new/${savedProduct.id}`);
+          navigate(`/rohit/products-new/${savedProduct.id}`);
           alert('Product created! Now add sections to build your page.');
         } else {
           alert('Product updated successfully!');
@@ -135,7 +135,7 @@ const ProductsAdminNew = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/products')}
+                onClick={() => navigate('/rohit/products')}
                 className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
               >
                 <ArrowLeftIcon className="w-5 h-5" />

@@ -41,7 +41,7 @@ const SolutionsAdminNew = () => {
             setSolution(currentSolution);
           } else {
             // If not found, redirect to new
-            navigate('/admin/solutions-new/new');
+            navigate('/rohit/solutions-new/new');
           }
         } else {
           setSolution({ id: 'new' });
@@ -88,7 +88,7 @@ const SolutionsAdminNew = () => {
         
         // If new solution, redirect to edit page
         if (solutionId === 'new') {
-          navigate(`/admin/solutions-new/${savedSolution.id}`);
+          navigate(`/rohit/solutions-new/${savedSolution.id}`);
           alert('Solution created! Now add sections to build your page.');
         } else {
           alert('Solution updated successfully!');
@@ -135,7 +135,7 @@ const SolutionsAdminNew = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/admin/solutions')}
+                onClick={() => navigate('/rohit/solutions')}
                 className="text-gray-600 hover:text-gray-900 flex items-center gap-2"
               >
                 <ArrowLeftIcon className="w-5 h-5" />

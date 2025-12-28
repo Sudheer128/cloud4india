@@ -35,12 +35,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DB_PATH=/app/data/cms.db
-      - RUN_MIGRATIONS=false
     volumes:
-      - cms_data:/app/data
-      - cms_uploads:/app/uploads
-      - ./cloud4india-cms/cms.db:/app/data/cms.db:rw
+      - ./cloud4india-cms/cms.db:/app/cms.db
+      - ./cloud4india-cms-uploads:/app/uploads
     networks:
       - cloud4india-network
     healthcheck:
@@ -61,8 +58,7 @@ services:
       - ADMINER_DEFAULT_SERVER=sqlite
       - ADMINER_DESIGN=pepa-linha
     volumes:
-      - cms_data:/var/lib/sqlite
-      - ./cloud4india-cms:/var/lib/sqlite/cms:ro
+      - ./cloud4india-cms-data:/var/lib/sqlite
     networks:
       - cloud4india-network
     depends_on:
@@ -71,9 +67,3 @@ services:
 networks:
   cloud4india-network:
     driver: bridge
-
-volumes:
-  cms_data:
-    driver: local
-  cms_uploads:
-    driver: local

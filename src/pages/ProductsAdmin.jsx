@@ -633,7 +633,7 @@ const ProductsManagement = ({ products, onDuplicateProduct, onDeleteProduct, onT
                 <div className="text-xs text-gray-500 mt-2 md:mt-0">/products/{toSlug(product.name)}</div>
                 <div className="flex items-center justify-start md:justify-end gap-2 mt-3 md:mt-0">
                   <button
-                    onClick={() => navigate(`/admin/products-new/${product.id}`)}
+                    onClick={() => navigate(`/rohit/products-new/${product.id}`)}
                     className="inline-flex items-center justify-center p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
                     title="Edit Product - New Interface"
                     aria-label="Edit Product - New Interface"
