@@ -1923,12 +1923,40 @@ app.put('/api/admin/client-logos/:id', (req, res) => {
 app.delete('/api/admin/client-logos/:id', (req, res) => {
   const { id } = req.params;
 
-  db.run(`DELETE FROM client_logos WHERE id = ?`, [id], function (err) {
+  // First, get the order_index of the logo being deleted
+  db.get('SELECT order_index FROM client_logos WHERE id = ?', [id], (err, logo) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ message: 'Client logo deleted successfully', changes: this.changes });
+
+    if (!logo) {
+      res.status(404).json({ error: 'Client logo not found' });
+      return;
+    }
+
+    const deletedOrderIndex = logo.order_index;
+
+    // Delete the logo
+    db.run(`DELETE FROM client_logos WHERE id = ?`, [id], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      // Reorder remaining logos: decrement order_index for all logos with order_index > deletedOrderIndex
+      db.run(
+        `UPDATE client_logos SET order_index = order_index - 1, updated_at = CURRENT_TIMESTAMP WHERE order_index > ?`,
+        [deletedOrderIndex],
+        function (updateErr) {
+          if (updateErr) {
+            console.error('Error reordering logos after deletion:', updateErr);
+            // Still return success for deletion, but log the reorder error
+          }
+          res.json({ message: 'Client logo deleted successfully', changes: this.changes });
+        }
+      );
+    });
   });
 });
 

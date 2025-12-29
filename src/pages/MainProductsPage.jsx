@@ -313,7 +313,10 @@ const MainProductsPage = () => {
                 }
                 
                 // Get route from linked product if available
-                const route = product.product_route || product.route || toSlug(product.title || product.name);
+                // const route = product.product_route || product.route || toSlug(product.title || product.name);
+                let route = product.product_route || product.route || toSlug(product.title || product.name);
+                // Remove /products/ prefix if it exists, as we'll add it in the Link component
+                route = route.replace(/^\/products\//, '');
                 
                 const section = {
                   id: product.id,

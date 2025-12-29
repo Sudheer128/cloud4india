@@ -5,10 +5,10 @@ import { getIntegrityPages, getContactSocialLinks } from '../services/cmsApi'
 
 const Footer = () => {
   // Footer visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACE_IN_COMPANY = false
-  const SHOW_SOLUTIONS_IN_COMPANY = false
-  const SHOW_SOLUTIONS_COLUMN = false
-  const SHOW_MARKETPLACE_COLUMN = false
+  const SHOW_MARKETPLACE_IN_COMPANY = true
+  const SHOW_SOLUTIONS_IN_COMPANY = true
+  const SHOW_SOLUTIONS_COLUMN = true
+  const SHOW_MARKETPLACE_COLUMN = true
 
   const [integrityPages, setIntegrityPages] = useState([])
   const [loadingIntegrity, setLoadingIntegrity] = useState(true)

@@ -125,7 +125,11 @@ const ProductsSectionNew = () => {
               const productId = product.product_id || product.id;
               const productName = product.product_name || product.title || product.name || '';
               const productCategory = product.category || 'Cloud Services';
-              const productRoute = product.product_route || product.route || `/products/${toSlug(productName)}`;
+              // const productRoute = product.product_route || product.route || `/products/${toSlug(productName)}`;
+              let productRoute = product.product_route || product.route || toSlug(productName);
+              if (!productRoute.startsWith('/products/')) {
+                productRoute = `/products/${productRoute.replace(/^\//, '')}`;
+              }
               const colors = getProductColor()
               
               return (

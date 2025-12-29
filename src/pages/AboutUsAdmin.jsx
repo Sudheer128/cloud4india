@@ -74,6 +74,7 @@ const AboutUsAdmin = () => {
     stat_label: ''
   });
   const [heroVisible, setHeroVisible] = useState(true);
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
 
   // Story Section
   const [editingStory, setEditingStory] = useState(false);
@@ -310,6 +311,23 @@ const AboutUsAdmin = () => {
       await fetchAboutUsContent();
     } catch (err) {
       alert('Error toggling hero visibility: ' + err.message);
+    }
+  };
+
+  const handleHeroImageUpload = async (file) => {
+    try {
+      setUploadingHeroImage(true);
+      const response = await uploadImage(file);
+      // Extract just the path from the full URL (remove CMS_URL prefix if present)
+      const CMS_URL = import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002';
+      const path = response.filePath.replace(CMS_URL, '');
+      setHeroForm({ ...heroForm, image_url: path });
+      alert('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Error uploading image: ' + (error.message || 'Upload failed'));
+    } finally {
+      setUploadingHeroImage(false);
     }
   };
 
@@ -932,20 +950,62 @@ const AboutUsAdmin = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-              <input
-                type="text"
-                value={heroForm.image_url}
-                onChange={(e) => setHeroForm({ ...heroForm, image_url: e.target.value })}
-                placeholder="https://example.com/image.jpg or /path/to/image.jpg"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+              <div className="space-y-3">
+                {/* File Upload Option */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Upload from Device</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        handleHeroImageUpload(file);
+                      }
+                    }}
+                    disabled={uploadingHeroImage}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                  {uploadingHeroImage && (
+                    <p className="text-sm text-blue-600 mt-1">Uploading image...</p>
+                  )}
+                </div>
+                
+                {/* OR Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-gray-500">Or</span>
+                  </div>
+                </div>
+                
+                {/* URL Input Option */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Enter Image URL</label>
+                  <input
+                    type="text"
+                    value={heroForm.image_url}
+                    onChange={(e) => setHeroForm({ ...heroForm, image_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg or /uploads/images/image.jpg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Image Preview */}
               {heroForm.image_url && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <p className="text-xs text-gray-500 mb-2">Image Preview:</p>
                   <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
                     <img
-                      src={heroForm.image_url}
+                      src={heroForm.image_url.startsWith('http') || heroForm.image_url.startsWith('/') 
+                        ? (heroForm.image_url.startsWith('/') 
+                          ? `${import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002'}${heroForm.image_url}`
+                          : heroForm.image_url)
+                        : heroForm.image_url}
                       alt="Hero preview"
                       className="w-full h-auto max-h-48 object-cover"
                       onError={(e) => {
@@ -954,7 +1014,7 @@ const AboutUsAdmin = () => {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Enter a valid image URL (jpg, png, gif, webp, etc.)</p>
+                  <p className="text-xs text-gray-400 mt-1">Enter a valid image URL (jpg, png, gif, webp, etc.) or upload from device</p>
                 </div>
               )}
             </div>

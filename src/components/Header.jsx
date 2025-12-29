@@ -7,9 +7,9 @@ import SolutionsDropdown from './SolutionsDropdown'
 
 const Header = () => {
   // Navigation visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACE = false
-  const SHOW_PRICE_ESTIMATOR = false
-  const SHOW_SOLUTIONS = false
+  const SHOW_MARKETPLACE = true
+  const SHOW_PRICE_ESTIMATOR = true
+  const SHOW_SOLUTIONS = true
 
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false)

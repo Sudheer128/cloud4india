@@ -16,11 +16,11 @@ import {
 
 const AdminSidebar = () => {
   // Navigation visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACE = false
-  const SHOW_MARKETPLACE_MAIN = false
-  const SHOW_SOLUTIONS = false
-  const SHOW_SOLUTIONS_MAIN = false
-  const SHOW_QUOTATIONS = false
+  const SHOW_MARKETPLACE = true
+  const SHOW_MARKETPLACE_MAIN = true
+  const SHOW_SOLUTIONS = true
+  const SHOW_SOLUTIONS_MAIN = true
+  const SHOW_QUOTATIONS = true
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();

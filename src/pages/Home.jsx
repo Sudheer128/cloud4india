@@ -11,8 +11,8 @@ import SolutionsSectionNew from '../components/SolutionsSectionNew'
 
 const Home = () => {
   // Section visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACES_SECTION = false
-  const SHOW_SOLUTIONS_SECTION = false
+  const SHOW_MARKETPLACES_SECTION = true
+  const SHOW_SOLUTIONS_SECTION = true
 
   return (
     <div>
