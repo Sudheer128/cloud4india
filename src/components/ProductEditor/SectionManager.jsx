@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { 
   PencilIcon, 
@@ -117,7 +118,7 @@ const SECTION_TYPES = [
   }
 ];
 
-const SectionManager = ({ productId, onManageItems }) => {
+const SectionManager = ({ productId, productName, onManageItems }) => {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSection, setEditingSection] = useState(null);
@@ -132,7 +133,7 @@ const SectionManager = ({ productId, onManageItems }) => {
   const loadSections = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections`);
+      const response = await fetch(`${CMS_URL}/api/products/${productId}/sections`);
       if (response.ok) {
         const data = await response.json();
         setSections(data);
@@ -141,7 +142,7 @@ const SectionManager = ({ productId, onManageItems }) => {
         const counts = {};
         await Promise.all(data.map(async (section) => {
           try {
-            const itemsRes = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${section.id}/items`);
+            const itemsRes = await fetch(`${CMS_URL}/api/products/${productId}/sections/${section.id}/items`);
             if (itemsRes.ok) {
               const items = await itemsRes.json();
               counts[section.id] = items.length;
@@ -168,7 +169,7 @@ const SectionManager = ({ productId, onManageItems }) => {
       const standardSections = SECTION_TYPES.filter(t => t.value !== 'media_banner'); // Exclude media as it needs manual setup
       
       for (const type of standardSections) {
-        await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections`, {
+        await fetch(`${CMS_URL}/api/products/${productId}/sections`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -205,7 +206,7 @@ const SectionManager = ({ productId, onManageItems }) => {
     console.log('Swapping with:', sectionAbove.title, 'from', sectionAbove.order_index, 'to', section.order_index);
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/products/${productId}/sections/${section.id}`, {
@@ -282,7 +283,7 @@ const SectionManager = ({ productId, onManageItems }) => {
     console.log('Swapping with:', sectionBelow.title, 'from', sectionBelow.order_index, 'to', section.order_index);
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/products/${productId}/sections/${section.id}`, {
@@ -346,7 +347,7 @@ const SectionManager = ({ productId, onManageItems }) => {
 
   const handleToggleVisibility = async (section) => {
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Build request body with all required fields
       const requestBody = {
@@ -580,6 +581,7 @@ const SectionManager = ({ productId, onManageItems }) => {
                       section={section}
                       sections={sections}
                       productId={productId}
+                      productName={productName}
                       onSave={async (updatedData) => {
                         try {
                           // Check if order changed
@@ -592,7 +594,7 @@ const SectionManager = ({ productId, onManageItems }) => {
                             
                             if (conflictingSection) {
                               // Swap orders: Move conflicting section to old order
-                              await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${conflictingSection.id}`, {
+                              await fetch(`${CMS_URL}/api/products/${productId}/sections/${conflictingSection.id}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -604,7 +606,7 @@ const SectionManager = ({ productId, onManageItems }) => {
                           }
                           
                           // Update current section
-                          const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}/sections/${section.id}`, {
+                          const response = await fetch(`${CMS_URL}/api/products/${productId}/sections/${section.id}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(updatedData)
@@ -636,7 +638,7 @@ const SectionManager = ({ productId, onManageItems }) => {
 };
 
 // Inline Section Editor Component
-const SectionEditorInline = ({ section, sections = [], productId, onSave, onCancel }) => {
+const SectionEditorInline = ({ section, sections = [], productId, productName, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     section_type: section?.section_type || 'hero',
     title: section?.title || '',
@@ -692,12 +694,16 @@ const SectionEditorInline = ({ section, sections = [], productId, onSave, onCanc
     setUploadError('');
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       const formDataObj = new FormData();
       formDataObj.append(type === 'image' ? 'image' : 'video', file);
       
       const endpoint = type === 'image' ? '/api/upload/image' : '/api/upload/video';
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      const params = new URLSearchParams();
+      params.append('category', 'products');
+      if (productName) params.append('entityName', productName);
+      
+      const response = await fetch(`${baseUrl}${endpoint}?${params.toString()}`, {
         method: 'POST',
         body: formDataObj
       });

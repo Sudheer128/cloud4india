@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { CMS_URL } from '../utils/config';
 import { useCart } from '../context/CartContext';
 import DurationSelectPopup from './PriceEstimator/DurationSelectPopup';
 
 // Media Banner Section Component - Carousel Gallery for Multiple Photos/Videos
 const MediaBannerSection = ({ section, items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   // Filter visible media items with valid URLs
   const mediaItems = items.filter(item => {

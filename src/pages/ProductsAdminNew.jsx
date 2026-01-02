@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CMS_URL } from '../utils/config';
 import { 
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -29,7 +30,7 @@ const ProductsAdminNew = () => {
       setLoading(true);
       
       // Load all products
-      const productsRes = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/products`);
+      const productsRes = await fetch(`${CMS_URL}/api/admin/products`);
       if (productsRes.ok) {
         const allProducts = await productsRes.json();
         setProducts(allProducts);
@@ -58,8 +59,8 @@ const ProductsAdminNew = () => {
     setSaving(true);
     try {
       const url = productId === 'new'
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${productId}`;
+        ? `${CMS_URL}/api/products`
+        : `${CMS_URL}/api/products/${productId}`;
 
       const method = productId === 'new' ? 'POST' : 'PUT';
 
@@ -188,6 +189,7 @@ const ProductsAdminNew = () => {
         {currentTab === 'sections' && (
           <SectionManager
             productId={productId}
+            productName={product?.name}
             onManageItems={(section) => setManagingSection(section)}
           />
         )}

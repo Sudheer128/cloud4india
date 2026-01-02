@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState } from 'react';
 import { 
   CpuChipIcon,
@@ -31,7 +32,7 @@ const AVAILABLE_ICONS = [
   { name: 'DocumentTextIcon', label: 'Document/File', icon: DocumentTextIcon }
 ];
 
-const IconSelector = ({ value, onChange, optional = false }) => {
+const IconSelector = ({ value, onChange, optional = false, category = 'general', entityName = '' }) => {
   const [activeTab, setActiveTab] = useState('library');
   const [uploading, setUploading] = useState(false);
 
@@ -47,8 +48,12 @@ const IconSelector = ({ value, onChange, optional = false }) => {
       const formData = new FormData();
       formData.append('image', file);
       
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
-      const response = await fetch(`${baseUrl}/api/upload/image`, {
+      const baseUrl = CMS_URL;
+      const params = new URLSearchParams();
+      params.append('category', category);
+      if (entityName) params.append('entityName', entityName);
+      
+      const response = await fetch(`${baseUrl}/api/upload/image?${params.toString()}`, {
         method: 'POST',
         body: formData
       });
@@ -216,7 +221,7 @@ const IconSelector = ({ value, onChange, optional = false }) => {
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
                   <img 
-                    src={`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}${value}`} 
+                    src={`${CMS_URL}${value}`} 
                     alt="Custom icon" 
                     className="w-8 h-8" 
                   />

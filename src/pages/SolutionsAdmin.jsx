@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CMS_URL } from '../utils/config';
 import { 
   getAdminSolutions,
   toggleSolutionVisibility,
@@ -402,7 +403,7 @@ const SolutionsManagement = ({ solutions, onDuplicateSolution, onDeleteSolution,
   
   const loadCategoriesFromDB = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/categories`);
+      const response = await fetch(`${CMS_URL}/api/solutions/categories`);
       if (response.ok) {
         const cats = await response.json();
         setAvailableCategories(cats.map(c => c.name));
@@ -440,7 +441,7 @@ const SolutionsManagement = ({ solutions, onDuplicateSolution, onDeleteSolution,
 
   const handleAddCategory = async (categoryName) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/categories`, {
+      const response = await fetch(`${CMS_URL}/api/solutions/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: categoryName })
@@ -473,12 +474,12 @@ const SolutionsManagement = ({ solutions, onDuplicateSolution, onDeleteSolution,
     try {
     const categoryName = categoryToDelete?.name;
       // Find category ID
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/categories`);
+      const response = await fetch(`${CMS_URL}/api/solutions/categories`);
       const cats = await response.json();
       const catToDelete = cats.find(c => c.name === categoryName);
       
       if (catToDelete) {
-        const deleteResponse = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/categories/${catToDelete.id}`, {
+        const deleteResponse = await fetch(`${CMS_URL}/api/solutions/categories/${catToDelete.id}`, {
           method: 'DELETE'
         });
         

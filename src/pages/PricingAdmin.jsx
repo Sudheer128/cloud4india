@@ -4,8 +4,9 @@ import {
   PencilIcon, 
   TrashIcon
 } from '@heroicons/react/24/outline';
+import { CMS_URL } from '../utils/config';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+const API_BASE_URL = CMS_URL;
 
 // Global flag to hide/show quarterly column in pricing tables
 const SHOW_QUARTERLY_COLUMN = false;

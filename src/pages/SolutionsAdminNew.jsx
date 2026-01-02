@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CMS_URL } from '../utils/config';
 import { 
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -29,7 +30,7 @@ const SolutionsAdminNew = () => {
       setLoading(true);
       
       // Load all solutions
-      const solutionsRes = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/solutions`);
+      const solutionsRes = await fetch(`${CMS_URL}/api/admin/solutions`);
       if (solutionsRes.ok) {
         const allSolutions = await solutionsRes.json();
         setSolutions(allSolutions);
@@ -58,8 +59,8 @@ const SolutionsAdminNew = () => {
     setSaving(true);
     try {
       const url = solutionId === 'new'
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}`;
+        ? `${CMS_URL}/api/solutions`
+        : `${CMS_URL}/api/solutions/${solutionId}`;
 
       const method = solutionId === 'new' ? 'POST' : 'PUT';
 

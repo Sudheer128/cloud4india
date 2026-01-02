@@ -27,9 +27,18 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Create upload directories if they don't exist
-const uploadsDir = path.join(__dirname, 'uploads');
+// In Docker: /app/uploads (mapped from ./cloud4india-cms-uploads)
+// Local dev: ../cloud4india-cms-uploads (relative to cloud4india-cms folder)
+const uploadsDir = process.env.UPLOADS_DIR || 
+  (process.env.NODE_ENV === 'production' 
+    ? path.join(__dirname, 'uploads') 
+    : path.join(__dirname, '..', 'cloud4india-cms-uploads'));
 const imagesDir = path.join(uploadsDir, 'images');
 const videosDir = path.join(uploadsDir, 'videos');
+
+// Create organized subdirectories
+const imageSubDirs = ['products', 'marketplaces', 'solutions', 'about', 'homepage', 'logos', 'general'];
+const videoSubDirs = ['products', 'marketplaces', 'solutions', 'general'];
 
 [uploadsDir, imagesDir, videosDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
@@ -38,22 +47,48 @@ const videosDir = path.join(uploadsDir, 'videos');
   }
 });
 
-// Configure multer for file uploads
+imageSubDirs.forEach(sub => {
+  const dir = path.join(imagesDir, sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+videoSubDirs.forEach(sub => {
+  const dir = path.join(videosDir, sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Helper to create slug from name
+const createSlug = (name) => {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
+// Helper to ensure entity folder exists
+const ensureEntityFolder = (baseDir, category, entityName) => {
+  const categoryDir = path.join(baseDir, category);
+  if (!fs.existsSync(categoryDir)) fs.mkdirSync(categoryDir, { recursive: true });
+  
+  if (entityName) {
+    const entityDir = path.join(categoryDir, createSlug(entityName));
+    if (!fs.existsSync(entityDir)) fs.mkdirSync(entityDir, { recursive: true });
+    return entityDir;
+  }
+  return categoryDir;
+};
+
+// Configure multer for organized file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.fieldname === 'image') {
-      cb(null, imagesDir);
-    } else if (file.fieldname === 'video') {
-      cb(null, videosDir);
-    } else {
-      cb(new Error('Invalid field name'));
-    }
+    const category = req.query.category || req.body.category || 'general';
+    const entityName = req.query.entityName || req.body.entityName || '';
+    
+    let baseDir = file.fieldname === 'image' ? imagesDir : videosDir;
+    const destDir = ensureEntityFolder(baseDir, category, entityName);
+    cb(null, destDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename: timestamp-originalname
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
+    const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '-');
     cb(null, `${uniqueSuffix}-${name}${ext}`);
   }
 });
@@ -100,20 +135,25 @@ app.use('/uploads', express.static(uploadsDir));
 
 // ===== FILE UPLOAD ENDPOINTS =====
 
-// Upload image endpoint
+// Upload image endpoint with organized folders
+// Usage: POST /api/upload/image?category=products&entityName=GPU Compute
 app.post('/api/upload/image', uploadImage.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file uploaded' });
     }
 
-    // Return the file path relative to server
-    const filePath = `/uploads/images/${req.file.filename}`;
+    // Build the relative path based on where file was saved
+    const relativePath = path.relative(uploadsDir, req.file.path).replace(/\\/g, '/');
+    const filePath = `/uploads/${relativePath}`;
+    
     res.json({
       success: true,
       filePath: filePath,
       filename: req.file.filename,
-      size: req.file.size
+      size: req.file.size,
+      category: req.query.category || req.body.category || 'general',
+      entityName: req.query.entityName || req.body.entityName || ''
     });
   } catch (error) {
     console.error('Error uploading image:', error);
@@ -121,15 +161,16 @@ app.post('/api/upload/image', uploadImage.single('image'), (req, res) => {
   }
 });
 
-// Upload video endpoint
+// Upload video endpoint with organized folders
+// Usage: POST /api/upload/video?category=products&entityName=GPU Compute
 app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No video file uploaded' });
     }
 
-    // Return the file path relative to server
-    const filePath = `/uploads/videos/${req.file.filename}`;
+    const relativePath = path.relative(uploadsDir, req.file.path).replace(/\\/g, '/');
+    const filePath = `/uploads/${relativePath}`;
     res.json({
       success: true,
       filePath: filePath,
@@ -1600,21 +1641,61 @@ app.post('/api/upload/video', uploadVideo.single('video'), (req, res) => {
 });
 
 // Delete uploaded file endpoint
-app.delete('/api/upload/:type/:filename', (req, res) => {
-  const { type, filename } = req.params;
+// Supports paths like: /api/upload/images/general/filename.png
+app.delete('/api/upload/:type/:category/:filename', (req, res) => {
+  const { type, category, filename } = req.params;
 
   if (type !== 'images' && type !== 'videos') {
     return res.status(400).json({ error: 'Invalid file type. Must be "images" or "videos"' });
   }
 
-  const filePath = path.join(uploadsDir, type, filename);
+  if (!filename) {
+    return res.status(400).json({ error: 'Filename is required' });
+  }
+
+  const fullPath = path.join(uploadsDir, type, category, filename);
 
   // Security: Prevent directory traversal
-  if (!filePath.startsWith(path.join(uploadsDir, type))) {
+  const resolvedPath = path.resolve(fullPath);
+  const uploadsBase = path.resolve(uploadsDir);
+  if (!resolvedPath.startsWith(uploadsBase)) {
     return res.status(400).json({ error: 'Invalid file path' });
   }
 
-  fs.unlink(filePath, (err) => {
+  fs.unlink(fullPath, (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      return res.status(500).json({ error: 'Error deleting file: ' + err.message });
+    }
+
+    res.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+  });
+});
+
+// Delete uploaded file in nested entity folder
+// Supports paths like: /api/upload/images/products/gpu-compute/filename.png
+app.delete('/api/upload/:type/:category/:entity/:filename', (req, res) => {
+  const { type, category, entity, filename } = req.params;
+
+  if (type !== 'images' && type !== 'videos') {
+    return res.status(400).json({ error: 'Invalid file type. Must be "images" or "videos"' });
+  }
+
+  const fullPath = path.join(uploadsDir, type, category, entity, filename);
+
+  // Security: Prevent directory traversal
+  const resolvedPath = path.resolve(fullPath);
+  const uploadsBase = path.resolve(uploadsDir);
+  if (!resolvedPath.startsWith(uploadsBase)) {
+    return res.status(400).json({ error: 'Invalid file path' });
+  }
+
+  fs.unlink(fullPath, (err) => {
     if (err) {
       if (err.code === 'ENOENT') {
         return res.status(404).json({ error: 'File not found' });
@@ -2732,36 +2813,40 @@ app.put('/api/marketplaces/:id/sections/:sectionId', (req, res) => {
     let finalMediaUrl = media_url;
     let oldFileToDelete = null;
 
+    // Only validate media fields for media_banner if they are being updated (not just visibility toggle)
+    // Skip strict validation for media_banner - allow empty media fields
     if (section_type === 'media_banner') {
-      if (!media_type || (media_type !== 'video' && media_type !== 'image')) {
-        return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
-      }
-
-      if (!media_source || (media_source !== 'youtube' && media_source !== 'upload')) {
-        return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
-      }
-
-      if (!media_url) {
-        return res.status(400).json({ error: 'media_url is required for media_banner sections' });
-      }
-
-      // If media_source changed from upload to youtube, or media_url changed for upload, delete old file
-      if (existingSection.media_source === 'upload' && existingSection.media_url) {
-        if (media_source !== 'upload' || media_url !== existingSection.media_url) {
-          oldFileToDelete = existingSection.media_url;
+      // Keep existing values if not provided (null, undefined, or empty string)
+      const hasMediaType = media_type && media_type !== '';
+      const hasMediaSource = media_source && media_source !== '';
+      const hasMediaUrl = media_url && media_url !== '';
+      
+      if (!hasMediaType && !hasMediaSource && !hasMediaUrl) {
+        finalMediaType = existingSection.media_type;
+        finalMediaSource = existingSection.media_source;
+        finalMediaUrl = existingSection.media_url;
+      } else {
+        // Validate only if values are actually provided
+        if (hasMediaType && media_type !== 'video' && media_type !== 'image') {
+          return res.status(400).json({ error: 'media_type must be "video" or "image" for media_banner sections' });
+        }
+        if (hasMediaSource && media_source !== 'youtube' && media_source !== 'upload') {
+          return res.status(400).json({ error: 'media_source must be "youtube" or "upload" for media_banner sections' });
+        }
+        if (existingSection.media_source === 'upload' && existingSection.media_url) {
+          if (media_source !== 'upload' || media_url !== existingSection.media_url) {
+            oldFileToDelete = existingSection.media_url;
+          }
+        }
+        if (media_source === 'youtube' && media_url) {
+          const youtubeValidation = validateYouTubeUrl(media_url);
+          if (!youtubeValidation.valid) {
+            return res.status(400).json({ error: youtubeValidation.error });
+          }
+          finalMediaUrl = youtubeValidation.embedUrl;
         }
       }
-
-      // Validate YouTube URL if source is youtube
-      if (media_source === 'youtube') {
-        const youtubeValidation = validateYouTubeUrl(media_url);
-        if (!youtubeValidation.valid) {
-          return res.status(400).json({ error: youtubeValidation.error });
-        }
-        // Use the normalized embed URL
-        finalMediaUrl = youtubeValidation.embedUrl;
-      }
-    } else {
+    } else if (section_type !== 'media_banner') {
       // If section type changed from media_banner to something else, delete old file
       if (existingSection.section_type === 'media_banner' && existingSection.media_source === 'upload' && existingSection.media_url) {
         oldFileToDelete = existingSection.media_url;
@@ -5702,8 +5787,7 @@ app.put('/api/pricing/page-config', (req, res) => {
     faq_section_heading = ?,
     faq_section_subheading = ?,
     button_get_started = ?,
-    button_contact_sales = ?,
-    updated_at = CURRENT_TIMESTAMP
+    button_contact_sales = ?
     WHERE id = 1`,
     [
       config.main_heading,

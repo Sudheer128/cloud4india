@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { 
   PencilIcon, 
@@ -19,7 +20,7 @@ const ItemManager = ({ solution, section, onBack }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${section.id}/items`
+        `${CMS_URL}/api/solutions/${solution.id}/sections/${section.id}/items`
       );
       if (response.ok) {
         const data = await response.json();
@@ -37,7 +38,7 @@ const ItemManager = ({ solution, section, onBack }) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solution.id}/sections/${section.id}/items/${itemId}`,
+        `${CMS_URL}/api/solutions/${solution.id}/sections/${section.id}/items/${itemId}`,
         { method: 'DELETE' }
       );
       if (response.ok) {
@@ -169,6 +170,7 @@ const ItemManager = ({ solution, section, onBack }) => {
           sectionType={section.section_type}
           sectionId={section.id}
           solutionId={solution.id}
+          solutionName={solution.name}
           onSave={async () => {
             await loadItems();
             setEditingItem(null);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { CMS_URL } from '../utils/config';
 import { 
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -29,7 +30,7 @@ const MarketplacesAdminNew = () => {
       setLoading(true);
       
       // Load all marketplaces
-      const marketplacesRes = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/admin/marketplaces`);
+      const marketplacesRes = await fetch(`${CMS_URL}/api/admin/marketplaces`);
       if (marketplacesRes.ok) {
         const allMarketplaces = await marketplacesRes.json();
         setMarketplaces(allMarketplaces);
@@ -58,8 +59,8 @@ const MarketplacesAdminNew = () => {
     setSaving(true);
     try {
       const url = marketplaceId === 'new'
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}`;
+        ? `${CMS_URL}/api/marketplaces`
+        : `${CMS_URL}/api/marketplaces/${marketplaceId}`;
 
       const method = marketplaceId === 'new' ? 'POST' : 'PUT';
 

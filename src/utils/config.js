@@ -1,73 +1,29 @@
 // Environment Configuration Utility
+// All URLs must be set via environment variables - no fallbacks
 
-const getEnvironment = () => {
-  // Check if we're in production build
-  if (import.meta.env.PROD) {
-    return 'production'
-  }
-  
-  // Check if we're in development
-  if (import.meta.env.DEV) {
-    return 'local'
-  }
-  
-  // Default to local
-  return 'local'
-}
+export const API_URL = import.meta.env.VITE_API_URL;
+export const CMS_URL = import.meta.env.VITE_CMS_URL;
+export const BASE_URL = import.meta.env.VITE_BASE_URL;
+export const AI_API_KEY = import.meta.env.VITE_AI_API_KEY;
 
-const config = {
-  local: {
-    NODE_ENV: 'development',
-    APP_ENV: 'local',
-    API_URL: import.meta.env.VITE_API_URL || 'http://localhost:4002',
-    CMS_URL: import.meta.env.VITE_CMS_URL || 'http://localhost:4002',
-    APP_NAME: 'Cloud4India',
-    APP_VERSION: '1.0.0',
-    DEBUG: true,
-    BASE_URL: 'http://localhost:3001',
-    // AI Service Configuration (OpenAI API)
-    AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
-    AI_API_URL: 'https://api.openai.com/v1/chat/completions',
-    AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
-    OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://localhost:3001'
-  },
-  production: {
-    NODE_ENV: 'production',
-    APP_ENV: 'production',
-    API_URL: import.meta.env.VITE_API_URL || '',
-    CMS_URL: import.meta.env.VITE_CMS_URL || '',
-    APP_NAME: 'Cloud4India',
-    APP_VERSION: '1.0.0',
-    DEBUG: false,
-    BASE_URL: 'http://149.13.60.6',
-    // AI Service Configuration (OpenAI API)
-    AI_API_KEY: import.meta.env.VITE_AI_API_KEY || '',
-    AI_API_URL: 'https://api.openai.com/v1/chat/completions',
-    AI_MODEL: 'gpt-3.5-turbo', // OpenAI GPT-3.5 Turbo model
-    OPENROUTER_APP_NAME: 'Cloud4India',
-    OPENROUTER_SITE_URL: 'http://149.13.60.6'
-  }
-}
+// Static config
+export const APP_NAME = 'Cloud4India';
+export const APP_VERSION = '1.0.0';
+export const AI_API_URL = 'https://api.openai.com/v1/chat/completions';
+export const AI_MODEL = 'gpt-3.5-turbo';
+export const OPENROUTER_APP_NAME = 'Cloud4India';
 
-const currentEnv = getEnvironment()
-export const appConfig = config[currentEnv]
-
-// Export individual values for easy access
-export const {
-  NODE_ENV,
-  APP_ENV,
+export const appConfig = {
   API_URL,
   CMS_URL,
+  BASE_URL,
   APP_NAME,
   APP_VERSION,
-  DEBUG,
-  BASE_URL,
   AI_API_KEY,
   AI_API_URL,
   AI_MODEL,
   OPENROUTER_APP_NAME,
-  OPENROUTER_SITE_URL
-} = appConfig
+  OPENROUTER_SITE_URL: BASE_URL
+};
 
-export default appConfig
+export default appConfig;

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import { CMS_URL } from '../utils/config';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+const API_BASE_URL = CMS_URL;
 
 export default function QuotationView() {
     const [quote, setQuote] = useState(null);

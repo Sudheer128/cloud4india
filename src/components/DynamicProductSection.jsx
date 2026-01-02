@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CMS_URL } from '../utils/config';
 import {
   CheckIcon,
   StarIcon,
@@ -184,7 +185,7 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
                     {(() => {
                       // Use product icon if available, otherwise default to ServerIcon
                       const productIcon = product?.icon;
-                      const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+                      const cmsBaseUrl = CMS_URL;
 
                       if (productIcon) {
                         // Check if it's a library icon
@@ -253,7 +254,7 @@ const HeroSection = ({ section, items, product, hasNavigation = false }) => {
 const MediaBannerSection = ({ section, items }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   // Filter visible media items with valid URLs
   // Check visibility: is_visible should be !== 0 (consistent with section visibility checks)
@@ -529,7 +530,7 @@ const MediaBannerSection = ({ section, items }) => {
 
 // Features Section Component
 const FeaturesSection = ({ section, items }) => {
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-teal-light/30 via-white to-saree-amber-light/30">
@@ -817,7 +818,7 @@ const PricingSection = ({ section, items, product }) => {
 
 // Specifications Section Component
 const SpecificationsSection = ({ section, items }) => {
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-lime-light/30 via-white to-phulkari-turquoise-light/30">
@@ -887,7 +888,7 @@ const SpecificationsSection = ({ section, items }) => {
 
 // Security Section Component
 const SecuritySection = ({ section, items }) => {
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   let rightSideContent = {};
   try {
@@ -977,7 +978,7 @@ const SecuritySection = ({ section, items }) => {
 
 // Support Section Component
 const SupportSection = ({ section, items }) => {
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-rose-light/20 via-white to-saree-amber-light/30">
@@ -1069,7 +1070,7 @@ const MigrationSection = ({ section, items }) => {
 
 // Use Cases Section Component
 const UseCasesSection = ({ section, items }) => {
-  const cmsBaseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+  const cmsBaseUrl = CMS_URL;
 
   return (
     <section className="py-20 bg-gradient-to-br from-saree-coral-light/20 via-white to-saree-lime-light/20">

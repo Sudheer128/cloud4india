@@ -5,8 +5,9 @@ import {
     ArrowPathIcon, PencilIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { CMS_URL } from '../utils/config';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+const API_BASE_URL = CMS_URL;
 
 const STATUS_COLORS = {
     draft: 'bg-gray-100 text-gray-700',

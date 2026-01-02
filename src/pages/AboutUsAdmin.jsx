@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CMS_URL } from '../utils/config';
 import {
   PencilIcon,
   EyeIcon,
@@ -164,7 +165,7 @@ const AboutUsAdmin = () => {
       setError(null);
       // Fetch with all=true to get hidden sections for admin
       const timestamp = new Date().getTime();
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/about?all=true&t=${timestamp}`);
+      const response = await fetch(`${CMS_URL}/api/about?all=true&t=${timestamp}`);
       const data = await response.json();
       setAboutData(data);
 
@@ -317,9 +318,9 @@ const AboutUsAdmin = () => {
   const handleHeroImageUpload = async (file) => {
     try {
       setUploadingHeroImage(true);
-      const response = await uploadImage(file);
+      const response = await uploadImage(file, 'about', 'hero');
       // Extract just the path from the full URL (remove CMS_URL prefix if present)
-      const CMS_URL = import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002';
+      // CMS_URL imported from config
       const path = response.filePath.replace(CMS_URL, '');
       setHeroForm({ ...heroForm, image_url: path });
       alert('Image uploaded successfully!');
@@ -381,7 +382,7 @@ const AboutUsAdmin = () => {
     }
 
     try {
-      const response = await uploadImage(file);
+      const response = await uploadImage(file, 'about', 'story');
       if (response.filePath) {
         // Update the story form with the uploaded image path
         setStoryForm({ ...storyForm, image_url: response.filePath });
@@ -1003,7 +1004,7 @@ const AboutUsAdmin = () => {
                     <img
                       src={heroForm.image_url.startsWith('http') || heroForm.image_url.startsWith('/') 
                         ? (heroForm.image_url.startsWith('/') 
-                          ? `${import.meta.env.VITE_CMS_URL || 'http://38.242.248.213:4002'}${heroForm.image_url}`
+                          ? `${CMS_URL}${heroForm.image_url}`
                           : heroForm.image_url)
                         : heroForm.image_url}
                       alt="Hero preview"

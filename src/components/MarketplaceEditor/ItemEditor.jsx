@@ -1,8 +1,9 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import IconSelector, { AVAILABLE_ICONS } from './IconSelector';
 
-const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCancel }) => {
+const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, marketplaceName, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     item_type: '',
     title: '',
@@ -164,8 +165,8 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
       console.log('Full payload JSON:', JSON.stringify(payload));
 
       const url = item
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${sectionId}/items/${item.id}`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${sectionId}/items`;
+        ? `${CMS_URL}/api/marketplaces/${marketplaceId}/sections/${sectionId}/items/${item.id}`
+        : `${CMS_URL}/api/marketplaces/${marketplaceId}/sections/${sectionId}/items`;
 
       const method = item ? 'PUT' : 'POST';
 
@@ -585,13 +586,17 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
     setUploadError('');
 
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+      const baseUrl = CMS_URL;
       const formDataObj = new FormData();
       const isVideo = contentJSON.media_type === 'video';
       formDataObj.append(isVideo ? 'video' : 'image', file);
 
       const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image';
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      const params = new URLSearchParams();
+      params.append('category', 'marketplaces');
+      if (marketplaceName) params.append('entityName', marketplaceName);
+      
+      const response = await fetch(`${baseUrl}${endpoint}?${params.toString()}`, {
         method: 'POST',
         body: formDataObj
       });
@@ -1032,7 +1037,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                         const formDataObj = new FormData();
                         formDataObj.append('image', file);
 
-                        const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+                        const baseUrl = CMS_URL;
                         const response = await fetch(`${baseUrl}/api/upload/image`, {
                           method: 'POST',
                           body: formDataObj
@@ -1063,7 +1068,7 @@ const ItemEditor = ({ item, sectionType, sectionId, marketplaceId, onSave, onCan
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
                         <img
-                          src={`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}${formData.icon}`}
+                          src={`${CMS_URL}${formData.icon}`}
                           alt="Custom icon"
                           className="w-8 h-8"
                         />

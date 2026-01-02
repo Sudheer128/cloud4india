@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useCart } from '../../context/CartContext';
+import { CMS_URL } from '../../utils/config';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+const API_BASE_URL = CMS_URL;
 
 const DURATIONS = [
     { value: 'hourly', label: 'Hourly', suffix: '/hour' },

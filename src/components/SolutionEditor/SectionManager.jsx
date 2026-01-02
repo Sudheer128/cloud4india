@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { 
   PencilIcon, 
@@ -132,7 +133,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
   const loadSections = async () => {
     try {
       setLoading(true);
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       // Add cache-busting timestamp
       const timestamp = new Date().getTime();
       const response = await fetch(`${baseUrl}/api/solutions/${solutionId}/sections?t=${timestamp}`, {
@@ -177,7 +178,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
     try {
       const standardSections = SECTION_TYPES.filter(t => t.value !== 'media_banner'); // Exclude media as it needs manual setup
       
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       for (const type of standardSections) {
         await fetch(`${baseUrl}/api/solutions/${solutionId}/sections`, {
           method: 'POST',
@@ -210,7 +211,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
     const sectionAbove = sortedSections[currentIndex - 1];
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/solutions/${solutionId}/sections/${section.id}`, {
@@ -283,7 +284,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
     const sectionBelow = sortedSections[currentIndex + 1];
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/solutions/${solutionId}/sections/${section.id}`, {
@@ -347,7 +348,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
 
   const handleToggleVisibility = async (section) => {
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Build request body with all required fields
       const requestBody = {
@@ -593,7 +594,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
                             
                             if (conflictingSection) {
                               // Swap orders: Move conflicting section to old order
-                              const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+                              const baseUrl = CMS_URL;
                               const swapResponse = await fetch(`${baseUrl}/api/solutions/${solutionId}/sections/${conflictingSection.id}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
@@ -611,7 +612,7 @@ const SectionManager = ({ solutionId, onManageItems }) => {
                           }
                           
                           // Update current section
-                          const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+                          const baseUrl = CMS_URL;
                           
                           // Ensure all required fields are included
                           // Always include description - even if empty string (user might want to clear it)

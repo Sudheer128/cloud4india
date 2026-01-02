@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import IconSelector, { AVAILABLE_ICONS } from './IconSelector';
@@ -5,7 +6,7 @@ import IconSelector, { AVAILABLE_ICONS } from './IconSelector';
 // Global visibility flag - set to true to show, false to hide
 const SHOW_QUARTERLY_COLUMN = false;
 
-const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel }) => {
+const ItemEditor = ({ item, sectionType, sectionId, solutionId, solutionName, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     item_type: '',
     title: '',
@@ -105,8 +106,8 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
       }
 
       const url = item
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${sectionId}/items/${item.id}`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/solutions/${solutionId}/sections/${sectionId}/items`;
+        ? `${CMS_URL}/api/solutions/${solutionId}/sections/${sectionId}/items/${item.id}`
+        : `${CMS_URL}/api/solutions/${solutionId}/sections/${sectionId}/items`;
 
       const method = item ? 'PUT' : 'POST';
 
@@ -522,13 +523,17 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
       setUploadError('');
       
       try {
-        const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+        const baseUrl = CMS_URL;
         const formDataObj = new FormData();
         const isVideo = contentJSON.media_type === 'video';
         formDataObj.append(isVideo ? 'video' : 'image', file);
         
         const endpoint = isVideo ? '/api/upload/video' : '/api/upload/image';
-        const response = await fetch(`${baseUrl}${endpoint}`, {
+        const params = new URLSearchParams();
+        params.append('category', 'solutions');
+        if (solutionName) params.append('entityName', solutionName);
+        
+        const response = await fetch(`${baseUrl}${endpoint}?${params.toString()}`, {
           method: 'POST',
           body: formDataObj
         });
@@ -890,7 +895,7 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
                         const formDataObj = new FormData();
                         formDataObj.append('image', file);
                         
-                        const baseUrl = import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002';
+                        const baseUrl = CMS_URL;
                         const response = await fetch(`${baseUrl}/api/upload/image`, {
                           method: 'POST',
                           body: formDataObj
@@ -921,7 +926,7 @@ const ItemEditor = ({ item, sectionType, sectionId, solutionId, onSave, onCancel
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
                         <img 
-                          src={`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}${formData.icon}`} 
+                          src={`${CMS_URL}${formData.icon}`} 
                           alt="Custom icon" 
                           className="w-8 h-8" 
                         />

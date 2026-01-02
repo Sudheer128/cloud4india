@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import IconSelector from './IconSelector';
@@ -40,7 +41,7 @@ const ProductBasicInfo = ({ product, onSave, saving }) => {
   const loadCategories = async () => {
     try {
       // Load categories from database
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://149.13.60.6:4002'}/api/products/categories`);
+      const response = await fetch(`${CMS_URL}/api/products/categories`);
       if (response.ok) {
         const categories = await response.json();
         const cats = categories.map(c => c.name).sort();

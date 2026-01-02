@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import { 
   PencilIcon, 
@@ -130,7 +131,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
   const loadSections = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections`);
+      const response = await fetch(`${CMS_URL}/api/marketplaces/${marketplaceId}/sections`);
       if (response.ok) {
         const data = await response.json();
         setSections(data);
@@ -140,7 +141,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
         const buttonCountsData = {};
         await Promise.all(data.map(async (section) => {
           try {
-            const itemsRes = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`);
+            const itemsRes = await fetch(`${CMS_URL}/api/marketplaces/${marketplaceId}/sections/${section.id}/items`);
             if (itemsRes.ok) {
               const items = await itemsRes.json();
               // For hero sections, separate buttons from other items
@@ -206,7 +207,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
           payload.show_yearly_column = 1;
         }
 
-        await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections`, {
+        await fetch(`${CMS_URL}/api/marketplaces/${marketplaceId}/sections`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -231,7 +232,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
     const sectionAbove = sortedSections[currentIndex - 1];
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/marketplaces/${marketplaceId}/sections/${section.id}`, {
@@ -294,7 +295,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
     const sectionBelow = sortedSections[currentIndex + 1];
     
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       // Swap orders - include all fields to preserve section data
       const response1 = await fetch(`${baseUrl}/api/marketplaces/${marketplaceId}/sections/${section.id}`, {
@@ -348,7 +349,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
 
   const handleToggleVisibility = async (section) => {
     try {
-      const baseUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+      const baseUrl = CMS_URL;
       
       const requestBody = {
         section_type: section.section_type,
@@ -612,7 +613,7 @@ const SectionManager = ({ marketplaceId, onManageItems }) => {
                             payload.show_yearly_column = updatedData.show_yearly_column !== undefined ? updatedData.show_yearly_column : (section.show_yearly_column !== undefined ? section.show_yearly_column : 1);
                           }
                           
-                          const response = await fetch(`${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplaceId}/sections/${section.id}`, {
+                          const response = await fetch(`${CMS_URL}/api/marketplaces/${marketplaceId}/sections/${section.id}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)

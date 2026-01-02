@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import {
   PencilIcon,
@@ -32,7 +33,7 @@ const ItemManager = ({ marketplace, section, onBack }) => {
   const loadSectionIcon = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}`
+        `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}`
       );
       if (response.ok) {
         const sectionData = await response.json();
@@ -47,7 +48,7 @@ const ItemManager = ({ marketplace, section, onBack }) => {
     setSavingIcon(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}`,
+        `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -116,8 +117,8 @@ const ItemManager = ({ marketplace, section, onBack }) => {
       };
       
       const url = button.id
-        ? `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}/items/${button.id}`
-        : `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}/items`;
+        ? `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}/items/${button.id}`
+        : `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}/items`;
       
       const method = button.id ? 'PUT' : 'POST';
       
@@ -154,7 +155,7 @@ const ItemManager = ({ marketplace, section, onBack }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}/items`
+        `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}/items`
       );
       if (response.ok) {
         const data = await response.json();
@@ -172,7 +173,7 @@ const ItemManager = ({ marketplace, section, onBack }) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/marketplaces/${marketplace.id}/sections/${section.id}/items/${itemId}`,
+        `${CMS_URL}/api/marketplaces/${marketplace.id}/sections/${section.id}/items/${itemId}`,
         { method: 'DELETE' }
       );
       if (response.ok) {
@@ -509,6 +510,7 @@ const ItemManager = ({ marketplace, section, onBack }) => {
           sectionType={section.section_type}
           sectionId={section.id}
           marketplaceId={marketplace.id}
+          marketplaceName={marketplace.name}
           onSave={async () => {
             await loadItems();
             setEditingItem(null);

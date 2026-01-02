@@ -1,3 +1,4 @@
+import { CMS_URL } from '../../utils/config';
 import React, { useState, useEffect } from 'react';
 import {
   PencilIcon,
@@ -21,7 +22,7 @@ const ItemManager = ({ product, section, onBack }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${section.id}/items`
+        `${CMS_URL}/api/products/${product.id}/sections/${section.id}/items`
       );
       if (response.ok) {
         const data = await response.json();
@@ -39,7 +40,7 @@ const ItemManager = ({ product, section, onBack }) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${section.id}/items/${itemId}`,
+        `${CMS_URL}/api/products/${product.id}/sections/${section.id}/items/${itemId}`,
         { method: 'DELETE' }
       );
       if (response.ok) {
@@ -53,7 +54,7 @@ const ItemManager = ({ product, section, onBack }) => {
   const handleToggleVisibility = async (itemId) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_CMS_URL || 'http://localhost:4002'}/api/products/${product.id}/sections/${section.id}/items/${itemId}/toggle-visibility`,
+        `${CMS_URL}/api/products/${product.id}/sections/${section.id}/items/${itemId}/toggle-visibility`,
         { method: 'PUT' }
       );
       if (response.ok) {
@@ -187,6 +188,7 @@ const ItemManager = ({ product, section, onBack }) => {
           sectionType={section.section_type}
           sectionId={section.id}
           productId={product.id}
+          productName={product.name}
           onSave={async () => {
             await loadItems();
             setEditingItem(null);

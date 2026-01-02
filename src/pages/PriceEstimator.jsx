@@ -3,8 +3,9 @@ import { ShoppingCartIcon, EyeIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon }
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import BottomCartBar from '../components/PriceEstimator/BottomCartBar';
+import { CMS_URL } from '../utils/config';
 
-const API_BASE_URL = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+const API_BASE_URL = CMS_URL;
 
 const TABS = [
     { id: 'marketplace', label: 'Marketplace Apps', icon: '🛒' },

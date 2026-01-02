@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { CMS_URL } from '../utils/config'
 import { useMarketplaceData } from '../hooks/useMarketplaceData'
 import DynamicMarketplaceSection from '../components/DynamicMarketplaceSection'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -1151,7 +1152,7 @@ const UniversalMarketplacePage = () => {
                       }
                       // Check if it's an uploaded icon (starts with /uploads)
                       if (heroSection.icon.startsWith('/uploads')) {
-                        const cmsUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:4002';
+                        const cmsUrl = CMS_URL;
                         return (
                           <img
                             src={`${cmsUrl}${heroSection.icon}`}
