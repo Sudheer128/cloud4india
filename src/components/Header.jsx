@@ -7,9 +7,14 @@ import SolutionsDropdown from './SolutionsDropdown'
 
 const Header = () => {
   // Navigation visibility flags - set to true to show, false to hide
+  const SHOW_HOME = false
+  const SHOW_ABOUT_US = false
   const SHOW_MARKETPLACE = true
-  const SHOW_PRICE_ESTIMATOR = true
+  const SHOW_PRODUCTS = false
   const SHOW_SOLUTIONS = true
+  const SHOW_PRICING = false
+  const SHOW_PRICE_ESTIMATOR = true
+  const SHOW_CONTACT_US = false
 
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false)
@@ -63,14 +68,18 @@ const Header = () => {
 
               {/* Main Navigation */}
               <nav className="hidden lg:flex items-center space-x-8">
-                <Link to="/" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Home
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
-                <Link to="/about-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  About Us
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                {SHOW_HOME && (
+                  <Link to="/" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                    Home
+                    <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  </Link>
+                )}
+                {SHOW_ABOUT_US && (
+                  <Link to="/about-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                    About Us
+                    <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  </Link>
+                )}
                 {SHOW_MARKETPLACE && (
                   <button
                     data-apps-link
@@ -83,16 +92,18 @@ const Header = () => {
                       }`}></span>
                   </button>
                 )}
-                <button
-                  data-products-link
-                  onClick={handleProductsClick}
-                  className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isProductsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
-                    }`}
-                >
-                  Products
-                  <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isProductsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
-                    }`}></span>
-                </button>
+                {SHOW_PRODUCTS && (
+                  <button
+                    data-products-link
+                    onClick={handleProductsClick}
+                    className={`relative text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group ${isProductsDropdownOpen ? 'text-orange-500' : 'text-gray-700 hover:text-orange-500'
+                      }`}
+                  >
+                    Products
+                    <span className={`absolute bottom-0 left-0 h-1 bg-orange-500 transition-all duration-300 ${isProductsDropdownOpen ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}></span>
+                  </button>
+                )}
                 {SHOW_SOLUTIONS && (
                   <button
                     data-solutions-link
@@ -105,20 +116,24 @@ const Header = () => {
                       }`}></span>
                   </button>
                 )}
-                <Link to="/pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Pricing
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                {SHOW_PRICING && (
+                  <Link to="/pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                    Pricing
+                    <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  </Link>
+                )}
                 {SHOW_PRICE_ESTIMATOR && (
-                  <Link to="/price-estimator" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                  <Link to="/cloud-pricing" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
                     Price Estimator
                     <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                   </Link>
                 )}
-                <Link to="/contact-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
-                  Contact Us
-                  <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                {SHOW_CONTACT_US && (
+                  <Link to="/contact-us" className="relative text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors pb-2 outline-none focus:outline-none group">
+                    Contact Us
+                    <span className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  </Link>
+                )}
               </nav>
             </div>
 
@@ -161,20 +176,24 @@ const Header = () => {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200">
             <nav className="px-4 py-4 space-y-3">
-              <Link
-                to="/"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-              >
-                Homepage
-              </Link>
-              <Link
-                to="/about-us"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-              >
-                About Us
-              </Link>
+              {SHOW_HOME && (
+                <Link
+                  to="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  Homepage
+                </Link>
+              )}
+              {SHOW_ABOUT_US && (
+                <Link
+                  to="/about-us"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  About Us
+                </Link>
+              )}
               {SHOW_MARKETPLACE && (
                 <div className="relative">
                   <button
@@ -193,22 +212,24 @@ const Header = () => {
                   )}
                 </div>
               )}
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    handleProductsClick(e)
-                  }}
-                  className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-                >
-                  <span>Products</span>
-                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isProductsDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isProductsDropdownOpen && (
-                  <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
-                    <p className="text-xs text-gray-500 py-2">Tap Products in desktop view to see categories</p>
-                  </div>
-                )}
-              </div>
+              {SHOW_PRODUCTS && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      handleProductsClick(e)
+                    }}
+                    className="flex items-center justify-between w-full text-left text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                  >
+                    <span>Products</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${isProductsDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isProductsDropdownOpen && (
+                    <div className="ml-4 mt-2 border-l-2 border-gray-200 pl-3">
+                      <p className="text-xs text-gray-500 py-2">Tap Products in desktop view to see categories</p>
+                    </div>
+                  )}
+                </div>
+              )}
               {SHOW_SOLUTIONS && (
                 <div className="relative">
                   <button
@@ -227,20 +248,33 @@ const Header = () => {
                   )}
                 </div>
               )}
-              <Link
-                to="/pricing"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-              >
-                Pricing
-              </Link>
-              <Link
-                to="/contact-us"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
-              >
-                Contact Us
-              </Link>
+              {SHOW_PRICING && (
+                <Link
+                  to="/pricing"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  Pricing
+                </Link>
+              )}
+              {SHOW_PRICE_ESTIMATOR && (
+                <Link
+                  to="/cloud-pricing"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  Price Estimator
+                </Link>
+              )}
+              {SHOW_CONTACT_US && (
+                <Link
+                  to="/contact-us"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-700 hover:text-orange-500 text-sm font-medium transition-colors py-2"
+                >
+                  Contact Us
+                </Link>
+              )}
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <a
                   href="https://portal.cloud4india.com/login"

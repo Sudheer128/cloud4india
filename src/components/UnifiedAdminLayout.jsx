@@ -33,6 +33,8 @@ const UnifiedAdminLayout = () => {
         return 'Contact Dashboard (Advanced)';
       case '/rohit/contact-dashboard-simple':
         return 'Contact Dashboard (Simplified)';
+      case '/rohit/cloud-pricing-sync':
+        return 'Cloud Pricing Sync';
       default:
         return 'Admin Panel';
     }

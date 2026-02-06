@@ -10,6 +10,8 @@ services:
         - VITE_CMS_URL=${VITE_CMS_URL}
         - VITE_BASE_URL=${VITE_BASE_URL}
         - VITE_AI_API_KEY=${VITE_AI_API_KEY}
+        - VITE_CLOUD4INDIA_API_URL=${VITE_CLOUD4INDIA_API_URL}
+        - VITE_CLOUD4INDIA_API_KEY=${VITE_CLOUD4INDIA_API_KEY}
     container_name: cloud4india-website
     ports:
       - "4001:80"
@@ -32,6 +34,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - CLOUD4INDIA_API_URL=${VITE_CLOUD4INDIA_API_URL}
+      - CLOUD4INDIA_API_KEY=${VITE_CLOUD4INDIA_API_KEY}
+      - CLOUD4INDIA_SYNC_INTERVAL=15
     volumes:
       - ./cloud4india-cms/cms.db:/app/cms.db
       - ./cloud4india-cms-uploads:/app/uploads

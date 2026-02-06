@@ -39,10 +39,12 @@ import Footer from './components/Footer'
 import { CartProvider } from './context/CartContext'
 import BottomCartBar from './components/PriceEstimator/BottomCartBar'
 import PriceEstimator from './pages/PriceEstimator'
+import CloudPricingCalculator from './pages/CloudPricingCalculator'
 import CartSummary from './pages/CartSummary'
 import QuotationsAdmin from './pages/QuotationsAdmin'
 import QuotationView from './pages/QuotationView'
 import PriceEstimatorAdmin from './pages/PriceEstimatorAdmin'
+import CloudPricingSyncAdmin from './pages/CloudPricingSyncAdmin'
 
 function AppContent() {
   const location = useLocation();
@@ -67,6 +69,7 @@ function AppContent() {
           <Route path="/products" element={<MainProductsPage />} />
           <Route path="/solutions" element={<MainSolutionsPage />} />
           <Route path="/price-estimator" element={<PriceEstimator />} />
+          <Route path="/cloud-pricing" element={<CloudPricingCalculator />} />
           <Route path="/cart" element={<CartSummary />} />
           <Route path="/quote/:token" element={<QuotationView />} />
           {/* Login route */}
@@ -95,6 +98,7 @@ function AppContent() {
             <Route path="integrity" element={<IntegrityAdmin />} />
             <Route path="quotations" element={<QuotationsAdmin />} />
             <Route path="price-estimator-config" element={<PriceEstimatorAdmin />} />
+            <Route path="cloud-pricing-sync" element={<CloudPricingSyncAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />

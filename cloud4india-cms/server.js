@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 const { initPriceEstimatorRoutes } = require('./price-estimator-routes');
 const { initExportRoutes } = require('./export-routes');
+const { initCloudPricingRoutes, startBackgroundSync, runInitialSync } = require('./cloud-pricing-routes');
 
 const app = express();
 const PORT = process.env.PORT || 4002;
@@ -11126,6 +11127,9 @@ initPriceEstimatorRoutes(app, db);
 // Initialize Export routes
 initExportRoutes(app, db);
 
+// Initialize Cloud Pricing routes (cached API data)
+initCloudPricingRoutes(app, db);
+
 // Start server
 
 app.listen(PORT, async () => {
@@ -11179,6 +11183,15 @@ app.listen(PORT, async () => {
     addMainProductsContentColumns();
     addAboutUsSectionColumns();
   }, 2000);
+
+  // Start Cloud4India API background sync and run initial sync
+  console.log('☁️  Cloud Pricing API available at http://localhost:' + PORT + '/api/cloud-pricing/data');
+  setTimeout(async () => {
+    // Run initial sync after migrations are complete
+    await runInitialSync(db);
+    // Start background sync scheduler
+    startBackgroundSync(db);
+  }, 5000);
 });
 
 module.exports = app;

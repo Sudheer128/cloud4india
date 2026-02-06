@@ -11,7 +11,8 @@ import {
   DocumentTextIcon,
   ShieldCheckIcon,
   EnvelopeIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  CloudArrowDownIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -124,6 +125,13 @@ const AdminSidebar = () => {
       icon: ShieldCheckIcon,
       path: '/rohit/integrity',
       matchPaths: ['/rohit/integrity']
+    },
+    {
+      id: 'cloud-pricing-sync',
+      label: 'Cloud Pricing Sync',
+      icon: CloudArrowDownIcon,
+      path: '/rohit/cloud-pricing-sync',
+      matchPaths: ['/rohit/cloud-pricing-sync']
     }
   ].filter(item => {
     // Filter out marketplace items if they should be hidden

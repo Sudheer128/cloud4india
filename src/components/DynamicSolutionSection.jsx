@@ -364,9 +364,27 @@ const MediaBannerSection = ({ section, items }) => {
               {currentMedia.title || 'Product in Action'}
             </h3>
 
-            <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-medium">
-              {currentMedia.description || 'Watch our demonstration to see how our product delivers value.'}
-            </p>
+            {(() => {
+              const desc = currentMedia.description;
+              // If description is null or undefined, show fallback
+              if (desc === null || desc === undefined) {
+                return (
+                  <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-medium">
+                    Watch our demonstration to see how our product delivers value.
+                  </p>
+                );
+              }
+              // If description is empty string or only whitespace, show nothing
+              if (!desc || !desc.trim()) {
+                return null;
+              }
+              // If description has content, show it
+              return (
+                <p className="text-lg md:text-xl text-gray-600 leading-relaxed font-medium">
+                  {desc}
+                </p>
+              );
+            })()}
 
             {/* Mobile Navigation Controls (Visible only on mobile) */}
             {mediaItems.length > 1 && (
