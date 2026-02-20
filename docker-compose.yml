@@ -12,6 +12,9 @@ services:
         - VITE_AI_API_KEY=${VITE_AI_API_KEY}
         - VITE_CLOUD4INDIA_API_URL=${VITE_CLOUD4INDIA_API_URL}
         - VITE_CLOUD4INDIA_API_KEY=${VITE_CLOUD4INDIA_API_KEY}
+        - VITE_PORTAL_URL=${VITE_PORTAL_URL}
+        - VITE_DOCS_URL=${VITE_DOCS_URL}
+        - VITE_MAIN_SITE_URL=${VITE_MAIN_SITE_URL}
     container_name: cloud4india-website
     ports:
       - "4001:80"

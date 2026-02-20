@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { CMS_URL } from '../utils/config';
+import { formatPrice } from '../utils/priceUtils';
 
 const API_BASE_URL = CMS_URL;
 
@@ -21,10 +22,6 @@ export default function QuotationView() {
             .catch(e => setError(e.message))
             .finally(() => setLoading(false));
     }, [token]);
-
-    const formatPrice = (price) => new Intl.NumberFormat('en-IN', {
-        style: 'currency', currency: 'INR', minimumFractionDigits: 0
-    }).format(price || 0);
 
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-4 border-saree-teal border-t-transparent" /></div>;

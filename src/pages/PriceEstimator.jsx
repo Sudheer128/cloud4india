@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCartIcon, EyeIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import BottomCartBar from '../components/PriceEstimator/BottomCartBar';
 import { CMS_URL } from '../utils/config';
+import { formatPriceOrContact, DURATIONS } from '../utils/priceUtils';
 
 const API_BASE_URL = CMS_URL;
 
@@ -11,13 +11,6 @@ const TABS = [
     { id: 'marketplace', label: 'Marketplace Apps', icon: '🛒' },
     { id: 'products', label: 'Products', icon: '📦' },
     { id: 'solutions', label: 'Solutions', icon: '💼' }
-];
-
-const DURATIONS = [
-    { value: 'hourly', label: 'Hourly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'quarterly', label: 'Quarterly' },
-    { value: 'yearly', label: 'Yearly' }
 ];
 
 // Card component that shows the PRODUCT/APP with plan selection
@@ -31,17 +24,11 @@ function ServiceCard({ item, itemType, onAdd, onView, cartItems, onUpdateQuantit
     const getPrice = (plan, dur) => {
         if (!plan) return 'N/A';
         const key = `${dur}_price`;
-        return plan[key] || 'N/A';
+        const val = plan[key];
+        return (val !== null && val !== undefined && val !== '') ? val : 'N/A';
     };
 
-    const formatPrice = (price) => {
-        if (!price || price === 'N/A') return 'Contact Sales';
-        if (typeof price === 'number') return `₹${price.toLocaleString('en-IN')}`;
-        if (typeof price === 'string' && !isNaN(parseFloat(price))) {
-            return `₹${parseFloat(price).toLocaleString('en-IN')}`;
-        }
-        return price;
-    };
+    const formatPrice = formatPriceOrContact;
 
     // Find if current plan+duration is in cart
     const cartItem = selectedPlan && cartItems.find(
@@ -500,7 +487,6 @@ export default function PriceEstimator() {
                 )}
             </div>
 
-            <BottomCartBar />
         </div>
     );
 }

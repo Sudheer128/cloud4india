@@ -2,13 +2,23 @@ import React, { useState, useEffect } from 'react'
 import { ChevronUpIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import { getIntegrityPages, getContactSocialLinks } from '../services/cmsApi'
+import { useGlobalFeatureVisibility } from '../hooks/useGlobalFeatureVisibility'
+import { PORTAL_URL, DOCS_URL, MAIN_SITE_URL } from '../utils/config'
 
 const Footer = () => {
-  // Footer visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACE_IN_COMPANY = true
-  const SHOW_SOLUTIONS_IN_COMPANY = true
-  const SHOW_SOLUTIONS_COLUMN = true
-  const SHOW_MARKETPLACE_COLUMN = true
+  // Fetch global feature visibility settings from database
+  const { features, loading: featuresLoading } = useGlobalFeatureVisibility()
+
+  // Footer visibility flags - now from database instead of hardcoded
+  const SHOW_HOME = features.home
+  const SHOW_ABOUT_US = features.about_us
+  const SHOW_PRICING = features.pricing
+  const SHOW_CONTACT_US = features.contact_us
+  const SHOW_MARKETPLACE_IN_COMPANY = features.marketplace
+  const SHOW_PRODUCTS = features.products
+  const SHOW_SOLUTIONS_IN_COMPANY = features.solutions
+  const SHOW_SOLUTIONS_COLUMN = features.solutions
+  const SHOW_MARKETPLACE_COLUMN = features.marketplace
 
   const [integrityPages, setIntegrityPages] = useState([])
   const [loadingIntegrity, setLoadingIntegrity] = useState(true)
@@ -45,12 +55,12 @@ const Footer = () => {
     {
       title: 'Company',
       links: [
-        { text: 'Home', href: '/' },
-        { text: 'About Us', href: '/about-us' },
-        { text: 'Pricing', href: '/pricing' },
-        { text: 'Contact Us', href: '/contact-us' },
+        ...(SHOW_HOME ? [{ text: 'Home', href: '/' }] : []),
+        ...(SHOW_ABOUT_US ? [{ text: 'About Us', href: '/about-us' }] : []),
+        ...(SHOW_PRICING ? [{ text: 'Pricing', href: '/pricing' }] : []),
+        ...(SHOW_CONTACT_US ? [{ text: 'Contact Us', href: '/contact-us' }] : []),
         ...(SHOW_MARKETPLACE_IN_COMPANY ? [{ text: 'Marketplace', href: '/marketplace' }] : []),
-        { text: 'Products', href: '/products' },
+        ...(SHOW_PRODUCTS ? [{ text: 'Products', href: '/products' }] : []),
         ...(SHOW_SOLUTIONS_IN_COMPANY ? [{ text: 'Solutions', href: '/solutions' }] : [])
       ]
     },
@@ -64,14 +74,14 @@ const Footer = () => {
         { text: 'Developer Tools', href: '/marketplace?category=developer-tools' }
       ]
     }] : []),
-    {
+    ...(SHOW_PRODUCTS ? [{
       title: 'Products',
       links: [
         { text: 'All Products', href: '/products' },
         { text: 'Cloud Services', href: '/products' },
         { text: 'Infrastructure', href: '/products' }
       ]
-    },
+    }] : []),
     ...(SHOW_SOLUTIONS_COLUMN ? [{
       title: 'Solutions',
       links: [
@@ -83,8 +93,8 @@ const Footer = () => {
     {
       title: 'Account',
       links: [
-        { text: 'Customer Portal', href: 'https://portal.cloud4india.com/login?redirectUrl=/' },
-        { text: 'Create Account', href: 'https://portal.cloud4india.com/login?redirectUrl=/' }
+        { text: 'Customer Portal', href: `${PORTAL_URL}/login?redirectUrl=/` },
+        { text: 'Create Account', href: `${PORTAL_URL}/login?redirectUrl=/` }
       ]
     }
   ]
@@ -99,7 +109,7 @@ const Footer = () => {
 
         {/* Top Section - Brand */}
         <div className="mb-12 text-center">
-          <a href="https://cloud4india.com/" target="_blank" rel="noopener noreferrer" className="inline-block">
+          <a href={MAIN_SITE_URL} target="_blank" rel="noopener noreferrer" className="inline-block">
             <h2 className="text-3xl font-bold mb-4 hover:text-orange-500 transition-colors">cloud4india.com</h2>
           </a>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
@@ -145,7 +155,7 @@ const Footer = () => {
               {/* Documents Link */}
               <li>
                 <a
-                  href="https://docs.cloud4india.com/"
+                  href={DOCS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors text-sm"

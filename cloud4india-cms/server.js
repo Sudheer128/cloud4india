@@ -1840,6 +1840,156 @@ app.put('/api/homepage/sections/:sectionName', (req, res) => {
   });
 });
 
+// ==================== VISIBILITY CONTROL API ENDPOINTS ====================
+
+// Get global features visibility (for frontend)
+app.get('/api/global-features', (req, res) => {
+  db.all('SELECT feature_name, is_visible FROM global_features_visibility ORDER BY display_order ASC', (err, features) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(features || []);
+  });
+});
+
+// Get all global features (for admin)
+app.get('/api/admin/global-features', (req, res) => {
+  db.all('SELECT * FROM global_features_visibility ORDER BY display_order ASC', (err, features) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(features || []);
+  });
+});
+
+// Toggle feature visibility
+app.put('/api/admin/global-features/:featureName/toggle-visibility', (req, res) => {
+  const { featureName } = req.params;
+
+  db.get('SELECT is_visible FROM global_features_visibility WHERE feature_name = ?', [featureName], (err, feature) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!feature) {
+      res.status(404).json({ error: 'Feature not found' });
+      return;
+    }
+
+    const newVisibility = feature.is_visible === 1 ? 0 : 1;
+
+    db.run('UPDATE global_features_visibility SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE feature_name = ?',
+      [newVisibility, featureName], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: `Feature ${newVisibility ? 'shown' : 'hidden'} successfully`,
+          is_visible: newVisibility,
+          changes: this.changes
+        });
+      });
+  });
+});
+
+// Update feature display order
+app.put('/api/admin/global-features/:featureName/order', (req, res) => {
+  const { featureName } = req.params;
+  const { display_order } = req.body;
+
+  db.run('UPDATE global_features_visibility SET display_order = ?, updated_at = CURRENT_TIMESTAMP WHERE feature_name = ?',
+    [display_order, featureName], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({
+        message: 'Display order updated successfully',
+        changes: this.changes
+      });
+    });
+});
+
+// ==================== END VISIBILITY CONTROL API ENDPOINTS ====================
+
+// ==================== OLD HOMEPAGE VISIBILITY (DEPRECATED) ====================
+
+// Get homepage sections visibility (for frontend)
+app.get('/api/homepage-visibility', (req, res) => {
+  db.all('SELECT section_name, is_visible FROM homepage_sections_config ORDER BY display_order ASC', (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(sections || []);
+  });
+});
+
+// Get all homepage sections (for admin)
+app.get('/api/admin/homepage-sections', (req, res) => {
+  db.all('SELECT * FROM homepage_sections_config ORDER BY display_order ASC', (err, sections) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(sections || []);
+  });
+});
+
+// Toggle section visibility
+app.put('/api/admin/homepage-sections/:sectionName/toggle-visibility', (req, res) => {
+  const { sectionName } = req.params;
+
+  db.get('SELECT is_visible FROM homepage_sections_config WHERE section_name = ?', [sectionName], (err, section) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!section) {
+      res.status(404).json({ error: 'Section not found' });
+      return;
+    }
+
+    const newVisibility = section.is_visible === 1 ? 0 : 1;
+
+    db.run('UPDATE homepage_sections_config SET is_visible = ?, updated_at = CURRENT_TIMESTAMP WHERE section_name = ?',
+      [newVisibility, sectionName], function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({
+          message: `Section ${newVisibility ? 'shown' : 'hidden'} successfully`,
+          is_visible: newVisibility,
+          changes: this.changes
+        });
+      });
+  });
+});
+
+// Update section display order
+app.put('/api/admin/homepage-sections/:sectionName/order', (req, res) => {
+  const { sectionName } = req.params;
+  const { display_order } = req.body;
+
+  db.run('UPDATE homepage_sections_config SET display_order = ?, updated_at = CURRENT_TIMESTAMP WHERE section_name = ?',
+    [display_order, sectionName], function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({
+        message: 'Display order updated successfully',
+        changes: this.changes
+      });
+    });
+});
+
+// ==================== END OLD HOMEPAGE VISIBILITY (DEPRECATED) ====================
+
 // Create new why item
 app.post('/api/why-items', (req, res) => {
   const { title, content, link } = req.body;
@@ -5999,16 +6149,18 @@ app.get('/api/main-marketplaces', (req, res) => {
           COALESCE(mss.price, '₹2,999') as price,
           COALESCE(mss.price_period, '/month') as price_period,
           COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
-          COALESCE(mss.button_text, 'Explore Marketplace') as button_text
+          COALESCE(mss.button_text, 'Explore Marketplace') as button_text,
+          s.enable_single_page,
+          s.redirect_url
         FROM main_marketplaces_sections mss
         LEFT JOIN marketplaces s ON mss.marketplace_id = s.id
         WHERE (mss.marketplace_id IS NULL AND mss.id IS NOT NULL) OR (mss.marketplace_id IS NOT NULL AND s.id IS NOT NULL)
         ORDER BY mss.order_index ASC
       `
       : `
-        SELECT 
-          mss.*, 
-          COALESCE(s.name, mss.title) as marketplace_name, 
+        SELECT
+          mss.*,
+          COALESCE(s.name, mss.title) as marketplace_name,
           COALESCE(s.description, mss.description) as marketplace_description,
           COALESCE(mss.category, s.category) as category,
           COALESCE(mss.popular_tag, 'Most Popular') as popular_tag,
@@ -6016,7 +6168,9 @@ app.get('/api/main-marketplaces', (req, res) => {
           COALESCE(mss.price, '₹2,999') as price,
           COALESCE(mss.price_period, '/month') as price_period,
           COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
-          COALESCE(mss.button_text, 'Explore Marketplace') as button_text
+          COALESCE(mss.button_text, 'Explore Marketplace') as button_text,
+          s.enable_single_page,
+          s.redirect_url
         FROM main_marketplaces_sections mss
         LEFT JOIN marketplaces s ON mss.marketplace_id = s.id
         WHERE mss.is_visible = 1 AND (s.is_visible = 1 OR s.id IS NULL)
@@ -6336,9 +6490,9 @@ app.put('/api/main-marketplaces/sections/:sectionId', (req, res) => {
 // Get all main marketplaces sections (including hidden ones for admin)
 app.get('/api/main-marketplaces/sections/all', (req, res) => {
   db.all(`
-    SELECT 
-      mss.*, 
-      COALESCE(s.name, mss.title) as marketplace_name, 
+    SELECT
+      mss.*,
+      COALESCE(s.name, mss.title) as marketplace_name,
       COALESCE(s.description, mss.description) as marketplace_description,
       COALESCE(mss.category, s.category) as category,
       COALESCE(mss.popular_tag, 'Most Popular') as popular_tag,
@@ -6346,7 +6500,9 @@ app.get('/api/main-marketplaces/sections/all', (req, res) => {
       COALESCE(mss.price, '₹2,999') as price,
       COALESCE(mss.price_period, '/month') as price_period,
       COALESCE(mss.free_trial_tag, 'Free Trial') as free_trial_tag,
-      COALESCE(mss.button_text, 'Explore Marketplace') as button_text
+      COALESCE(mss.button_text, 'Explore Marketplace') as button_text,
+      s.enable_single_page,
+      s.redirect_url
     FROM main_marketplaces_sections mss
     LEFT JOIN marketplaces s ON mss.marketplace_id = s.id
     WHERE (mss.marketplace_id IS NULL AND mss.id IS NOT NULL) OR (mss.marketplace_id IS NOT NULL AND s.id IS NOT NULL)

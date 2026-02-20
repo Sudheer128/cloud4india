@@ -7,12 +7,27 @@ import FeatureBannersSection from '../components/FeatureBannersSection'
 import ProductsSectionNew from '../components/ProductsSectionNew'
 import MarketplacesSectionNew from '../components/MarketplacesSectionNew'
 import SolutionsSectionNew from '../components/SolutionsSectionNew'
+import LoadingSpinner from '../components/LoadingSpinner'
+import { useGlobalFeatureVisibility } from '../hooks/useGlobalFeatureVisibility'
 // import InfrastructureSection from '../components/InfrastructureSection'
 
 const Home = () => {
-  // Section visibility flags - set to true to show, false to hide
-  const SHOW_MARKETPLACES_SECTION = true
-  const SHOW_SOLUTIONS_SECTION = true
+  // Fetch global feature visibility settings from database
+  const { features, loading } = useGlobalFeatureVisibility();
+
+  // While loading, show spinner
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Feature visibility flags - now from database instead of hardcoded
+  const SHOW_PRODUCTS = features.products
+  const SHOW_MARKETPLACE = features.marketplace
+  const SHOW_SOLUTIONS = features.solutions
 
   return (
     <div>
@@ -21,9 +36,9 @@ const Home = () => {
       <ComprehensiveSectionNew />
       <WhySectionNew />
       <FeatureBannersSection />
-      <ProductsSectionNew />
-      {SHOW_MARKETPLACES_SECTION && <MarketplacesSectionNew />}
-      {SHOW_SOLUTIONS_SECTION && <SolutionsSectionNew />}
+      {SHOW_PRODUCTS && <ProductsSectionNew />}
+      {SHOW_MARKETPLACE && <MarketplacesSectionNew />}
+      {SHOW_SOLUTIONS && <SolutionsSectionNew />}
       {/* <InfrastructureSection /> */}
     </div>
   )

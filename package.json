@@ -20,6 +20,7 @@
     "@heroicons/react": "^2.0.16",
     "axios": "^1.12.2",
     "crypto-js": "^4.2.0",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.263.1",
     "quill": "^2.0.3",
     "react": "^18.2.0",

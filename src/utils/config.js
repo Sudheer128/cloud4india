@@ -10,6 +10,11 @@ export const AI_API_KEY = import.meta.env.VITE_AI_API_KEY;
 export const CLOUD4INDIA_API_URL = import.meta.env.VITE_CLOUD4INDIA_API_URL || 'https://portal.cloud4india.com/backend/api';
 export const CLOUD4INDIA_API_KEY = import.meta.env.VITE_CLOUD4INDIA_API_KEY;
 
+// Portal and External URLs
+export const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'https://portal.cloud4india.com';
+export const DOCS_URL = import.meta.env.VITE_DOCS_URL || 'https://docs.cloud4india.com';
+export const MAIN_SITE_URL = import.meta.env.VITE_MAIN_SITE_URL || 'https://cloud4india.com';
+
 // Static config
 export const APP_NAME = 'Cloud4India';
 export const APP_VERSION = '1.0.0';
@@ -30,6 +35,9 @@ export const appConfig = {
   OPENROUTER_SITE_URL: BASE_URL,
   CLOUD4INDIA_API_URL,
   CLOUD4INDIA_API_KEY,
+  PORTAL_URL,
+  DOCS_URL,
+  MAIN_SITE_URL,
 };
 
 export default appConfig;

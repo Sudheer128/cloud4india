@@ -2,15 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon, ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useCart } from '../../context/CartContext';
 import { CMS_URL } from '../../utils/config';
+import { DURATIONS } from '../../utils/priceUtils';
 
 const API_BASE_URL = CMS_URL;
-
-const DURATIONS = [
-    { value: 'hourly', label: 'Hourly', suffix: '/hour' },
-    { value: 'monthly', label: 'Monthly', suffix: '/month' },
-    { value: 'quarterly', label: 'Quarterly', suffix: '/quarter' },
-    { value: 'yearly', label: 'Yearly', suffix: '/year' }
-];
 
 export default function PricingModal({ isOpen, onClose, item }) {
     const { addItem } = useCart();

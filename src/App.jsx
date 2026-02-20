@@ -37,14 +37,14 @@ import Certifications from './pages/Certifications'
 import CompanyDocs from './pages/CompanyDocs'
 import Footer from './components/Footer'
 import { CartProvider } from './context/CartContext'
-import BottomCartBar from './components/PriceEstimator/BottomCartBar'
 import PriceEstimator from './pages/PriceEstimator'
 import CloudPricingCalculator from './pages/CloudPricingCalculator'
-import CartSummary from './pages/CartSummary'
 import QuotationsAdmin from './pages/QuotationsAdmin'
 import QuotationView from './pages/QuotationView'
 import PriceEstimatorAdmin from './pages/PriceEstimatorAdmin'
 import CloudPricingSyncAdmin from './pages/CloudPricingSyncAdmin'
+import ApiConfigAdmin from './pages/ApiConfigAdmin'
+import VisibilityControlAdmin from './pages/VisibilityControlAdmin'
 
 function AppContent() {
   const location = useLocation();
@@ -70,7 +70,6 @@ function AppContent() {
           <Route path="/solutions" element={<MainSolutionsPage />} />
           <Route path="/price-estimator" element={<PriceEstimator />} />
           <Route path="/cloud-pricing" element={<CloudPricingCalculator />} />
-          <Route path="/cart" element={<CartSummary />} />
           <Route path="/quote/:token" element={<QuotationView />} />
           {/* Login route */}
           <Route path="/login" element={<Login />} />
@@ -99,6 +98,8 @@ function AppContent() {
             <Route path="quotations" element={<QuotationsAdmin />} />
             <Route path="price-estimator-config" element={<PriceEstimatorAdmin />} />
             <Route path="cloud-pricing-sync" element={<CloudPricingSyncAdmin />} />
+            <Route path="api-config" element={<ApiConfigAdmin />} />
+            <Route path="visibility-control" element={<VisibilityControlAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />
@@ -106,7 +107,6 @@ function AppContent() {
         </Routes>
       </main>
       {showHeaderFooter && <Footer />}
-      {showHeaderFooter && <BottomCartBar />}
     </div>
   );
 }

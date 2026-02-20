@@ -1,45 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { fetchAllApiData } from '../services/cloud4indiaApi'
+import { useCart } from '../context/CartContext'
+import { BILLING_CYCLES, CURRENCIES, formatPrice, getPriceForCycle, getBillingCycle, formatMemory, applyPricingSettings, getGstPercent } from '../utils/pricingHelpers'
+import EstimateDetailsModal from '../components/PriceEstimator/EstimateDetailsModal'
 
 // ============================================================================
 // CLOUD4INDIA PRICE ESTIMATOR - Service Selection First, Then Step-by-Step
 // ============================================================================
-
-const CURRENCIES = { INR: '₹', USD: '$', EUR: '€', GBP: '£' }
-const CURRENCY_RATES = { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0095 }
-
-// Billing cycle options (all 7 from API)
-const BILLING_CYCLES = [
-  { id: 'hourly', label: 'Hourly', multiplier: 1/730, suffix: '/hour' },
-  { id: 'monthly', label: 'Monthly', multiplier: 1, suffix: '/month' },
-  { id: 'quarterly', label: 'Quarterly', multiplier: 3, suffix: '/quarter' },
-  { id: 'semi-annually', label: 'Semi-Annually', multiplier: 6, suffix: '/6 months' },
-  { id: 'yearly', label: 'Yearly', multiplier: 12, suffix: '/year', discount: 0.9 },
-  { id: 'bi-annually', label: 'Bi-Annually', multiplier: 24, suffix: '/2 years', discount: 0.85 },
-  { id: 'tri-annually', label: 'Tri-Annually', multiplier: 36, suffix: '/3 years', discount: 0.8 },
-]
-
-// Get billing cycle details
-const getBillingCycle = (id) => BILLING_CYCLES.find(c => c.id === id) || BILLING_CYCLES[1]
-
-// Calculate price for billing cycle from monthly base
-const getPriceForCycle = (monthlyPrice, cycleId) => {
-  const cycle = getBillingCycle(cycleId)
-  const multiplier = cycle.multiplier
-  const discount = cycle.discount || 1
-  return monthlyPrice * multiplier * discount
-}
-
-const formatPrice = (amount, currency = 'INR') => {
-  if (!amount || isNaN(amount)) return `${CURRENCIES[currency]}0.00`
-  const converted = amount * CURRENCY_RATES[currency]
-  return `${CURRENCIES[currency]}${converted.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-const formatMemory = (mb) => {
-  if (!mb) return '0 GB'
-  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`
-}
 
 // Service Category Icons
 const CATEGORY_ICONS = {
@@ -229,6 +197,10 @@ const getCategoryForProduct = (productName) => {
 // ============================================================================
 
 const CloudPricingCalculator = () => {
+  // Navigation hook for routing
+  const navigate = useNavigate()
+  const { addItem: addToGlobalCart, removeItemByItemId: removeFromGlobalCart, clearCart: clearGlobalCart } = useCart()
+
   // API Data State
   const [loading, setLoading] = useState(true)
   const [apiData, setApiData] = useState(null)
@@ -278,6 +250,7 @@ const CloudPricingCalculator = () => {
   const [billing, setBilling] = useState('monthly')
   const [cart, setCart] = useState([])
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
 
   // Load API Data
   useEffect(() => {
@@ -285,6 +258,10 @@ const CloudPricingCalculator = () => {
       try {
         const data = await fetchAllApiData('default')
         setApiData(data)
+        // Apply dynamic pricing settings (GST, currency rates, billing discounts)
+        if (data?.pricingSettings) {
+          applyPricingSettings(data.pricingSettings)
+        }
         // Set default OS from templates (prefer AlmaLinux or Ubuntu)
         if (data?.templates?.length > 0) {
           const linuxTemplates = data.templates.filter(t =>
@@ -317,6 +294,24 @@ const CloudPricingCalculator = () => {
     loadData()
   }, [])
 
+  // Restore cart from shared estimate link
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const estimateParam = params.get('estimate')
+      if (estimateParam && cart.length === 0) {
+        const decoded = JSON.parse(atob(estimateParam))
+        if (Array.isArray(decoded) && decoded.length > 0) {
+          // Store minimal cart data for reference - full restoration requires API data
+          // This is a simplified restore that shows the shared estimate was received
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+      }
+    } catch (e) {
+      // Silently ignore malformed estimate params
+    }
+  }, [])
+
   // Get services grouped by category - ONLY services with plans
   const servicesByCategory = useMemo(() => {
     if (!apiData?.services) return {}
@@ -335,6 +330,36 @@ const CloudPricingCalculator = () => {
   const servicesWithPlans = useMemo(() => {
     if (!apiData?.services) return 0
     return apiData.services.filter(s => s.planCount > 0).length
+  }, [apiData])
+
+  // Count of all services (including those without plans)
+  const totalServicesCount = useMemo(() => {
+    if (!apiData?.services) return 0
+    return apiData.services.length
+  }, [apiData])
+
+  // Unit pricing rates from API (Cloud4India/nimbo provider is the primary compute provider)
+  const unitRates = useMemo(() => {
+    const ps = apiData?.pricingSettings?.default_unit_rates
+    const defaults = {
+      cpu: ps?.cpu || 200,
+      memory: ps?.memory || 100,
+      storage: ps?.storage || 8,
+      ip: ps?.ip || 150,
+    }
+    if (!apiData?.unitPricings?.length) return defaults
+    // Find the primary compute provider (nimbo/Cloud4India/CloudStack)
+    const computeProvider = apiData.unitPricings.find(up =>
+      up.cloud_provider_name?.toLowerCase() === 'nimbo' ||
+      up.cloud_provider_setup_name?.toLowerCase().includes('cloudstack')
+    )
+    if (!computeProvider) return defaults
+    return {
+      cpu: computeProvider.cpu_price || defaults.cpu,
+      memory: computeProvider.memory_price || defaults.memory,
+      storage: computeProvider.storage_price || defaults.storage,
+      ip: computeProvider.ip_address_price || defaults.ip,
+    }
   }, [apiData])
 
   // Get all categories
@@ -740,36 +765,37 @@ const CloudPricingCalculator = () => {
   const calculatePrice = () => {
     let monthly = 0, hourly = 0
     const slug = (selectedService?.slug || selectedService?.name || '').toLowerCase()
+    const num = (v) => parseFloat(v) || 0
 
     // VM pricing
     if (slug.includes('virtual-machine') && !slug.includes('backup')) {
       // Compute
       if (useCustomPlan && customCpu && customMemory) {
-        monthly += parseFloat(customCpu) * 200 + parseFloat(customMemory) * 100
+        monthly += parseFloat(customCpu) * unitRates.cpu + parseFloat(customMemory) * unitRates.memory
         hourly += monthly / 730
       } else if (selectedPlan) {
-        monthly += selectedPlan.monthly_price || 0
-        hourly += selectedPlan.hourly_price || 0
+        monthly += num(selectedPlan.monthly_price)
+        hourly += num(selectedPlan.hourly_price)
       }
 
       // Disk
       if (useCustomDisk && customDiskSize) {
-        monthly += parseFloat(customDiskSize) * 8
-        hourly += (parseFloat(customDiskSize) * 8) / 730
+        monthly += parseFloat(customDiskSize) * unitRates.storage
+        hourly += (parseFloat(customDiskSize) * unitRates.storage) / 730
       } else if (selectedDisk) {
-        monthly += selectedDisk.monthly || selectedDisk.monthly_price || 0
-        hourly += selectedDisk.hourly || selectedDisk.hourly_price || 0
+        monthly += num(selectedDisk.monthly || selectedDisk.monthly_price)
+        hourly += num(selectedDisk.hourly || selectedDisk.hourly_price)
       }
 
       // Public IP
       if (publicIP) {
-        monthly += 150
-        hourly += 0.2
+        monthly += unitRates.ip
+        hourly += unitRates.ip / 730
       }
 
       // OS Licence (Windows per core, RedHat per instance)
       if (applicableLicence) {
-        const licencePrice = applicableLicence.monthly_price || 0
+        const licencePrice = num(applicableLicence.monthly_price)
         // Windows is per core - multiply by CPU count
         if (applicableLicence.pricing_unit === 'per core') {
           const cpuCount = useCustomPlan ? parseInt(customCpu) || 1 : (selectedPlan?.cpu || 1)
@@ -784,31 +810,32 @@ const CloudPricingCalculator = () => {
 
       // Addons (Products from API)
       selectedAddons.forEach(addon => {
-        monthly += addon.monthly_price || 0
-        hourly += (addon.monthly_price || 0) / 730
+        const addonPrice = num(addon.monthly_price)
+        monthly += addonPrice
+        hourly += addonPrice / 730
       })
     }
     // Object Storage pricing (uses selectedPlan)
     else if (slug === 'object-storage') {
       if (selectedPlan) {
-        monthly += selectedPlan.monthly_price || 0
-        hourly += selectedPlan.hourly_price || 0
+        monthly += num(selectedPlan.monthly_price)
+        hourly += num(selectedPlan.hourly_price)
       }
     }
     // Block Storage / NVMe pricing (uses selectedDisk)
     else if (slug === 'block-storage' || slug === 'nvme') {
       if (useCustomDisk && customDiskSize) {
-        monthly += parseFloat(customDiskSize) * 8
-        hourly += (parseFloat(customDiskSize) * 8) / 730
+        monthly += parseFloat(customDiskSize) * unitRates.storage
+        hourly += (parseFloat(customDiskSize) * unitRates.storage) / 730
       } else if (selectedDisk) {
-        monthly += selectedDisk.monthly || 0
-        hourly += selectedDisk.hourly || 0
+        monthly += num(selectedDisk.monthly)
+        hourly += num(selectedDisk.hourly)
       }
     }
     // Other services - use plan pricing
     else if (selectedPlan) {
-      monthly += selectedPlan.monthly_price || 0
-      hourly += selectedPlan.hourly_price || 0
+      monthly += num(selectedPlan.monthly_price)
+      hourly += num(selectedPlan.hourly_price)
     }
 
     return { monthly, hourly }
@@ -883,18 +910,19 @@ const CloudPricingCalculator = () => {
     setView('configure')
   }
 
-  // Add to cart
+  // Add to cart (or update existing item if editing)
   const addToCart = () => {
     const slug = (selectedService?.slug || selectedService?.name || '').toLowerCase()
     let item = {
-      id: Date.now(),
+      id: editingItem ? editingItem.id : Date.now(),
       service: selectedService,
       location: LOCATIONS.find(l => l.id === selectedLocation),
       price: currentPrice,
+      quantity: editingItem ? (editingItem.quantity || 1) : 1,
+      notes: editingItem ? (editingItem.notes || '') : '',
     }
 
     if (slug.includes('virtual-machine') && !slug.includes('backup')) {
-      // Find applicable licence for the OS
       const osFamily = selectedOS?.operating_system?.family?.toLowerCase() || selectedOS?.name?.toLowerCase() || ''
       const applicableLicence = apiData?.licences?.find(l => {
         const lname = l.name.toLowerCase()
@@ -915,7 +943,6 @@ const CloudPricingCalculator = () => {
         billingCycle: billing,
       }
     } else if (slug === 'object-storage') {
-      // Object Storage uses plan selection (not disk)
       item = {
         ...item,
         plan: selectedPlan,
@@ -923,7 +950,6 @@ const CloudPricingCalculator = () => {
         billingCycle: billing,
       }
     } else if (slug === 'block-storage' || slug === 'nvme') {
-      // Block Storage uses disk selection
       item = {
         ...item,
         disk: useCustomDisk ? { name: `${customDiskSize} GB`, size: customDiskSize, custom: true } : selectedDisk,
@@ -938,19 +964,122 @@ const CloudPricingCalculator = () => {
       }
     }
 
-    setCart([...cart, item])
-    // Go back to service selection to add more
+    if (editingItem) {
+      // Replace existing item in cart
+      setCart(cart.map(c => c.id === editingItem.id ? item : c))
+      // Remove old global cart entry and add updated one
+      if (editingItem.globalCartId) {
+        removeFromGlobalCart(editingItem.globalCartId)
+      }
+    } else {
+      setCart([...cart, item])
+    }
+
+    // Push to global CartContext for quotation flow
+    const planName = item.plan?.name || item.disk?.name || selectedService?.name || ''
+    const specs = []
+    if (item.os) specs.push(`OS: ${item.os.name}`)
+    if (item.plan && !item.plan.custom) specs.push(`Plan: ${item.plan.name}`)
+    if (item.plan?.custom) specs.push(`CPU: ${item.plan.cpu} vCPU`, `RAM: ${item.plan.memory} GB`)
+    if (item.disk) specs.push(`Disk: ${item.disk.name}`)
+    if (item.location) specs.push(`Location: ${item.location.name}`)
+
+    const billingCyclePrice = getPriceForCycle(item.price.monthly, billing)
+    const globalCartId = editingItem?.globalCartId || `cloud-${selectedService?.slug || 'service'}-${item.id}`
+    addToGlobalCart({
+      item_id: globalCartId,
+      item_type: 'cloud_service',
+      item_name: selectedService?.name || 'Cloud Service',
+      plan_name: planName,
+      duration: billing,
+      unit_price: billingCyclePrice,
+      monthly_base_price: item.price.monthly,
+      quantity: item.quantity,
+      specifications: specs,
+      features: []
+    })
+
+    item.globalCartId = globalCartId
+
+    setEditingItem(null)
     setView('services')
     setSelectedService(null)
     resetConfig()
   }
 
-  const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id))
+  const removeFromCart = (id) => {
+    const item = cart.find(i => i.id === id)
+    if (item?.globalCartId) {
+      removeFromGlobalCart(item.globalCartId)
+    }
+    setCart(cart.filter(i => i.id !== id))
+  }
 
-  const cartTotal = cart.reduce((sum, item) => ({
-    monthly: sum.monthly + item.price.monthly,
-    hourly: sum.hourly + item.price.hourly,
-  }), { monthly: 0, hourly: 0 })
+  const updateCartQuantity = (id, qty) => {
+    setCart(cart.map(item => item.id === id ? { ...item, quantity: Math.max(1, Math.min(99, qty)) } : item))
+  }
+
+  const updateCartNotes = (id, notes) => {
+    setCart(cart.map(item => item.id === id ? { ...item, notes } : item))
+  }
+
+  const clearAllCart = () => {
+    cart.forEach(item => {
+      if (item.globalCartId) removeFromGlobalCart(item.globalCartId)
+    })
+    setCart([])
+  }
+
+  const editCartItem = (item) => {
+    setEditingItem(item)
+    setShowDetailsModal(false)
+    // Pre-fill wizard state from saved item
+    const service = item.service
+    setSelectedService(service)
+    if (item.location) setSelectedLocation(item.location.id)
+    if (item.os) { setSelectedOS(item.os) }
+    if (item.plan) {
+      if (item.plan.custom) {
+        setUseCustomPlan(true)
+        setCustomCpu(item.plan.cpu)
+        setCustomMemory(item.plan.memory)
+      } else {
+        setUseCustomPlan(false)
+        setSelectedPlan(item.plan)
+      }
+    }
+    if (item.disk) {
+      if (item.disk.custom) {
+        setUseCustomDisk(true)
+        setCustomDiskSize(item.disk.size)
+      } else {
+        setUseCustomDisk(false)
+        setSelectedDisk(item.disk)
+      }
+    }
+    if (item.network) setNetworkType(item.network)
+    if (item.publicIP !== undefined) setPublicIP(item.publicIP)
+    if (item.addons) setSelectedAddons([...item.addons])
+    if (item.storageType) setStorageCategory(item.storageType)
+    if (item.billingCycle) setBilling(item.billingCycle)
+    setCurrentStep(1)
+    setView('configure')
+  }
+
+  const cancelEdit = () => {
+    setEditingItem(null)
+    resetConfig()
+    setView('services')
+    setSelectedService(null)
+  }
+
+  const cartTotal = cart.reduce((sum, item) => {
+    const qty = item.quantity || 1
+    return {
+      monthly: sum.monthly + (parseFloat(item.price.monthly) || 0) * qty,
+      hourly: sum.hourly + (parseFloat(item.price.hourly) || 0) * qty,
+    }
+  }, { monthly: 0, hourly: 0 })
 
   // Loading
   if (loading) {
@@ -1017,7 +1146,7 @@ const CloudPricingCalculator = () => {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    All Services ({servicesWithPlans})
+                    All Services ({totalServicesCount})
                   </button>
                   {categories.map(cat => (
                     <button
@@ -1126,7 +1255,7 @@ const CloudPricingCalculator = () => {
 
                 {/* Grand Total */}
                 <div className="p-4 bg-gray-50 rounded-b-xl">
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-gray-900">Total</span>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-saree-teal-dark">
@@ -1135,16 +1264,19 @@ const CloudPricingCalculator = () => {
                       <div className="text-sm text-gray-500">{getBillingCycle(billing).suffix}</div>
                     </div>
                   </div>
+                  <div className="text-xs text-gray-400 text-right mb-4">+ {getGstPercent()}% GST applicable</div>
                   {cart.length > 0 && (
-                    <button
-                      onClick={() => setShowDetailsModal(true)}
-                      className="w-full py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      View Details
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setShowDetailsModal(true)}
+                        className="w-full py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        View Details
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1152,247 +1284,20 @@ const CloudPricingCalculator = () => {
           </div>
         </div>
 
-        {/* ========== VIEW DETAILS MODAL (Services View) ========== */}
-        {showDetailsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-saree-teal to-saree-teal-dark">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Estimate Details</h2>
-                  <p className="text-saree-teal-light text-sm mt-1">{cart.length} item(s) • {getBillingCycle(billing).label} billing</p>
-                </div>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <p className="text-lg font-medium">No items added</p>
-                    <p className="text-sm mt-1">Select services to start building your estimate</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {cart.map((item, index) => {
-                      const isVMItem = item.service?.slug?.toLowerCase().includes('virtual-machine')
-                      const isStorageItem = item.service?.slug?.toLowerCase().includes('storage') || item.service?.slug?.toLowerCase().includes('nvme')
-
-                      return (
-                        <div key={item.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                          {/* Item Header */}
-                          <div className="bg-gray-50 px-5 py-4 flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                              <span className="w-8 h-8 flex items-center justify-center rounded-full bg-saree-teal-light/20 text-saree-teal-dark font-bold text-sm">
-                                {index + 1}
-                              </span>
-                              <div>
-                                <h3 className="font-bold text-gray-900">{item.service?.name}</h3>
-                                <p className="text-sm text-gray-500">{item.location?.name}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-saree-teal-dark">
-                                {formatPrice(getPriceForCycle(item.price.monthly, billing), currency)}
-                              </div>
-                              <div className="text-xs text-gray-500">{getBillingCycle(billing).suffix}</div>
-                            </div>
-                          </div>
-
-                          {/* Item Details Grid */}
-                          <div className="p-5">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Operating System (VM only) */}
-                              {isVMItem && item.os && (
-                                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                    {item.os.icon_url ? (
-                                      <img src={item.os.icon_url} alt="" className="w-6 h-6" />
-                                    ) : (
-                                      <span className="text-xl">🖥️</span>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide">Operating System</div>
-                                    <div className="font-medium text-gray-900">{item.os.name}</div>
-                                    {item.os.type && <div className="text-xs text-gray-500">{item.os.type}</div>}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Plan Details */}
-                              {item.plan && (
-                                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                    <span className="text-xl">⚙️</span>
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide">Compute Plan</div>
-                                    <div className="font-medium text-gray-900">{item.plan.name}</div>
-                                    <div className="text-xs text-gray-500 mt-1 space-x-2">
-                                      {item.plan.cpu && <span>{item.plan.cpu} vCPU</span>}
-                                      {item.plan.memory && <span>• {item.plan.memory >= 1024 ? `${item.plan.memory/1024} GB` : `${item.plan.memory} MB`} RAM</span>}
-                                      {item.plan.storage && <span>• {item.plan.storage} GB Storage</span>}
-                                    </div>
-                                    {item.plan.plan_category_name && (
-                                      <span className="inline-block mt-1 px-2 py-0.5 bg-saree-teal-light text-saree-teal-dark rounded text-xs">
-                                        {item.plan.plan_category_name}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Disk/Storage */}
-                              {item.disk && (
-                                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                    <span className="text-xl">💾</span>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide">
-                                      {isStorageItem ? 'Block Storage' : 'Additional Disk'}
-                                    </div>
-                                    <div className="font-medium text-gray-900">{item.disk.name}</div>
-                                    {item.storageType && (
-                                      <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
-                                        {item.storageType}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Network Type (VM only) */}
-                              {isVMItem && item.network && (
-                                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                    <span className="text-xl">🌐</span>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-gray-500 uppercase tracking-wide">Network</div>
-                                    <div className="font-medium text-gray-900">
-                                      {item.network === 'private' ? 'Private VPC Network' : 'Public Network'}
-                                    </div>
-                                    {item.publicIP !== undefined && (
-                                      <div className="text-xs text-gray-500 mt-1">
-                                        Public IP: <span className={item.publicIP ? 'text-green-600' : 'text-gray-400'}>{item.publicIP ? 'Yes' : 'No'}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* OS Licence (if applicable) */}
-                              {item.licence && (
-                                <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-amber-200">
-                                    <span className="text-xl">🔑</span>
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="text-xs text-amber-600 uppercase tracking-wide">OS Licence</div>
-                                    <div className="font-medium text-gray-900">{item.licence.name}</div>
-                                    <div className="text-sm text-amber-700 mt-1">
-                                      {formatPrice(item.licence.monthly_price, currency)}/{item.licence.pricing_unit}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Addons Section */}
-                            {item.addons && item.addons.length > 0 && (
-                              <div className="mt-4 pt-4 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Add-ons & Products</div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {item.addons.map(addon => (
-                                    <div key={addon.id} className="flex items-center justify-between p-3 bg-saree-teal-light/20 rounded-lg">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-saree-teal">✓</span>
-                                        <span className="font-medium text-gray-900 text-sm">{addon.name}</span>
-                                      </div>
-                                      <span className="text-saree-teal-dark font-medium text-sm">
-                                        {formatPrice(addon.monthly_price, currency)}/mo
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Price Breakdown */}
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Price Breakdown</div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                  <div className="text-xs text-gray-500">Hourly</div>
-                                  <div className="font-bold text-gray-900">{formatPrice(item.price.hourly, currency)}</div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                  <div className="text-xs text-gray-500">Monthly</div>
-                                  <div className="font-bold text-gray-900">{formatPrice(item.price.monthly, currency)}</div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                  <div className="text-xs text-gray-500">Yearly</div>
-                                  <div className="font-bold text-gray-900">{formatPrice(item.price.monthly * 12 * 0.9, currency)}</div>
-                                  <div className="text-xs text-green-600">10% off</div>
-                                </div>
-                                <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                  <div className="text-xs text-gray-500">3-Year</div>
-                                  <div className="font-bold text-gray-900">{formatPrice(item.price.monthly * 36 * 0.8, currency)}</div>
-                                  <div className="text-xs text-green-600">20% off</div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Total Estimate ({getBillingCycle(billing).label})</div>
-                    <div className="text-3xl font-bold text-saree-teal-dark">
-                      {formatPrice(getPriceForCycle(cartTotal.monthly, billing), currency)}
-                    </div>
-                  </div>
-                  <div className="flex gap-3 w-full md:w-auto">
-                    <button
-                      onClick={() => setShowDetailsModal(false)}
-                      className="flex-1 md:flex-none px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={() => window.print()}
-                      className="flex-1 md:flex-none px-6 py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                      Print Quote
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <EstimateDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          cart={cart}
+          billing={billing}
+          currency={currency}
+          cartTotal={cartTotal}
+          onRemoveItem={removeFromCart}
+          onUpdateQuantity={updateCartQuantity}
+          onUpdateNotes={updateCartNotes}
+          onEditItem={editCartItem}
+          onClearAll={clearAllCart}
+          gstRate={getGstPercent()}
+        />
       </div>
     )
   }
@@ -1421,8 +1326,12 @@ const CloudPricingCalculator = () => {
                 </svg>
               </button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Configure {selectedService?.name}</h1>
-                <p className="text-sm text-gray-500">{selectedService?.categoryName}</p>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {editingItem ? 'Edit' : 'Configure'} {selectedService?.name}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {editingItem ? 'Editing existing estimate item' : selectedService?.categoryName}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -1749,13 +1658,13 @@ const CloudPricingCalculator = () => {
                       </div>
                       <div className="text-red-500 font-medium">
                         {useCustomPlan && customCpu && customMemory
-                          ? formatPrice((parseFloat(customCpu) * 200 + parseFloat(customMemory) * 100), currency)
+                          ? formatPrice((parseFloat(customCpu) * unitRates.cpu + parseFloat(customMemory) * unitRates.memory), currency)
                           : `${CURRENCIES[currency]}0.00`}
                         <span className="text-gray-400 text-xs"> /Month</span>
                       </div>
                       <div className="text-gray-600">
                         {useCustomPlan && customCpu && customMemory
-                          ? formatPrice((parseFloat(customCpu) * 200 + parseFloat(customMemory) * 100) / 730, currency)
+                          ? formatPrice((parseFloat(customCpu) * unitRates.cpu + parseFloat(customMemory) * unitRates.memory) / 730, currency)
                           : `${CURRENCIES[currency]}0.00`}
                         <span className="text-gray-400 text-xs"> /Hour</span>
                       </div>
@@ -2073,7 +1982,7 @@ const CloudPricingCalculator = () => {
                       <span className="font-medium text-gray-900">Create VM with Public IP</span>
                       {publicIP && (
                         <span className="ml-auto text-sm text-saree-teal-dark font-medium">
-                          +{formatPrice(150, currency)}/month
+                          +{formatPrice(unitRates.ip, currency)}/month
                         </span>
                       )}
                     </label>
@@ -2518,7 +2427,10 @@ const CloudPricingCalculator = () => {
                       </svg>
                       <p className="text-gray-600 font-medium mb-2">No pricing plans available</p>
                       <p className="text-sm text-gray-400 mb-4">This service requires a custom quote.</p>
-                      <button className="px-4 py-2 bg-saree-teal text-white rounded-lg text-sm font-medium hover:bg-saree-teal-dark transition">
+                      <button 
+                        onClick={() => navigate('/contact-us')}
+                        className="px-4 py-2 bg-saree-teal text-white rounded-lg text-sm font-medium hover:bg-saree-teal-dark transition"
+                      >
                         Contact Sales
                       </button>
                     </div>
@@ -2729,19 +2641,29 @@ const CloudPricingCalculator = () => {
 
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-6">
-              <button
-                onClick={goBack}
-                className="px-6 py-3 rounded-lg font-medium transition bg-gray-200 text-gray-700 hover:bg-gray-300"
-              >
-                ← {currentStep === 1 ? 'Back to Services' : 'Back'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={goBack}
+                  className="px-6 py-3 rounded-lg font-medium transition bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  ← {currentStep === 1 ? 'Back to Services' : 'Back'}
+                </button>
+                {editingItem && (
+                  <button
+                    onClick={cancelEdit}
+                    className="px-5 py-3 rounded-lg font-medium transition border border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
 
               {currentStep === currentSteps.length ? (
                 <button
                   onClick={addToCart}
                   className="px-8 py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition shadow-lg shadow-gray-200"
                 >
-                  Add to Estimate
+                  {editingItem ? 'Update Item' : 'Add to Estimate'}
                 </button>
               ) : (
                 <button
@@ -2831,277 +2753,54 @@ const CloudPricingCalculator = () => {
 
               {/* Grand Total */}
               <div className="p-4 bg-gray-50 rounded-b-xl">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="font-bold text-gray-900">Grand Total</span>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-saree-teal-dark">
-                      {formatPrice(
-                        getPriceForCycle(cartTotal.monthly + currentPrice.monthly, billing),
-                        currency
-                      )}
+                {cart.length > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-900">Cart Total</span>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-saree-teal-dark">
+                        {formatPrice(getPriceForCycle(cartTotal.monthly, billing), currency)}
+                      </div>
+                      <div className="text-xs text-gray-500">{getBillingCycle(billing).suffix}</div>
                     </div>
-                    <div className="text-sm text-gray-500">{getBillingCycle(billing).suffix}</div>
                   </div>
+                )}
+                {currentPrice.monthly > 0 && (
+                  <div className="flex justify-between items-center mb-1 text-sm text-gray-500">
+                    <span>If you add this config</span>
+                    <span>+{formatPrice(getPriceForCycle(currentPrice.monthly, billing), currency)}</span>
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 text-right mb-4">+ {getGstPercent()}% GST applicable</div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowDetailsModal(true)}
+                    className="w-full py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    View Details
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowDetailsModal(true)}
-                  className="w-full py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  View Details
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ========== VIEW DETAILS MODAL ========== */}
-      {showDetailsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-saree-teal to-saree-teal-dark">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Estimate Details</h2>
-                <p className="text-saree-teal-light text-sm mt-1">{cart.length} item(s) • {getBillingCycle(billing).label} billing</p>
-              </div>
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-              {cart.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <p className="text-lg font-medium">No items added</p>
-                  <p className="text-sm mt-1">Select services to start building your estimate</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {cart.map((item, index) => {
-                    const isVM = item.service?.slug?.toLowerCase().includes('virtual-machine')
-                    const isStorage = item.service?.slug?.toLowerCase().includes('storage') || item.service?.slug?.toLowerCase().includes('nvme')
-
-                    return (
-                      <div key={item.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                        {/* Item Header */}
-                        <div className="bg-gray-50 px-5 py-4 flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                            <span className="w-8 h-8 flex items-center justify-center rounded-full bg-saree-teal-light/20 text-saree-teal-dark font-bold text-sm">
-                              {index + 1}
-                            </span>
-                            <div>
-                              <h3 className="font-bold text-gray-900">{item.service?.name}</h3>
-                              <p className="text-sm text-gray-500">{item.location?.name}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-saree-teal-dark">
-                              {formatPrice(getPriceForCycle(item.price.monthly, billing), currency)}
-                            </div>
-                            <div className="text-xs text-gray-500">{getBillingCycle(billing).suffix}</div>
-                          </div>
-                        </div>
-
-                        {/* Item Details Grid */}
-                        <div className="p-5">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Operating System (VM only) */}
-                            {isVM && item.os && (
-                              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                  {item.os.icon_url ? (
-                                    <img src={item.os.icon_url} alt="" className="w-6 h-6" />
-                                  ) : (
-                                    <span className="text-xl">🖥️</span>
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500 uppercase tracking-wide">Operating System</div>
-                                  <div className="font-medium text-gray-900">{item.os.name}</div>
-                                  {item.os.type && <div className="text-xs text-gray-500">{item.os.type}</div>}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Plan Details */}
-                            {item.plan && (
-                              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                  <span className="text-xl">⚙️</span>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-xs text-gray-500 uppercase tracking-wide">Compute Plan</div>
-                                  <div className="font-medium text-gray-900">{item.plan.name}</div>
-                                  <div className="text-xs text-gray-500 mt-1 space-x-2">
-                                    {item.plan.cpu && <span>{item.plan.cpu} vCPU</span>}
-                                    {item.plan.memory && <span>• {item.plan.memory >= 1024 ? `${item.plan.memory/1024} GB` : `${item.plan.memory} MB`} RAM</span>}
-                                    {item.plan.storage && <span>• {item.plan.storage} GB Storage</span>}
-                                  </div>
-                                  {item.plan.plan_category_name && (
-                                    <span className="inline-block mt-1 px-2 py-0.5 bg-saree-teal-light text-saree-teal-dark rounded text-xs">
-                                      {item.plan.plan_category_name}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Disk/Storage */}
-                            {item.disk && (
-                              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                  <span className="text-xl">💾</span>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500 uppercase tracking-wide">
-                                    {isStorage ? 'Block Storage' : 'Additional Disk'}
-                                  </div>
-                                  <div className="font-medium text-gray-900">{item.disk.name}</div>
-                                  {item.storageType && (
-                                    <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
-                                      {item.storageType}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Network Type (VM only) */}
-                            {isVM && item.network && (
-                              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200">
-                                  <span className="text-xl">🌐</span>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500 uppercase tracking-wide">Network</div>
-                                  <div className="font-medium text-gray-900">
-                                    {item.network === 'private' ? 'Private VPC Network' : 'Public Network'}
-                                  </div>
-                                  {item.publicIP !== undefined && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      Public IP: <span className={item.publicIP ? 'text-green-600' : 'text-gray-400'}>{item.publicIP ? 'Yes' : 'No'}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* OS Licence (if applicable) */}
-                            {item.licence && (
-                              <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-amber-200">
-                                  <span className="text-xl">🔑</span>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="text-xs text-amber-600 uppercase tracking-wide">OS Licence</div>
-                                  <div className="font-medium text-gray-900">{item.licence.name}</div>
-                                  <div className="text-sm text-amber-700 mt-1">
-                                    {formatPrice(item.licence.monthly_price, currency)}/{item.licence.pricing_unit}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Addons Section */}
-                          {item.addons && item.addons.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                              <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Add-ons & Products</div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {item.addons.map(addon => (
-                                  <div key={addon.id} className="flex items-center justify-between p-3 bg-saree-teal-light/20 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-saree-teal">✓</span>
-                                      <span className="font-medium text-gray-900 text-sm">{addon.name}</span>
-                                    </div>
-                                    <span className="text-saree-teal-dark font-medium text-sm">
-                                      {formatPrice(addon.monthly_price, currency)}/mo
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Price Breakdown */}
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Price Breakdown</div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                <div className="text-xs text-gray-500">Hourly</div>
-                                <div className="font-bold text-gray-900">{formatPrice(item.price.hourly, currency)}</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                <div className="text-xs text-gray-500">Monthly</div>
-                                <div className="font-bold text-gray-900">{formatPrice(item.price.monthly, currency)}</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                <div className="text-xs text-gray-500">Yearly</div>
-                                <div className="font-bold text-gray-900">{formatPrice(item.price.monthly * 12 * 0.9, currency)}</div>
-                                <div className="text-xs text-green-600">10% off</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg text-center">
-                                <div className="text-xs text-gray-500">3-Year</div>
-                                <div className="font-bold text-gray-900">{formatPrice(item.price.monthly * 36 * 0.8, currency)}</div>
-                                <div className="text-xs text-green-600">20% off</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                  <div className="text-sm text-gray-500">Total Estimate ({getBillingCycle(billing).label})</div>
-                  <div className="text-3xl font-bold text-saree-teal-dark">
-                    {formatPrice(getPriceForCycle(cartTotal.monthly, billing), currency)}
-                  </div>
-                </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="flex-1 md:flex-none px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Export/Print functionality can be added here
-                      window.print()
-                    }}
-                    className="flex-1 md:flex-none px-6 py-3 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print Quote
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <EstimateDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        cart={cart}
+        billing={billing}
+        currency={currency}
+        cartTotal={cartTotal}
+        onRemoveItem={removeFromCart}
+        onUpdateQuantity={updateCartQuantity}
+        onUpdateNotes={updateCartNotes}
+        onEditItem={editCartItem}
+        onClearAll={clearAllCart}
+      />
     </div>
   )
 }

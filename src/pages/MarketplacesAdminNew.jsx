@@ -75,7 +75,8 @@ const MarketplacesAdminNew = () => {
         route: routeWithPrefix,
         color: '#10b981', // Default green
         border_color: '#059669', // Default green border
-        enable_single_page: 1 // Always enabled for marketplaces
+        enable_single_page: formData.enable_single_page !== undefined ? formData.enable_single_page : 1,
+        redirect_url: formData.redirect_url || null
       };
 
       const response = await fetch(url, {

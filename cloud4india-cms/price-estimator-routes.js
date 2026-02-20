@@ -29,10 +29,10 @@ function initPriceEstimatorRoutes(app, db) {
         return crypto.randomBytes(32).toString('hex');
     };
 
-    // Parse price string to number (handles ₹ symbol and commas)
+    // Parse price string to number (handles ₹ symbol, commas, and numeric input)
     const parsePrice = (priceStr) => {
-        if (!priceStr || priceStr === 'N/A' || priceStr === 'Contact Sales') return null;
-        const cleaned = priceStr.replace(/[₹,\s]/g, '');
+        if (priceStr === null || priceStr === undefined || priceStr === '' || priceStr === 'N/A' || priceStr === 'Contact Sales') return null;
+        const cleaned = String(priceStr).replace(/[₹,\s]/g, '');
         const parsed = parseFloat(cleaned);
         return isNaN(parsed) ? null : parsed;
     };
@@ -144,10 +144,10 @@ function initPriceEstimatorRoutes(app, db) {
                         marketplaceMap.get(row.id).plans.push({
                             item_id: row.item_id,
                             plan_name: row.plan_name,
-                            hourly_price: pricingData.hourly_price || null,
-                            monthly_price: pricingData.monthly_price || null,
-                            quarterly_price: pricingData.quarterly_price || null,
-                            yearly_price: pricingData.yearly_price || null,
+                            hourly_price: pricingData.hourly_price ?? null,
+                            monthly_price: pricingData.monthly_price ?? null,
+                            quarterly_price: pricingData.quarterly_price ?? null,
+                            yearly_price: pricingData.yearly_price ?? null,
                             specifications: pricingData.specifications || [],
                             features: pricingData.features || []
                         });
@@ -190,10 +190,10 @@ function initPriceEstimatorRoutes(app, db) {
                             productMap.get(row.id).plans.push({
                                 item_id: row.item_id,
                                 plan_name: row.plan_name,
-                                hourly_price: pricingData.hourly_price || null,
-                                monthly_price: pricingData.monthly_price || null,
-                                quarterly_price: pricingData.quarterly_price || null,
-                                yearly_price: pricingData.yearly_price || null,
+                                hourly_price: pricingData.hourly_price ?? null,
+                                monthly_price: pricingData.monthly_price ?? null,
+                                quarterly_price: pricingData.quarterly_price ?? null,
+                                yearly_price: pricingData.yearly_price ?? null,
                                 specifications: pricingData.specifications || [],
                                 features: pricingData.features || []
                             });
@@ -236,10 +236,10 @@ function initPriceEstimatorRoutes(app, db) {
                                 solutionMap.get(row.id).plans.push({
                                     item_id: row.item_id,
                                     plan_name: row.plan_name,
-                                    hourly_price: pricingData.hourly_price || null,
-                                    monthly_price: pricingData.monthly_price || null,
-                                    quarterly_price: pricingData.quarterly_price || null,
-                                    yearly_price: pricingData.yearly_price || null,
+                                    hourly_price: pricingData.hourly_price ?? null,
+                                    monthly_price: pricingData.monthly_price ?? null,
+                                    quarterly_price: pricingData.quarterly_price ?? null,
+                                    yearly_price: pricingData.yearly_price ?? null,
                                     specifications: pricingData.specifications || [],
                                     features: pricingData.features || []
                                 });
@@ -281,6 +281,12 @@ function initPriceEstimatorRoutes(app, db) {
             return;
         }
 
+        const VALID_DURATIONS = ['hourly', 'monthly', 'quarterly', 'semi-annually', 'yearly', 'bi-annually', 'tri-annually'];
+        if (!VALID_DURATIONS.includes(duration)) {
+            res.status(400).json({ error: 'Invalid duration. Must be one of: ' + VALID_DURATIONS.join(', ') });
+            return;
+        }
+
         const durationField = `${duration}_price`;
 
         switch (item_type) {
@@ -296,7 +302,7 @@ function initPriceEstimatorRoutes(app, db) {
                     }
                     try {
                         const content = JSON.parse(row.content || '{}');
-                        res.json({ price: content[durationField] || null, duration });
+                        res.json({ price: content[durationField] ?? null, duration });
                     } catch (e) {
                         res.json({ price: null, duration });
                     }
@@ -315,7 +321,7 @@ function initPriceEstimatorRoutes(app, db) {
                     }
                     try {
                         const content = JSON.parse(row.content || '{}');
-                        res.json({ price: content[durationField] || null, duration });
+                        res.json({ price: content[durationField] ?? null, duration });
                     } catch (e) {
                         res.json({ price: null, duration });
                     }
@@ -334,7 +340,7 @@ function initPriceEstimatorRoutes(app, db) {
                     }
                     try {
                         const content = JSON.parse(row.content || '{}');
-                        res.json({ price: content[durationField] || null, duration });
+                        res.json({ price: content[durationField] ?? null, duration });
                     } catch (e) {
                         res.json({ price: null, duration });
                     }
@@ -347,7 +353,7 @@ function initPriceEstimatorRoutes(app, db) {
                         res.status(500).json({ error: err.message });
                         return;
                     }
-                    res.json({ price: row?.price || null, duration });
+                    res.json({ price: row?.price ?? null, duration });
                 });
                 break;
 
@@ -357,8 +363,26 @@ function initPriceEstimatorRoutes(app, db) {
                         res.status(500).json({ error: err.message });
                         return;
                     }
-                    res.json({ price: row?.price || null, duration });
+                    res.json({ price: row?.price ?? null, duration });
                 });
+                break;
+
+            case 'cloud_service':
+                // Cloud service items store a monthly base price.
+                // Derive the requested duration price using standard multipliers.
+                // The client sends monthly_base_price if available; otherwise we can't compute.
+                const monthlyBase = parseFloat(req.query.monthly_base_price);
+                if (!isNaN(monthlyBase) && monthlyBase > 0) {
+                    const MONTHLY_TO_DURATION = {
+                        hourly: 1/730, monthly: 1, quarterly: 3,
+                        'semi-annually': 6, yearly: 12,
+                        'bi-annually': 24, 'tri-annually': 36,
+                    };
+                    const multiplier = MONTHLY_TO_DURATION[duration] || 1;
+                    res.json({ price: monthlyBase * multiplier, duration });
+                } else {
+                    res.json({ price: null, duration, message: 'Cloud service items require monthly_base_price parameter for duration conversion' });
+                }
                 break;
 
             default:
@@ -500,11 +524,23 @@ function initPriceEstimatorRoutes(app, db) {
             items = [], created_by
         } = req.body;
 
-        // Calculate totals
+        // Duration-to-monthly normalization factors (must match frontend CartContext)
+        const DURATION_TO_MONTHLY = {
+            hourly: 730,
+            monthly: 1,
+            quarterly: 1/3,
+            'semi-annually': 1/6,
+            yearly: 1/12,
+            'bi-annually': 1/24,
+            'tri-annually': 1/36,
+        };
+
+        // Calculate totals (normalized to monthly)
         let subtotal = 0;
         items.forEach(item => {
-            const price = parsePrice(item.unit_price) || 0;
-            subtotal += price * (item.quantity || 1);
+            const price = parsePrice(item.unit_price) ?? 0;
+            const multiplier = DURATION_TO_MONTHLY[item.duration] || 1;
+            subtotal += price * (item.quantity || 1) * multiplier;
         });
 
         // Get config for tax rate
@@ -537,11 +573,13 @@ function initPriceEstimatorRoutes(app, db) {
 
                 const quoteId = this.lastID;
 
-                // Insert items
+                // Insert items — total_price is normalized to monthly so line items add up to subtotal
                 if (items.length > 0) {
                     const itemPromises = items.map((item, index) => {
                         return new Promise((resolve, reject) => {
-                            const totalPrice = (parsePrice(item.unit_price) || 0) * (item.quantity || 1);
+                            const price = parsePrice(item.unit_price) ?? 0;
+                            const multiplier = DURATION_TO_MONTHLY[item.duration] || 1;
+                            const monthlyTotal = price * (item.quantity || 1) * multiplier;
                             db.run(`
                 INSERT INTO quote_items (
                   quote_id, item_id, item_type, item_name, item_description,
@@ -551,7 +589,7 @@ function initPriceEstimatorRoutes(app, db) {
               `, [
                                 quoteId, item.item_id, item.item_type, item.item_name,
                                 item.item_description, item.plan_name, item.duration,
-                                parsePrice(item.unit_price) || 0, item.quantity || 1, totalPrice,
+                                price, item.quantity || 1, monthlyTotal,
                                 JSON.stringify(item.specifications || []),
                                 JSON.stringify(item.features || []),
                                 index
@@ -611,13 +649,19 @@ function initPriceEstimatorRoutes(app, db) {
                 return;
             }
 
-            // Calculate new totals if items provided
+            // Calculate new totals if items provided (normalized to monthly)
+            const DURATION_TO_MONTHLY = {
+                hourly: 730, monthly: 1, quarterly: 1/3,
+                'semi-annually': 1/6, yearly: 1/12,
+                'bi-annually': 1/24, 'tri-annually': 1/36,
+            };
             let subtotal = existingQuote.subtotal;
             if (items) {
                 subtotal = 0;
                 items.forEach(item => {
-                    const price = parsePrice(item.unit_price) || 0;
-                    subtotal += price * (item.quantity || 1);
+                    const price = parsePrice(item.unit_price) ?? 0;
+                    const multiplier = DURATION_TO_MONTHLY[item.duration] || 1;
+                    subtotal += price * (item.quantity || 1) * multiplier;
                 });
             }
 
@@ -659,9 +703,11 @@ function initPriceEstimatorRoutes(app, db) {
                             console.error('Error deleting quote items:', err);
                         }
 
-                        // Insert new items
+                        // Insert new items — total_price normalized to monthly
                         items.forEach((item, index) => {
-                            const totalPrice = (parsePrice(item.unit_price) || 0) * (item.quantity || 1);
+                            const price = parsePrice(item.unit_price) ?? 0;
+                            const multiplier = DURATION_TO_MONTHLY[item.duration] || 1;
+                            const monthlyTotal = price * (item.quantity || 1) * multiplier;
                             db.run(`
                 INSERT INTO quote_items (
                   quote_id, item_id, item_type, item_name, item_description,
@@ -671,7 +717,7 @@ function initPriceEstimatorRoutes(app, db) {
               `, [
                                 id, item.item_id, item.item_type, item.item_name,
                                 item.item_description, item.plan_name, item.duration,
-                                parsePrice(item.unit_price) || 0, item.quantity || 1, totalPrice,
+                                price, item.quantity || 1, monthlyTotal,
                                 JSON.stringify(item.specifications || []),
                                 JSON.stringify(item.features || []),
                                 index

@@ -3,9 +3,14 @@
  * Fetches data from Cloud4India API and caches it locally in SQLite
  */
 
-const API_BASE = process.env.CLOUD4INDIA_API_URL || 'https://portal.cloud4india.com/backend/api';
-const API_KEY = process.env.CLOUD4INDIA_API_KEY;
-const DEFAULT_RATE_CARD = process.env.CLOUD4INDIA_DEFAULT_RATE_CARD || 'default';
+// Default values from environment (used as fallback)
+const ENV_API_BASE = process.env.CLOUD4INDIA_API_URL || 'https://portal.cloud4india.com/backend/api';
+const ENV_API_KEY = process.env.CLOUD4INDIA_API_KEY;
+const ENV_DEFAULT_RATE_CARD = process.env.CLOUD4INDIA_DEFAULT_RATE_CARD || 'default';
+const ENV_SYNC_INTERVAL = parseInt(process.env.CLOUD4INDIA_SYNC_INTERVAL) || 15;
+
+// Current config cache (loaded from DB)
+let currentConfig = null;
 
 /**
  * Safely parse an integer from various formats
@@ -38,6 +43,105 @@ let syncStatus = {
   lastError: null,
   progress: null,
 };
+
+/**
+ * Get API configuration from database with env fallback
+ */
+function getApiConfig(db) {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM api_configurations WHERE id = 1', [], (err, row) => {
+      if (err) {
+        console.warn('Error reading API config from DB, using env vars:', err.message);
+        resolve({
+          api_base_url: ENV_API_BASE,
+          api_key: ENV_API_KEY,
+          default_rate_card: ENV_DEFAULT_RATE_CARD,
+          sync_interval_minutes: ENV_SYNC_INTERVAL,
+          is_enabled: 1,
+        });
+        return;
+      }
+
+      if (!row) {
+        // No config in DB, use env vars
+        resolve({
+          api_base_url: ENV_API_BASE,
+          api_key: ENV_API_KEY,
+          default_rate_card: ENV_DEFAULT_RATE_CARD,
+          sync_interval_minutes: ENV_SYNC_INTERVAL,
+          is_enabled: 1,
+        });
+        return;
+      }
+
+      // Merge DB config with env fallbacks
+      resolve({
+        api_base_url: row.api_base_url || ENV_API_BASE,
+        api_key: row.api_key || ENV_API_KEY,
+        default_rate_card: row.default_rate_card || ENV_DEFAULT_RATE_CARD,
+        sync_interval_minutes: row.sync_interval_minutes || ENV_SYNC_INTERVAL,
+        is_enabled: row.is_enabled,
+        last_tested_at: row.last_tested_at,
+        test_status: row.test_status,
+        name: row.name,
+      });
+    });
+  });
+}
+
+/**
+ * Test API connection with given credentials
+ */
+async function testApiConnection(apiBase, apiKey) {
+  if (!apiKey) {
+    return { success: false, error: 'API key is required' };
+  }
+
+  try {
+    const url = `${apiBase}/admin/cloud-provider-services?limit=1`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `API returned ${response.status}: ${response.statusText}`
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      message: 'Connection successful',
+      serviceCount: data?.data?.length || 0,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Connection failed: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Update API config test status in database
+ */
+function updateApiConfigTestStatus(db, status, testedAt) {
+  return new Promise((resolve) => {
+    db.run(
+      'UPDATE api_configurations SET test_status = ?, last_tested_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
+      [status, testedAt],
+      (err) => {
+        if (err) console.error('Error updating test status:', err.message);
+        resolve();
+      }
+    );
+  });
+}
 
 /**
  * Categorize services by name/slug
@@ -95,19 +199,23 @@ function categorizeService(name, slug) {
 
 /**
  * Helper to fetch from Cloud4India API
+ * Uses currentConfig if available, otherwise falls back to env vars
  */
-async function fetchAPI(endpoint) {
-  if (!API_KEY) {
+async function fetchAPI(endpoint, config = null) {
+  const apiBase = config?.api_base_url || currentConfig?.api_base_url || ENV_API_BASE;
+  const apiKey = config?.api_key || currentConfig?.api_key || ENV_API_KEY;
+
+  if (!apiKey) {
     console.warn('Cloud4India API key not configured - skipping API fetch');
     return null;
   }
 
   try {
-    const url = `${API_BASE}${endpoint}`;
+    const url = `${apiBase}${endpoint}`;
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
     });
 
@@ -251,9 +359,10 @@ async function syncPlans(db, services, storageCategoriesMap, planCategoriesMap) 
   console.log('   Syncing plans...');
   const allPlans = [];
 
+  const rateCard = currentConfig?.default_rate_card || ENV_DEFAULT_RATE_CARD;
   for (const service of services) {
     const response = await fetchAPI(
-      `/admin/plans/service/${encodeURIComponent(service.name)}?planable_type=RateCard&planable=${DEFAULT_RATE_CARD}&include=prices&limit=500`
+      `/admin/plans/service/${encodeURIComponent(service.name)}?planable_type=RateCard&planable=${rateCard}&include=prices&limit=500`
     );
 
     if (response?.data) {
@@ -385,7 +494,8 @@ async function syncBillingCycles(db) {
  */
 async function syncProducts(db) {
   console.log('   Syncing products...');
-  const response = await fetchAPI(`/admin/products?planable_type=RateCard&planable=${DEFAULT_RATE_CARD}&limit=200`);
+  const rateCard = currentConfig?.default_rate_card || ENV_DEFAULT_RATE_CARD;
+  const response = await fetchAPI(`/admin/products?planable_type=RateCard&planable=${rateCard}&limit=200`);
 
   if (!response?.data) {
     await updateCacheMetadata(db, 'products', 'error', 0, 'No data returned');
@@ -417,7 +527,8 @@ async function syncProducts(db) {
  */
 async function syncLicences(db) {
   console.log('   Syncing licences...');
-  const response = await fetchAPI(`/admin/licences?planable_type=RateCard&planable=${DEFAULT_RATE_CARD}&limit=200`);
+  const rateCard = currentConfig?.default_rate_card || ENV_DEFAULT_RATE_CARD;
+  const response = await fetchAPI(`/admin/licences?planable_type=RateCard&planable=${rateCard}&limit=200`);
 
   if (!response?.data) {
     await updateCacheMetadata(db, 'licences', 'error', 0, 'No data returned');
@@ -562,6 +673,80 @@ async function syncPlanCategories(db) {
 }
 
 /**
+ * Sync unit pricings (per-unit rates for CPU, memory, storage, Veeam, etc.)
+ */
+async function syncUnitPricings(db) {
+  console.log('   Syncing unit pricings...');
+  const rateCard = currentConfig?.default_rate_card || ENV_DEFAULT_RATE_CARD;
+  const response = await fetchAPI(`/admin/unit-pricings?planable_type=RateCard&planable=${rateCard}&include=cloud_provider,cloud_provider_setup,region,unit_pricing_currencies,storage_category`);
+
+  if (!response?.data) {
+    await updateCacheMetadata(db, 'unit_pricings', 'error', 0, 'No data returned');
+    return [];
+  }
+
+  const unitPricings = response.data.map(up => {
+    // Extract currency prices (prefer INR, fallback to first available)
+    const currencies = up.unit_pricing_currencies || [];
+    const inrCurrency = currencies.find(c =>
+      c.currency?.code === 'INR' || c.currency?.name?.toLowerCase().includes('rupee')
+    ) || currencies[0] || {};
+
+    return {
+      id: up.id,
+      cloud_provider_id: up.cloud_provider_id || null,
+      cloud_provider_name: up.cloud_provider?.name || up.cloud_provider_setup?.name || null,
+      cloud_provider_setup_id: up.cloud_provider_setup_id || null,
+      cloud_provider_setup_name: up.cloud_provider_setup?.name || null,
+      region_id: up.region_id || null,
+      region_name: up.region?.name || null,
+      storage_category_id: up.storage_category_id || null,
+      storage_category_name: up.storage_category?.name || null,
+      cpu_price: safeFloat(inrCurrency.cpu),
+      memory_price: safeFloat(inrCurrency.memory),
+      storage_price: safeFloat(inrCurrency.storage),
+      ip_address_price: safeFloat(inrCurrency.ip_address),
+      bandwidth_price: safeFloat(inrCurrency.bandwidth),
+      data_transfer_price: safeFloat(inrCurrency.data_transfer),
+      per_vm_price: safeFloat(inrCurrency.per_vm_price),
+      per_workstation_price: safeFloat(inrCurrency.per_workstation_price),
+      per_server_price: safeFloat(inrCurrency.per_server_price),
+      per_concurrent_task_price: safeFloat(inrCurrency.per_concurrent_task_price),
+      replication_price: safeFloat(inrCurrency.replication),
+      vb365_price: safeFloat(inrCurrency.vb365),
+      workstation_agents_price: safeFloat(inrCurrency.workstation_agents_price),
+      server_agents_price: safeFloat(inrCurrency.server_agents_price),
+      subscription_user_price: safeFloat(inrCurrency.subscription_user_price),
+      standard_storage_used_gb_price: safeFloat(inrCurrency.standard_storage_used_gb_price),
+      source_hosted_amount_of_data_gb_price: safeFloat(inrCurrency.source_hosted_amount_of_data_gb_price),
+      source_remote_amount_of_data_gb_price: safeFloat(inrCurrency.source_remote_amount_of_data_gb_price),
+      replicated_vm_price: safeFloat(inrCurrency.replicated_vm_price),
+      currency: inrCurrency.currency?.code || 'INR',
+      raw_data: up,
+    };
+  });
+
+  const columns = [
+    'id', 'cloud_provider_id', 'cloud_provider_name',
+    'cloud_provider_setup_id', 'cloud_provider_setup_name',
+    'region_id', 'region_name',
+    'storage_category_id', 'storage_category_name',
+    'cpu_price', 'memory_price', 'storage_price', 'ip_address_price',
+    'bandwidth_price', 'data_transfer_price',
+    'per_vm_price', 'per_workstation_price', 'per_server_price', 'per_concurrent_task_price',
+    'replication_price', 'vb365_price', 'workstation_agents_price', 'server_agents_price',
+    'subscription_user_price', 'standard_storage_used_gb_price',
+    'source_hosted_amount_of_data_gb_price', 'source_remote_amount_of_data_gb_price',
+    'replicated_vm_price', 'currency', 'raw_data',
+  ];
+  await clearAndInsert(db, 'cached_unit_pricings', unitPricings, columns);
+  await updateCacheMetadata(db, 'unit_pricings', 'success', unitPricings.length);
+
+  console.log(`   ✅ Synced ${unitPricings.length} unit pricings`);
+  return unitPricings;
+}
+
+/**
  * Sync all data from Cloud4India API
  */
 async function syncAllData(db) {
@@ -577,6 +762,29 @@ async function syncAllData(db) {
   console.log('🔄 Starting Cloud4India API sync...');
 
   try {
+    // Load config from database first
+    syncStatus.progress = 'Loading API configuration...';
+    currentConfig = await getApiConfig(db);
+
+    // Check if sync is enabled
+    if (!currentConfig.is_enabled) {
+      console.log('   ⚠️  API sync is disabled in configuration');
+      syncStatus.isRunning = false;
+      syncStatus.progress = null;
+      return { success: false, message: 'API sync is disabled' };
+    }
+
+    // Check if API key is configured
+    if (!currentConfig.api_key) {
+      console.log('   ⚠️  No API key configured');
+      syncStatus.isRunning = false;
+      syncStatus.progress = null;
+      return { success: false, message: 'No API key configured' };
+    }
+
+    console.log(`   Using API: ${currentConfig.api_base_url}`);
+    console.log(`   Rate Card: ${currentConfig.default_rate_card}`);
+
     // Sync categories first (needed for lookups)
     syncStatus.progress = 'Syncing categories...';
     const storageCategories = await syncStorageCategories(db);
@@ -591,13 +799,14 @@ async function syncAllData(db) {
 
     // Sync other data in parallel where possible
     syncStatus.progress = 'Syncing base data...';
-    const [rateCards, billingCycles, products, licences, operatingSystems, templates] = await Promise.all([
+    const [rateCards, billingCycles, products, licences, operatingSystems, templates, unitPricings] = await Promise.all([
       syncRateCards(db),
       syncBillingCycles(db),
       syncProducts(db),
       syncLicences(db),
       syncOperatingSystems(db),
       syncTemplates(db),
+      syncUnitPricings(db),
     ]);
 
     // Sync services
@@ -630,6 +839,7 @@ async function syncAllData(db) {
         templates: templates.length,
         storageCategories: storageCategories.length,
         planCategories: planCategories.length,
+        unitPricings: unitPricings.length,
       },
     };
   } catch (error) {
@@ -694,6 +904,8 @@ function getAllCachedData(db) {
       templates: [],
       storageCategories: [],
       planCategories: [],
+      unitPricings: [],
+      pricingSettings: null,
       lastFetched: null,
     };
 
@@ -708,6 +920,8 @@ function getAllCachedData(db) {
       { key: 'templates', sql: 'SELECT * FROM cached_templates ORDER BY name' },
       { key: 'storageCategories', sql: 'SELECT * FROM cached_storage_categories ORDER BY name' },
       { key: 'planCategories', sql: 'SELECT * FROM cached_plan_categories ORDER BY sort_order' },
+      { key: 'unitPricings', sql: 'SELECT * FROM cached_unit_pricings ORDER BY cloud_provider_name' },
+      { key: 'pricingSettings', sql: 'SELECT * FROM pricing_settings WHERE id = 1' },
       { key: 'metadata', sql: 'SELECT * FROM api_cache_metadata ORDER BY cache_key' },
     ];
 
@@ -769,6 +983,25 @@ function getAllCachedData(db) {
             }
             return tmpl;
           });
+        } else if (q.key === 'unitPricings') {
+          // Parse JSON raw_data field in unit pricings
+          result.unitPricings = rows.map(up => {
+            if (up.raw_data && typeof up.raw_data === 'string') {
+              try { up.raw_data = JSON.parse(up.raw_data); } catch (e) {}
+            }
+            return up;
+          });
+        } else if (q.key === 'pricingSettings') {
+          // Parse JSON fields in pricing settings
+          const row = rows && rows[0];
+          if (row) {
+            result.pricingSettings = {
+              gst_rate: row.gst_rate,
+              currency_rates: typeof row.currency_rates === 'string' ? JSON.parse(row.currency_rates) : row.currency_rates,
+              billing_discounts: typeof row.billing_discounts === 'string' ? JSON.parse(row.billing_discounts) : row.billing_discounts,
+              default_unit_rates: typeof row.default_unit_rates === 'string' ? JSON.parse(row.default_unit_rates) : row.default_unit_rates,
+            };
+          }
         } else {
           result[q.key] = rows;
         }
@@ -805,6 +1038,7 @@ function getDetailedSyncStatus(db) {
       { key: 'storageCategories', table: 'cached_storage_categories' },
       { key: 'planCategories', table: 'cached_plan_categories' },
       { key: 'operatingSystems', table: 'cached_operating_systems' },
+      { key: 'unitPricings', table: 'cached_unit_pricings' },
     ];
 
     let completed = 0;
@@ -832,8 +1066,8 @@ function getDetailedSyncStatus(db) {
 
           completed++;
           if (completed === tableQueries.length) {
-            // Calculate next sync time (15 minutes from last sync)
-            const syncInterval = parseInt(process.env.CLOUD4INDIA_SYNC_INTERVAL) || 15;
+            // Calculate next sync time based on config
+            const syncInterval = currentConfig?.sync_interval_minutes || ENV_SYNC_INTERVAL;
             let nextSyncAt = null;
             if (status.lastSyncAt) {
               const lastSync = new Date(status.lastSyncAt);
@@ -848,6 +1082,8 @@ function getDetailedSyncStatus(db) {
               progress: status.progress,
               tables,
               syncInterval: `${syncInterval} minutes`,
+              apiUrl: currentConfig?.api_base_url || ENV_API_BASE,
+              isEnabled: currentConfig?.is_enabled !== 0,
             });
           }
         });
@@ -861,9 +1097,13 @@ module.exports = {
   syncServices,
   syncPlans,
   syncTemplates,
+  syncUnitPricings,
   getLastSyncTime,
   shouldSync,
   getSyncStatus,
   getAllCachedData,
   getDetailedSyncStatus,
+  getApiConfig,
+  testApiConnection,
+  updateApiConfigTestStatus,
 };

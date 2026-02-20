@@ -127,12 +127,16 @@ const MarketplacesSectionNew = () => {
               const marketplaceCategory = marketplace.category || 'Enterprise Marketplaces';
               const colors = getMarketplaceColor()
               
-              return (
-                <Link
-                  key={marketplace.id}
-                  to={`/marketplace/${toSlug(marketplaceName)}`}
-                  className={`relative bg-white border ${colors.border} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block overflow-hidden`}
-                >
+              const shouldUseSinglePage = marketplace.enable_single_page !== undefined
+                ? Boolean(marketplace.enable_single_page)
+                : true;
+              const navigationUrl = !shouldUseSinglePage && marketplace.redirect_url
+                ? marketplace.redirect_url
+                : `/marketplace/${toSlug(marketplaceName)}`;
+              const isExternalUrl = navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://');
+
+              const cardContent = (
+                <>
                   {/* single-color hover wash: light teal, under content */}
                   <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0">
                     <div className="absolute inset-0 bg-saree-teal/10" />
@@ -150,7 +154,7 @@ const MarketplacesSectionNew = () => {
                       {marketplace.description}
                     </p>
                   </div>
-                  
+
                   <div className="flex items-center justify-between relative z-10">
                     <span className={`${colors.link} font-semibold text-sm flex items-center space-x-1 group-hover:translate-x-1 transition-transform`}>
                       <span>{marketplace.button_text || 'View marketplace'}</span>
@@ -159,6 +163,28 @@ const MarketplacesSectionNew = () => {
                       </svg>
                     </span>
                   </div>
+                </>
+              );
+
+              const cardClassName = `relative bg-white border ${colors.border} rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group block overflow-hidden`;
+
+              return isExternalUrl ? (
+                <a
+                  key={marketplace.id}
+                  href={navigationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cardClassName}
+                >
+                  {cardContent}
+                </a>
+              ) : (
+                <Link
+                  key={marketplace.id}
+                  to={navigationUrl}
+                  className={cardClassName}
+                >
+                  {cardContent}
                 </Link>
               );
             })}

@@ -9,7 +9,9 @@ const SolutionBasicInfo = ({ solution, onSave, saving }) => {
     description: '',
     category: '',
     route: '',
-    icon: ''
+    icon: '',
+    enable_single_page: 1,
+    redirect_url: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -30,7 +32,9 @@ const SolutionBasicInfo = ({ solution, onSave, saving }) => {
         description: solution.description || '',
         category: solution.category || '',
         route: cleanRoute,
-        icon: solution.icon || ''
+        icon: solution.icon || '',
+        enable_single_page: solution.enable_single_page !== undefined ? solution.enable_single_page : 1,
+        redirect_url: solution.redirect_url || ''
       });
     }
 
@@ -171,6 +175,54 @@ const SolutionBasicInfo = ({ solution, onSave, saving }) => {
           </p>
         </div>
 
+        {/* Navigation Settings */}
+        <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <LinkIcon className="w-5 h-5 text-blue-600" />
+            Navigation Settings
+          </h4>
+
+          {/* Enable Single Page Toggle */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Enable Single Page</label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                When enabled, clicking this solution opens its dedicated detail page
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, enable_single_page: prev.enable_single_page ? 0 : 1 }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.enable_single_page ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${
+                formData.enable_single_page ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+
+          {/* Redirect URL - shown when single page is disabled */}
+          {!formData.enable_single_page && (
+            <div className="mt-4 p-4 bg-white rounded-lg border border-blue-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Redirect URL <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="url"
+                value={formData.redirect_url}
+                onChange={(e) => handleChange('redirect_url', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="https://example.com/your-solution-page"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                When users click this solution, they will be redirected to this URL instead of the detail page
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">
           <button
@@ -196,7 +248,13 @@ const SolutionBasicInfo = ({ solution, onSave, saving }) => {
   );
 };
 
-// Import missing icon
+// Import missing icons
+const LinkIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
+);
+
 const DocumentTextIcon = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

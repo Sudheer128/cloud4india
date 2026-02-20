@@ -12,7 +12,9 @@ import {
   ShieldCheckIcon,
   EnvelopeIcon,
   ChartBarIcon,
-  CloudArrowDownIcon
+  CloudArrowDownIcon,
+  Cog6ToothIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -132,6 +134,20 @@ const AdminSidebar = () => {
       icon: CloudArrowDownIcon,
       path: '/rohit/cloud-pricing-sync',
       matchPaths: ['/rohit/cloud-pricing-sync']
+    },
+    {
+      id: 'api-config',
+      label: 'API Configuration',
+      icon: Cog6ToothIcon,
+      path: '/rohit/api-config',
+      matchPaths: ['/rohit/api-config']
+    },
+    {
+      id: 'visibility-control',
+      label: 'Visibility Control',
+      icon: EyeIcon,
+      path: '/rohit/visibility-control',
+      matchPaths: ['/rohit/visibility-control']
     }
   ].filter(item => {
     // Filter out marketplace items if they should be hidden

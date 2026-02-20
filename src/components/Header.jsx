@@ -4,17 +4,22 @@ import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outli
 import AppsDropdown from './AppsDropdown'
 import ProductsDropdown from './ProductsDropdown'
 import SolutionsDropdown from './SolutionsDropdown'
+import { useGlobalFeatureVisibility } from '../hooks/useGlobalFeatureVisibility'
+import { PORTAL_URL } from '../utils/config'
 
 const Header = () => {
-  // Navigation visibility flags - set to true to show, false to hide
-  const SHOW_HOME = false
-  const SHOW_ABOUT_US = false
-  const SHOW_MARKETPLACE = true
-  const SHOW_PRODUCTS = false
-  const SHOW_SOLUTIONS = true
-  const SHOW_PRICING = false
-  const SHOW_PRICE_ESTIMATOR = true
-  const SHOW_CONTACT_US = false
+  // Fetch global feature visibility settings from database
+  const { features, loading } = useGlobalFeatureVisibility()
+
+  // Navigation visibility flags - now from database instead of hardcoded
+  const SHOW_HOME = features.home
+  const SHOW_ABOUT_US = features.about_us
+  const SHOW_MARKETPLACE = features.marketplace
+  const SHOW_PRODUCTS = features.products
+  const SHOW_SOLUTIONS = features.solutions
+  const SHOW_PRICING = features.pricing
+  const SHOW_PRICE_ESTIMATOR = features.price_estimator
+  const SHOW_CONTACT_US = features.contact_us
 
   const [activeDropdown, setActiveDropdown] = useState(null)
   const [isAppsDropdownOpen, setIsAppsDropdownOpen] = useState(false)
@@ -141,7 +146,7 @@ const Header = () => {
             <div className="hidden lg:flex items-center space-x-4">
               {/* Authentication Buttons */}
               <a
-                href="https://portal.cloud4india.com/login"
+                href={`${PORTAL_URL}/login`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-700 hover:text-gray-900 text-sm font-medium transition-colors"
@@ -149,7 +154,7 @@ const Header = () => {
                 Sign in
               </a>
               <a
-                href="https://portal.cloud4india.com/register"
+                href={`${PORTAL_URL}/register`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-200"
@@ -277,7 +282,7 @@ const Header = () => {
               )}
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <a
-                  href="https://portal.cloud4india.com/login"
+                  href={`${PORTAL_URL}/login`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-gray-700 hover:text-gray-900 text-sm font-medium transition-colors py-2"
@@ -285,7 +290,7 @@ const Header = () => {
                   Sign in
                 </a>
                 <a
-                  href="https://portal.cloud4india.com/register"
+                  href={`${PORTAL_URL}/register`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 text-center"

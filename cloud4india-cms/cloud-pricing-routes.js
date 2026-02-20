@@ -8,6 +8,9 @@ const {
   getAllCachedData,
   getDetailedSyncStatus,
   shouldSync,
+  getApiConfig,
+  testApiConnection,
+  updateApiConfigTestStatus,
 } = require('./services/cloud4india-sync');
 
 // Sync interval from environment (default 15 minutes)
@@ -24,12 +27,14 @@ function initCloudPricingRoutes(app, db) {
   // ========================================
   // GET /api/cloud-pricing/data
   // Returns all cached pricing data for frontend
+  // Strategy: Always serve cached data if available (even if stale)
+  // Only fail if absolutely no data exists in cache
   // ========================================
   app.get('/api/cloud-pricing/data', async (req, res) => {
     try {
       const data = await getAllCachedData(db);
 
-      // Check if we have any data
+      // Check if we have any cached data at all
       if (!data.services || data.services.length === 0) {
         // No data cached yet, try to sync first
         console.log('No cached data found, triggering initial sync...');
@@ -47,6 +52,9 @@ function initCloudPricingRoutes(app, db) {
         }
       }
 
+      // We have cached data! Always return it, even if it might be stale
+      // This ensures the frontend always shows pricing, even if the API is down
+      // The background sync job will update the cache when API becomes available
       res.json(data);
     } catch (error) {
       console.error('Error fetching cloud pricing data:', error);
@@ -205,6 +213,272 @@ function initCloudPricingRoutes(app, db) {
 
       res.json(licences);
     });
+  });
+
+  // ========================================
+  // GET /api/cloud-pricing/unit-pricings
+  // Returns cached unit pricings (per-unit rates)
+  // ========================================
+  app.get('/api/cloud-pricing/unit-pricings', (req, res) => {
+    db.all('SELECT * FROM cached_unit_pricings ORDER BY cloud_provider_name', [], (err, rows) => {
+      if (err) {
+        console.error('Error fetching unit pricings:', err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      // Parse JSON fields
+      const unitPricings = rows.map(up => {
+        if (up.raw_data && typeof up.raw_data === 'string') {
+          try { up.raw_data = JSON.parse(up.raw_data); } catch (e) {}
+        }
+        return up;
+      });
+
+      res.json(unitPricings);
+    });
+  });
+
+  // ========================================
+  // GET /api/cloud-pricing/pricing-settings
+  // Returns pricing settings (GST, currency rates, discounts, default unit rates)
+  // ========================================
+  app.get('/api/cloud-pricing/pricing-settings', (req, res) => {
+    db.get('SELECT * FROM pricing_settings WHERE id = 1', [], (err, row) => {
+      if (err) {
+        console.error('Error fetching pricing settings:', err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!row) {
+        return res.json({
+          gst_rate: 18,
+          currency_rates: { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0095 },
+          billing_discounts: { yearly: 0.9, 'bi-annually': 0.85, 'tri-annually': 0.8 },
+          default_unit_rates: { cpu: 200, memory: 100, storage: 8, ip: 150 },
+        });
+      }
+
+      // Parse JSON fields
+      const settings = {
+        gst_rate: row.gst_rate,
+        currency_rates: typeof row.currency_rates === 'string' ? JSON.parse(row.currency_rates) : row.currency_rates,
+        billing_discounts: typeof row.billing_discounts === 'string' ? JSON.parse(row.billing_discounts) : row.billing_discounts,
+        default_unit_rates: typeof row.default_unit_rates === 'string' ? JSON.parse(row.default_unit_rates) : row.default_unit_rates,
+      };
+
+      res.json(settings);
+    });
+  });
+
+  // ========================================
+  // PUT /api/admin/pricing-settings
+  // Update pricing settings
+  // ========================================
+  app.put('/api/admin/pricing-settings', (req, res) => {
+    const { gst_rate, currency_rates, billing_discounts, default_unit_rates } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (gst_rate !== undefined) {
+      updates.push('gst_rate = ?');
+      values.push(gst_rate);
+    }
+    if (currency_rates !== undefined) {
+      updates.push('currency_rates = ?');
+      values.push(typeof currency_rates === 'string' ? currency_rates : JSON.stringify(currency_rates));
+    }
+    if (billing_discounts !== undefined) {
+      updates.push('billing_discounts = ?');
+      values.push(typeof billing_discounts === 'string' ? billing_discounts : JSON.stringify(billing_discounts));
+    }
+    if (default_unit_rates !== undefined) {
+      updates.push('default_unit_rates = ?');
+      values.push(typeof default_unit_rates === 'string' ? default_unit_rates : JSON.stringify(default_unit_rates));
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    const sql = `UPDATE pricing_settings SET ${updates.join(', ')} WHERE id = 1`;
+
+    db.run(sql, values, function(err) {
+      if (err) {
+        console.error('Error updating pricing settings:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true, message: 'Pricing settings updated' });
+    });
+  });
+
+  // ========================================
+  // GET /api/admin/api-config
+  // Returns current API configuration (with masked API key)
+  // ========================================
+  app.get('/api/admin/api-config', async (req, res) => {
+    try {
+      const config = await getApiConfig(db);
+
+      // Mask API key - only show last 4 characters
+      let maskedApiKey = '';
+      if (config.api_key) {
+        const key = config.api_key;
+        if (key.length > 4) {
+          maskedApiKey = '*'.repeat(key.length - 4) + key.slice(-4);
+        } else {
+          maskedApiKey = '****';
+        }
+      }
+
+      res.json({
+        name: config.name || 'Cloud4India API',
+        api_base_url: config.api_base_url,
+        api_key_masked: maskedApiKey,
+        has_api_key: !!config.api_key,
+        default_rate_card: config.default_rate_card,
+        sync_interval_minutes: config.sync_interval_minutes,
+        is_enabled: config.is_enabled,
+        last_tested_at: config.last_tested_at,
+        test_status: config.test_status,
+      });
+    } catch (error) {
+      console.error('Error fetching API config:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
+  // PUT /api/admin/api-config
+  // Update API configuration
+  // ========================================
+  app.put('/api/admin/api-config', (req, res) => {
+    const {
+      name,
+      api_base_url,
+      api_key,
+      default_rate_card,
+      sync_interval_minutes,
+      is_enabled,
+    } = req.body;
+
+    // Build update query dynamically (only update provided fields)
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (api_base_url !== undefined) {
+      updates.push('api_base_url = ?');
+      values.push(api_base_url);
+    }
+    if (api_key !== undefined) {
+      updates.push('api_key = ?');
+      values.push(api_key);
+    }
+    if (default_rate_card !== undefined) {
+      updates.push('default_rate_card = ?');
+      values.push(default_rate_card);
+    }
+    if (sync_interval_minutes !== undefined) {
+      updates.push('sync_interval_minutes = ?');
+      values.push(sync_interval_minutes);
+    }
+    if (is_enabled !== undefined) {
+      updates.push('is_enabled = ?');
+      values.push(is_enabled ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    const sql = `UPDATE api_configurations SET ${updates.join(', ')} WHERE id = 1`;
+
+    db.run(sql, values, function(err) {
+      if (err) {
+        console.error('Error updating API config:', err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      // If no row was updated, insert default row first
+      if (this.changes === 0) {
+        db.run(
+          `INSERT OR REPLACE INTO api_configurations (id, name, api_base_url, api_key, default_rate_card, sync_interval_minutes, is_enabled) VALUES (1, ?, ?, ?, ?, ?, ?)`,
+          [
+            name || 'Cloud4India API',
+            api_base_url || 'https://portal.cloud4india.com/backend/api',
+            api_key || null,
+            default_rate_card || 'default',
+            sync_interval_minutes || 15,
+            is_enabled !== undefined ? (is_enabled ? 1 : 0) : 1,
+          ],
+          (insertErr) => {
+            if (insertErr) {
+              console.error('Error inserting API config:', insertErr);
+              return res.status(500).json({ error: insertErr.message });
+            }
+            res.json({ success: true, message: 'API configuration saved' });
+          }
+        );
+      } else {
+        res.json({ success: true, message: 'API configuration updated' });
+      }
+    });
+  });
+
+  // ========================================
+  // POST /api/admin/api-config/test
+  // Test API connection
+  // ========================================
+  app.post('/api/admin/api-config/test', async (req, res) => {
+    try {
+      const { api_base_url, api_key } = req.body;
+
+      // Use provided values or fetch from DB
+      let testUrl = api_base_url;
+      let testKey = api_key;
+
+      if (!testUrl || !testKey) {
+        const config = await getApiConfig(db);
+        testUrl = testUrl || config.api_base_url;
+        testKey = testKey || config.api_key;
+      }
+
+      if (!testKey) {
+        return res.json({
+          success: false,
+          error: 'No API key configured',
+        });
+      }
+
+      const result = await testApiConnection(testUrl, testKey);
+      const testedAt = new Date().toISOString();
+
+      // Update test status in database
+      await updateApiConfigTestStatus(
+        db,
+        result.success ? 'success' : 'failed',
+        testedAt
+      );
+
+      res.json({
+        ...result,
+        tested_at: testedAt,
+      });
+    } catch (error) {
+      console.error('Error testing API connection:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
   });
 
   console.log('   ✅ Cloud Pricing routes initialized');

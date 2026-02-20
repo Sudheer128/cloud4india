@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { XMarkIcon, ShoppingCartIcon, CheckIcon } from '@heroicons/react/24/outline';
-
-const DURATIONS = [
-    { value: 'hourly', label: 'Hourly', suffix: '/Hour' },
-    { value: 'monthly', label: 'Monthly', suffix: '/Month' },
-    { value: 'quarterly', label: 'Quarterly', suffix: '/Quarter' },
-    { value: 'yearly', label: 'Yearly', suffix: '/Year' }
-];
+import { formatPriceOrContact, DURATIONS } from '../../utils/priceUtils';
 
 export default function DurationSelectPopup({ isOpen, onClose, onConfirm, item, prices }) {
     const [selectedDuration, setSelectedDuration] = useState('monthly');
@@ -19,13 +13,7 @@ export default function DurationSelectPopup({ isOpen, onClose, onConfirm, item, 
         return prices?.[key] || prices?.[duration] || 'N/A';
     };
 
-    const formatPrice = (price) => {
-        if (!price || price === 'N/A' || price === null) return 'Contact Sales';
-        if (typeof price === 'number') {
-            return `₹${price.toLocaleString('en-IN')}`;
-        }
-        return price;
-    };
+    const formatPrice = formatPriceOrContact;
 
     const handleConfirm = () => {
         onConfirm(selectedDuration, getPrice(selectedDuration));

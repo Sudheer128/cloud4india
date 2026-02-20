@@ -96,7 +96,11 @@ function initExportRoutes(app, db) {
 
         try {
             const quote = await getQuoteWithItems(req.params.id);
-            const monthlyTotal = quote.subtotal || 0;
+
+            // total_price is already monthly-normalized in the DB, so just sum directly
+            const monthlyTotal = quote.items.reduce((sum, item) => {
+                return sum + (item.total_price || 0);
+            }, 0) || quote.subtotal || 0;
             const yearlyTotal = monthlyTotal * 12;
 
             // Build items table rows
@@ -309,7 +313,11 @@ function initExportRoutes(app, db) {
 
         try {
             const quote = await getQuoteWithItems(req.params.id);
-            const monthlyTotal = quote.subtotal || 0;
+
+            // total_price is already monthly-normalized in the DB, so just sum directly
+            const monthlyTotal = quote.items.reduce((sum, item) => {
+                return sum + (item.total_price || 0);
+            }, 0) || quote.subtotal || 0;
             const yearlyTotal = monthlyTotal * 12;
 
             // Build Excel data

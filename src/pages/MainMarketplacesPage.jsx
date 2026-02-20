@@ -310,7 +310,9 @@ const MainMarketplacesPage = () => {
                   price: marketplace.price || '₹2,999',
                   price_period: marketplace.price_period || '/month',
                   free_trial_tag: marketplace.free_trial_tag || 'Free Trial',
-                  button_text: marketplace.button_text || 'Explore App'
+                  button_text: marketplace.button_text || 'Explore App',
+                  enable_single_page: marketplace.enable_single_page,
+                  redirect_url: marketplace.redirect_url
                 };
                 return (
                   <MarketplaceCard 
@@ -513,19 +515,40 @@ const MarketplaceCard = ({ section, index, isHovered, onHover }) => {
           )}
 
           {/* Action Button - Balanced design */}
-          <Link 
-            to={`/marketplace/${toSlug(section.title || section.name || 'app')}`}
-            className={`
-              group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300
-              ${isHovered 
-                ? `${unifiedHover.buttonBg} text-white` 
+          {(() => {
+            const shouldUseSinglePage = section.enable_single_page !== undefined
+              ? Boolean(section.enable_single_page)
+              : true;
+            const navigationUrl = !shouldUseSinglePage && section.redirect_url
+              ? section.redirect_url
+              : `/marketplace/${toSlug(section.title || section.name || 'app')}`;
+            const isExternalUrl = navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://');
+            const btnClass = `group/btn w-full inline-flex items-center justify-center px-5 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
+              isHovered
+                ? `${unifiedHover.buttonBg} text-white`
                 : 'bg-gray-900 text-white hover:bg-gray-800'
-              }
-            `}
-          >
-            {section.button_text || 'Explore App'}
-            <ArrowRightIcon className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
-          </Link>
+            }`;
+
+            return isExternalUrl ? (
+              <a
+                href={navigationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={btnClass}
+              >
+                {section.button_text || 'Explore App'}
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
+              </a>
+            ) : (
+              <Link
+                to={navigationUrl}
+                className={btnClass}
+              >
+                {section.button_text || 'Explore App'}
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform duration-300" />
+              </Link>
+            );
+          })()}
         </div>
       </div>
     </div>

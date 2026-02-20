@@ -4,8 +4,8 @@ import {
     ClipboardDocumentIcon, ArrowUpTrayIcon, PaperAirplaneIcon, TableCellsIcon,
     ArrowPathIcon, PencilIcon
 } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
 import { CMS_URL } from '../utils/config';
+import { formatPrice } from '../utils/priceUtils';
 
 const API_BASE_URL = CMS_URL;
 
@@ -28,8 +28,6 @@ export default function QuotationsAdmin() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
     const [selectedQuote, setSelectedQuote] = useState(null);
-    const navigate = useNavigate();
-
     useEffect(() => { fetchQuotations(); }, [filter]);
 
     const fetchQuotations = async () => {
@@ -139,15 +137,7 @@ export default function QuotationsAdmin() {
         }
     };
 
-    const editQuote = (quote) => {
-        // Navigate to cart with quote data for editing
-        localStorage.setItem('editQuote', JSON.stringify(quote));
-        navigate('/cart?edit=' + quote.id);
-    };
 
-    const formatPrice = (price) => new Intl.NumberFormat('en-IN', {
-        style: 'currency', currency: 'INR', minimumFractionDigits: 0
-    }).format(price || 0);
 
     const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-IN') : '-';
 
@@ -225,15 +215,10 @@ export default function QuotationsAdmin() {
 
                                             {/* Status Actions based on current status */}
                                             {q.status === 'draft' && (
-                                                <>
-                                                    <button onClick={() => editQuote(q)} title="Edit Quote" className="p-1.5 hover:bg-gray-100 rounded text-gray-600">
-                                                        <PencilIcon className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => updateStatus(q.id, 'pending_approval')} title="Submit for Approval"
-                                                        className="p-1.5 hover:bg-yellow-100 rounded text-yellow-600 font-medium">
-                                                        <ArrowUpTrayIcon className="w-4 h-4" />
-                                                    </button>
-                                                </>
+                                                <button onClick={() => updateStatus(q.id, 'pending_approval')} title="Submit for Approval"
+                                                    className="p-1.5 hover:bg-yellow-100 rounded text-yellow-600 font-medium">
+                                                    <ArrowUpTrayIcon className="w-4 h-4" />
+                                                </button>
                                             )}
                                             {q.status === 'pending_approval' && (
                                                 <>
@@ -251,7 +236,7 @@ export default function QuotationsAdmin() {
                                                 </button>
                                             )}
                                             {q.status === 'rejected' && (
-                                                <button onClick={() => editQuote(q)} title="Edit & Resubmit" className="p-1.5 hover:bg-yellow-100 rounded text-yellow-600">
+                                                <button onClick={() => updateStatus(q.id, 'draft')} title="Move to Draft" className="p-1.5 hover:bg-yellow-100 rounded text-yellow-600">
                                                     <PencilIcon className="w-4 h-4" />
                                                 </button>
                                             )}

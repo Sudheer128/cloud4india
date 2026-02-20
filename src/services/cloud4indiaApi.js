@@ -22,6 +22,8 @@ let apiCache = {
   templates: null,
   storageCategories: null,
   planCategories: null,
+  unitPricings: null,
+  pricingSettings: null,
   plansByService: {},
   lastFetched: null,
 };
@@ -453,6 +455,42 @@ export async function fetchPlanCategories() {
 }
 
 /**
+ * Fetch unit pricings (per-unit rates for CPU, memory, storage, Veeam, etc.)
+ */
+export async function fetchUnitPricings(rateCard = DEFAULT_RATE_CARD) {
+  const response = await fetchAPI(
+    `/admin/unit-pricings?planable_type=RateCard&planable=${rateCard}&include=cloud_provider,cloud_provider_setup,region,unit_pricing_currencies,storage_category`
+  );
+
+  if (!response?.data) return [];
+
+  return response.data.map(up => {
+    const currencies = up.unit_pricing_currencies || [];
+    const inr = currencies.find(c =>
+      c.currency?.code === 'INR' || c.currency?.name?.toLowerCase().includes('rupee')
+    ) || currencies[0] || {};
+
+    return {
+      id: up.id,
+      cloud_provider_name: up.cloud_provider?.name || up.cloud_provider_setup?.name || null,
+      cloud_provider_setup_name: up.cloud_provider_setup?.name || null,
+      region_name: up.region?.name || null,
+      storage_category_name: up.storage_category?.name || null,
+      cpu_price: parseFloat(inr.cpu) || 0,
+      memory_price: parseFloat(inr.memory) || 0,
+      storage_price: parseFloat(inr.storage) || 0,
+      ip_address_price: parseFloat(inr.ip_address) || 0,
+      bandwidth_price: parseFloat(inr.bandwidth) || 0,
+      per_vm_price: parseFloat(inr.per_vm_price) || 0,
+      per_workstation_price: parseFloat(inr.per_workstation_price) || 0,
+      per_server_price: parseFloat(inr.per_server_price) || 0,
+      per_concurrent_task_price: parseFloat(inr.per_concurrent_task_price) || 0,
+      currency: inr.currency?.code || 'INR',
+    };
+  });
+}
+
+/**
  * Fetch ALL data - tries CMS cache first, falls back to direct API
  */
 export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
@@ -499,6 +537,8 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
         templates: cmsData.templates || [],
         storageCategories: cmsData.storageCategories || [],
         planCategories: cmsData.planCategories || [],
+        unitPricings: cmsData.unitPricings || [],
+        pricingSettings: cmsData.pricingSettings || null,
         plansByService,
         lastFetched: now,
       };
@@ -506,6 +546,7 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
       console.log('CMS cache loaded:', {
         services: services.length,
         plans: Object.values(plansByService).flat().length,
+        unitPricings: (cmsData.unitPricings || []).length,
       });
 
       return apiCache;
@@ -528,6 +569,7 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
       templates,
       storageCategories,
       planCategories,
+      unitPricings,
     ] = await Promise.all([
       fetchServices(),
       fetchRateCards(),
@@ -538,6 +580,7 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
       fetchTemplates(),
       fetchStorageCategories(),
       fetchPlanCategories(),
+      fetchUnitPricings(rateCard),
     ]);
 
     console.log(`Found ${services.length} services`);
@@ -569,6 +612,8 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
       templates,
       storageCategories,
       planCategories,
+      unitPricings,
+      pricingSettings: null, // Not available from direct API, use defaults
       plansByService,
       lastFetched: now,
     };
@@ -581,6 +626,7 @@ export async function fetchAllApiData(rateCard = DEFAULT_RATE_CARD) {
       licences: licences.length,
       operatingSystems: operatingSystems.length,
       templates: templates.length,
+      unitPricings: unitPricings.length,
     });
 
     return apiCache;
@@ -634,6 +680,8 @@ export function clearCache() {
     templates: null,
     storageCategories: null,
     planCategories: null,
+    unitPricings: null,
+    pricingSettings: null,
     plansByService: {},
     lastFetched: null,
   };
@@ -687,6 +735,7 @@ export default {
   fetchTemplates,
   fetchStorageCategories,
   fetchPlanCategories,
+  fetchUnitPricings,
   fetchAllApiData,
   getServicesGroupedByCategory,
   clearCache,
