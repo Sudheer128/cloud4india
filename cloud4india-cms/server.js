@@ -210,6 +210,9 @@ const runMigrations = async () => {
     // Add eyebrow column to integrity_pages if it doesn't exist
     await addIntegrityPagesEyebrowColumn();
 
+    // Add new columns to pdf_estimate_config if they don't exist
+    await addPdfEstimateConfigColumns();
+
     console.log('✅ Database migrations completed');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
@@ -643,6 +646,45 @@ const addIntegrityPagesEyebrowColumn = () => {
         console.log(`   ✅ Added column eyebrow to integrity_pages`);
       }
       resolve();
+    });
+  });
+};
+
+// Add new columns to pdf_estimate_config for existing databases
+const addPdfEstimateConfigColumns = () => {
+  return new Promise((resolve) => {
+    const columns = [
+      { name: 'company_address', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN company_address TEXT DEFAULT '';" },
+      { name: 'bank_details_text', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN bank_details_text TEXT DEFAULT '';" },
+      { name: 'show_bank_details', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN show_bank_details INTEGER DEFAULT 0;" },
+      { name: 'footer_text', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN footer_text TEXT DEFAULT '';" },
+      { name: 'prepared_for_label', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN prepared_for_label TEXT DEFAULT '';" },
+      { name: 'payment_qr_image', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN payment_qr_image TEXT DEFAULT '';" },
+      { name: 'company_logo', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN company_logo TEXT DEFAULT '';" },
+      { name: 'tax_name', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN tax_name TEXT DEFAULT 'GST';" },
+      { name: 'tax_rate', sql: "ALTER TABLE pdf_estimate_config ADD COLUMN tax_rate REAL DEFAULT 18;" }
+    ];
+
+    let completed = 0;
+    const total = columns.length;
+
+    columns.forEach((col) => {
+      db.run(col.sql, (err) => {
+        if (err) {
+          if (err.message.includes('duplicate column') || err.message.includes('duplicate column name')) {
+            console.log(`   ⏭️  Column ${col.name} already exists in pdf_estimate_config`);
+          } else {
+            console.log(`   ⚠️  Error adding column ${col.name} to pdf_estimate_config: ${err.message}`);
+          }
+        } else {
+          console.log(`   ✅ Added column ${col.name} to pdf_estimate_config`);
+        }
+
+        completed++;
+        if (completed === total) {
+          resolve();
+        }
+      });
     });
   });
 };
@@ -11277,6 +11319,817 @@ app.post('/api/contact/verify-phone-email', async (req, res) => {
   }
 });
 
+// ===== MEDIA GALLERY ADMIN ENDPOINTS =====
+
+// Helper: promisified db.all
+const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
+  db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows || []));
+});
+
+// Helper: promisified db.run
+const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
+  db.run(sql, params, function(err) { err ? reject(err) : resolve(this); });
+});
+
+// Helper: promisified db.get
+const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
+  db.get(sql, params, (err, row) => err ? reject(err) : resolve(row));
+});
+
+// Helper: recursively walk directory for files
+const walkDir = (dir, fileList = []) => {
+  if (!fs.existsSync(dir)) return fileList;
+  const files = fs.readdirSync(dir);
+  files.forEach(file => {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      walkDir(filePath, fileList);
+    } else {
+      fileList.push(filePath);
+    }
+  });
+  return fileList;
+};
+
+// GET /api/admin/media-gallery - Aggregate ALL media (images + videos) from all DB tables
+app.get('/api/admin/media-gallery', async (req, res) => {
+  try {
+    const allMedia = [];
+    const allDbPaths = new Set(); // tracks /uploads/... paths for orphan detection
+
+    // Helper to detect media type from URL/path
+    const detectMediaType = (url, dbMediaType) => {
+      if (dbMediaType === 'video' || dbMediaType === 'youtube') return 'video';
+      if (dbMediaType === 'image') return 'image';
+      if (!url) return 'image';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'video';
+      const ext = path.extname(url).toLowerCase();
+      if (['.mp4', '.webm', '.mov', '.avi'].includes(ext)) return 'video';
+      return 'image';
+    };
+
+    // Helper to detect media source
+    const detectMediaSource = (url, dbMediaSource) => {
+      if (dbMediaSource) return dbMediaSource;
+      if (!url) return 'upload';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+      if (url.startsWith('/uploads')) return 'upload';
+      return 'external';
+    };
+
+    // Helper to get YouTube video ID for thumbnails
+    const getYouTubeId = (url) => {
+      if (!url) return null;
+      const patterns = [
+        /youtube\.com\/watch\?v=([^&]+)/,
+        /youtube\.com\/embed\/([^?&]+)/,
+        /youtu\.be\/([^?&]+)/
+      ];
+      for (const p of patterns) {
+        const m = url.match(p);
+        if (m) return m[1];
+      }
+      return null;
+    };
+
+    // 1. Client Logos
+    const logos = await dbAll('SELECT * FROM client_logos ORDER BY order_index ASC');
+    logos.forEach(logo => {
+      if (logo.logo_path && logo.logo_path.startsWith('/uploads')) {
+        allDbPaths.add(logo.logo_path);
+        allMedia.push({
+          id: `client-logo-${logo.id}`,
+          file_path: logo.logo_path,
+          file_url: logo.logo_path,
+          file_name: path.basename(logo.logo_path),
+          media_type: 'image',
+          media_source: 'upload',
+          category: 'logos',
+          entity_type: 'client_logo',
+          entity_id: logo.id,
+          entity_name: logo.alt_text || 'Client Logo',
+          entity_slug: null,
+          location_type: 'client_logo',
+          section_id: null, section_type: null, section_title: null, section_order: null,
+          item_id: null, item_title: null, item_order: null,
+          is_visible: logo.is_visible,
+          source_table: 'client_logos',
+          source_column: 'logo_path',
+          source_row_id: logo.id,
+          created_at: logo.created_at
+        });
+      }
+    });
+
+    // 2. Product icons
+    const products = await dbAll('SELECT id, name, route, icon, is_visible, created_at FROM products WHERE icon IS NOT NULL');
+    products.forEach(p => {
+      if (p.icon && p.icon.startsWith('/uploads')) {
+        allDbPaths.add(p.icon);
+        allMedia.push({
+          id: `product-icon-${p.id}`,
+          file_path: p.icon, file_url: p.icon, file_name: path.basename(p.icon),
+          media_type: 'image', media_source: 'upload',
+          category: 'products', entity_type: 'product', entity_id: p.id,
+          entity_name: p.name, entity_slug: p.route,
+          location_type: 'icon',
+          section_id: null, section_type: null, section_title: null, section_order: null,
+          item_id: null, item_title: null, item_order: null,
+          is_visible: p.is_visible,
+          source_table: 'products', source_column: 'icon', source_row_id: p.id,
+          created_at: p.created_at
+        });
+      }
+    });
+
+    // 3. Product section media (images AND videos, including YouTube)
+    const productSections = await dbAll(`
+      SELECT ps.*, p.name as entity_name, p.route as entity_slug, p.is_visible as entity_visible
+      FROM product_sections ps
+      JOIN products p ON ps.product_id = p.id
+      WHERE ps.media_url IS NOT NULL AND ps.media_url != ''
+    `);
+    productSections.forEach(ps => {
+      const mType = detectMediaType(ps.media_url, ps.media_type);
+      const mSource = detectMediaSource(ps.media_url, ps.media_source);
+      if (ps.media_url.startsWith('/uploads')) allDbPaths.add(ps.media_url);
+      const ytId = mSource === 'youtube' ? getYouTubeId(ps.media_url) : null;
+      allMedia.push({
+        id: `product-section-${ps.id}`,
+        file_path: ps.media_url, file_url: ps.media_url,
+        file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(ps.media_url),
+        media_type: mType, media_source: mSource,
+        youtube_id: ytId,
+        category: 'products', entity_type: 'product', entity_id: ps.product_id,
+        entity_name: ps.entity_name, entity_slug: ps.entity_slug,
+        location_type: 'section_media',
+        section_id: ps.id, section_type: ps.section_type, section_title: ps.title, section_order: ps.order_index,
+        item_id: null, item_title: null, item_order: null,
+        is_visible: ps.is_visible,
+        source_table: 'product_sections', source_column: 'media_url', source_row_id: ps.id,
+        created_at: ps.created_at
+      });
+    });
+
+    // 4. Product item media/icons
+    const productItems = await dbAll(`
+      SELECT pi.*, ps.product_id, ps.title as section_title, ps.section_type,
+             p.name as entity_name, p.route as entity_slug
+      FROM product_items pi
+      JOIN product_sections ps ON pi.section_id = ps.id
+      JOIN products p ON ps.product_id = p.id
+      WHERE (pi.icon IS NOT NULL AND pi.icon LIKE '/uploads%')
+         OR (pi.content IS NOT NULL AND pi.content LIKE '%media_url%')
+    `);
+    productItems.forEach(pi => {
+      if (pi.icon && pi.icon.startsWith('/uploads')) {
+        allDbPaths.add(pi.icon);
+        allMedia.push({
+          id: `product-item-icon-${pi.id}`,
+          file_path: pi.icon, file_url: pi.icon, file_name: path.basename(pi.icon),
+          media_type: 'image', media_source: 'upload',
+          category: 'products', entity_type: 'product', entity_id: pi.product_id,
+          entity_name: pi.entity_name, entity_slug: pi.entity_slug,
+          location_type: 'item_icon',
+          section_id: pi.section_id, section_type: pi.section_type, section_title: pi.section_title, section_order: null,
+          item_id: pi.id, item_title: pi.title, item_order: pi.order_index,
+          is_visible: pi.is_visible,
+          source_table: 'product_items', source_column: 'icon', source_row_id: pi.id,
+          created_at: pi.created_at
+        });
+      }
+      if (pi.content) {
+        try {
+          const contentObj = JSON.parse(pi.content);
+          if (contentObj.media_url) {
+            const mType = detectMediaType(contentObj.media_url, contentObj.media_type);
+            const mSource = detectMediaSource(contentObj.media_url, contentObj.media_source);
+            if (contentObj.media_url.startsWith('/uploads')) allDbPaths.add(contentObj.media_url);
+            const ytId = mSource === 'youtube' ? getYouTubeId(contentObj.media_url) : null;
+            allMedia.push({
+              id: `product-item-media-${pi.id}`,
+              file_path: contentObj.media_url, file_url: contentObj.media_url,
+              file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(contentObj.media_url),
+              media_type: mType, media_source: mSource, youtube_id: ytId,
+              category: 'products', entity_type: 'product', entity_id: pi.product_id,
+              entity_name: pi.entity_name, entity_slug: pi.entity_slug,
+              location_type: 'item_media',
+              section_id: pi.section_id, section_type: pi.section_type, section_title: pi.section_title, section_order: null,
+              item_id: pi.id, item_title: pi.title, item_order: pi.order_index,
+              is_visible: pi.is_visible,
+              source_table: 'product_items', source_column: 'content', source_row_id: pi.id,
+              created_at: pi.created_at
+            });
+          }
+        } catch (e) { /* not JSON */ }
+      }
+    });
+
+    // 5. Marketplace section media (images AND videos, including YouTube)
+    const marketplaceSections = await dbAll(`
+      SELECT ms.*, m.name as entity_name, m.route as entity_slug
+      FROM marketplace_sections ms
+      JOIN marketplaces m ON ms.marketplace_id = m.id
+      WHERE ms.media_url IS NOT NULL AND ms.media_url != ''
+    `);
+    marketplaceSections.forEach(ms => {
+      const mType = detectMediaType(ms.media_url, ms.media_type);
+      const mSource = detectMediaSource(ms.media_url, ms.media_source);
+      if (ms.media_url.startsWith('/uploads')) allDbPaths.add(ms.media_url);
+      const ytId = mSource === 'youtube' ? getYouTubeId(ms.media_url) : null;
+      allMedia.push({
+        id: `marketplace-section-${ms.id}`,
+        file_path: ms.media_url, file_url: ms.media_url,
+        file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(ms.media_url),
+        media_type: mType, media_source: mSource, youtube_id: ytId,
+        category: 'marketplaces', entity_type: 'marketplace', entity_id: ms.marketplace_id,
+        entity_name: ms.entity_name, entity_slug: ms.entity_slug,
+        location_type: 'section_media',
+        section_id: ms.id, section_type: ms.section_type, section_title: ms.title, section_order: ms.order_index,
+        item_id: null, item_title: null, item_order: null,
+        is_visible: ms.is_visible,
+        source_table: 'marketplace_sections', source_column: 'media_url', source_row_id: ms.id,
+        created_at: ms.created_at
+      });
+    });
+
+    // 6. Marketplace section item media/icons
+    const sectionItems = await dbAll(`
+      SELECT si.*, ms.marketplace_id, ms.title as section_title, ms.section_type,
+             m.name as entity_name, m.route as entity_slug
+      FROM section_items si
+      JOIN marketplace_sections ms ON si.section_id = ms.id
+      JOIN marketplaces m ON ms.marketplace_id = m.id
+      WHERE (si.icon IS NOT NULL AND si.icon LIKE '/uploads%')
+         OR (si.content IS NOT NULL AND si.content LIKE '%media_url%')
+    `);
+    sectionItems.forEach(si => {
+      if (si.icon && si.icon.startsWith('/uploads')) {
+        allDbPaths.add(si.icon);
+        allMedia.push({
+          id: `marketplace-item-icon-${si.id}`,
+          file_path: si.icon, file_url: si.icon, file_name: path.basename(si.icon),
+          media_type: 'image', media_source: 'upload',
+          category: 'marketplaces', entity_type: 'marketplace', entity_id: si.marketplace_id,
+          entity_name: si.entity_name, entity_slug: si.entity_slug,
+          location_type: 'item_icon',
+          section_id: si.section_id, section_type: si.section_type, section_title: si.section_title, section_order: null,
+          item_id: si.id, item_title: si.title, item_order: si.order_index,
+          is_visible: si.is_visible,
+          source_table: 'section_items', source_column: 'icon', source_row_id: si.id,
+          created_at: si.created_at
+        });
+      }
+      if (si.content) {
+        try {
+          const contentObj = JSON.parse(si.content);
+          if (contentObj.media_url) {
+            const mType = detectMediaType(contentObj.media_url, contentObj.media_type);
+            const mSource = detectMediaSource(contentObj.media_url, contentObj.media_source);
+            if (contentObj.media_url.startsWith('/uploads')) allDbPaths.add(contentObj.media_url);
+            const ytId = mSource === 'youtube' ? getYouTubeId(contentObj.media_url) : null;
+            allMedia.push({
+              id: `marketplace-item-media-${si.id}`,
+              file_path: contentObj.media_url, file_url: contentObj.media_url,
+              file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(contentObj.media_url),
+              media_type: mType, media_source: mSource, youtube_id: ytId,
+              category: 'marketplaces', entity_type: 'marketplace', entity_id: si.marketplace_id,
+              entity_name: si.entity_name, entity_slug: si.entity_slug,
+              location_type: 'item_media',
+              section_id: si.section_id, section_type: si.section_type, section_title: si.section_title, section_order: null,
+              item_id: si.id, item_title: si.title, item_order: si.order_index,
+              is_visible: si.is_visible,
+              source_table: 'section_items', source_column: 'content', source_row_id: si.id,
+              created_at: si.created_at
+            });
+          }
+        } catch (e) { /* not JSON */ }
+      }
+    });
+
+    // 7. Solution icons
+    const solutions = await dbAll('SELECT id, name, route, icon, is_visible, created_at FROM solutions WHERE icon IS NOT NULL');
+    solutions.forEach(s => {
+      if (s.icon && s.icon.startsWith('/uploads')) {
+        allDbPaths.add(s.icon);
+        allMedia.push({
+          id: `solution-icon-${s.id}`,
+          file_path: s.icon, file_url: s.icon, file_name: path.basename(s.icon),
+          media_type: 'image', media_source: 'upload',
+          category: 'solutions', entity_type: 'solution', entity_id: s.id,
+          entity_name: s.name, entity_slug: s.route,
+          location_type: 'icon',
+          section_id: null, section_type: null, section_title: null, section_order: null,
+          item_id: null, item_title: null, item_order: null,
+          is_visible: s.is_visible,
+          source_table: 'solutions', source_column: 'icon', source_row_id: s.id,
+          created_at: s.created_at
+        });
+      }
+    });
+
+    // 8. Solution section media (images AND videos, including YouTube)
+    const solutionSections = await dbAll(`
+      SELECT ss.*, s.name as entity_name, s.route as entity_slug, s.is_visible as entity_visible
+      FROM solution_sections ss
+      JOIN solutions s ON ss.solution_id = s.id
+      WHERE ss.media_url IS NOT NULL AND ss.media_url != ''
+    `);
+    solutionSections.forEach(ss => {
+      const mType = detectMediaType(ss.media_url, ss.media_type);
+      const mSource = detectMediaSource(ss.media_url, ss.media_source);
+      if (ss.media_url.startsWith('/uploads')) allDbPaths.add(ss.media_url);
+      const ytId = mSource === 'youtube' ? getYouTubeId(ss.media_url) : null;
+      allMedia.push({
+        id: `solution-section-${ss.id}`,
+        file_path: ss.media_url, file_url: ss.media_url,
+        file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(ss.media_url),
+        media_type: mType, media_source: mSource, youtube_id: ytId,
+        category: 'solutions', entity_type: 'solution', entity_id: ss.solution_id,
+        entity_name: ss.entity_name, entity_slug: ss.entity_slug,
+        location_type: 'section_media',
+        section_id: ss.id, section_type: ss.section_type, section_title: ss.title, section_order: ss.order_index,
+        item_id: null, item_title: null, item_order: null,
+        is_visible: ss.is_visible,
+        source_table: 'solution_sections', source_column: 'media_url', source_row_id: ss.id,
+        created_at: ss.created_at
+      });
+    });
+
+    // 9. Solution item icons/media
+    const solutionItems = await dbAll(`
+      SELECT si.*, ss.solution_id, ss.title as section_title, ss.section_type,
+             s.name as entity_name, s.route as entity_slug
+      FROM solution_items si
+      JOIN solution_sections ss ON si.section_id = ss.id
+      JOIN solutions s ON ss.solution_id = s.id
+      WHERE (si.icon IS NOT NULL AND si.icon LIKE '/uploads%')
+         OR (si.content IS NOT NULL AND si.content LIKE '%media_url%')
+    `);
+    solutionItems.forEach(si => {
+      if (si.icon && si.icon.startsWith('/uploads')) {
+        allDbPaths.add(si.icon);
+        allMedia.push({
+          id: `solution-item-icon-${si.id}`,
+          file_path: si.icon, file_url: si.icon, file_name: path.basename(si.icon),
+          media_type: 'image', media_source: 'upload',
+          category: 'solutions', entity_type: 'solution', entity_id: si.solution_id,
+          entity_name: si.entity_name, entity_slug: si.entity_slug,
+          location_type: 'item_icon',
+          section_id: si.section_id, section_type: si.section_type, section_title: si.section_title, section_order: null,
+          item_id: si.id, item_title: si.title, item_order: si.order_index,
+          is_visible: si.is_visible,
+          source_table: 'solution_items', source_column: 'icon', source_row_id: si.id,
+          created_at: si.created_at
+        });
+      }
+      if (si.content) {
+        try {
+          const contentObj = JSON.parse(si.content);
+          if (contentObj.media_url) {
+            const mType = detectMediaType(contentObj.media_url, contentObj.media_type);
+            const mSource = detectMediaSource(contentObj.media_url, contentObj.media_source);
+            if (contentObj.media_url.startsWith('/uploads')) allDbPaths.add(contentObj.media_url);
+            const ytId = mSource === 'youtube' ? getYouTubeId(contentObj.media_url) : null;
+            allMedia.push({
+              id: `solution-item-media-${si.id}`,
+              file_path: contentObj.media_url, file_url: contentObj.media_url,
+              file_name: mSource === 'youtube' ? (ytId || 'YouTube Video') : path.basename(contentObj.media_url),
+              media_type: mType, media_source: mSource, youtube_id: ytId,
+              category: 'solutions', entity_type: 'solution', entity_id: si.solution_id,
+              entity_name: si.entity_name, entity_slug: si.entity_slug,
+              location_type: 'item_media',
+              section_id: si.section_id, section_type: si.section_type, section_title: si.section_title, section_order: null,
+              item_id: si.id, item_title: si.title, item_order: si.order_index,
+              is_visible: si.is_visible,
+              source_table: 'solution_items', source_column: 'content', source_row_id: si.id,
+              created_at: si.created_at
+            });
+          }
+        } catch (e) { /* not JSON */ }
+      }
+    });
+
+    // 10. Scan filesystem for orphaned files (images + videos)
+    const orphanedFiles = [];
+    const mediaExtensions = ['.jpg', '.jpeg', '.png', '.svg', '.gif', '.webp', '.mp4', '.webm', '.mov'];
+    try {
+      // Scan both images and videos directories
+      const allFiles = [...walkDir(imagesDir), ...walkDir(videosDir)];
+      allFiles.forEach(filePath => {
+        const ext = path.extname(filePath).toLowerCase();
+        if (!mediaExtensions.includes(ext)) return;
+        const relativePath = '/uploads/' + path.relative(uploadsDir, filePath).replace(/\\/g, '/');
+        if (!allDbPaths.has(relativePath)) {
+          const fStats = fs.statSync(filePath);
+          const isVideo = ['.mp4', '.webm', '.mov'].includes(ext);
+          orphanedFiles.push({
+            id: `orphaned-${Buffer.from(relativePath).toString('base64url')}`,
+            file_path: relativePath, file_url: relativePath,
+            file_name: path.basename(filePath),
+            media_type: isVideo ? 'video' : 'image',
+            media_source: 'upload',
+            category: 'orphaned',
+            entity_type: null, entity_id: null, entity_name: null, entity_slug: null,
+            location_type: 'orphaned',
+            section_id: null, section_type: null, section_title: null, section_order: null,
+            item_id: null, item_title: null, item_order: null,
+            is_visible: null,
+            source_table: null, source_column: null, source_row_id: null,
+            file_size: fStats.size,
+            modified_at: fStats.mtime,
+            created_at: fStats.birthtime
+          });
+        }
+      });
+    } catch (e) {
+      console.error('Error scanning filesystem for orphaned files:', e);
+    }
+
+    // Check file_exists for upload-sourced entries
+    let missingCount = 0;
+    allMedia.forEach(m => {
+      if (m.media_source === 'upload' && m.file_url && m.file_url.startsWith('/uploads')) {
+        const absPath = path.join(uploadsDir, m.file_url.replace('/uploads/', ''));
+        m.file_exists = fs.existsSync(absPath);
+        if (!m.file_exists) missingCount++;
+      } else {
+        m.file_exists = true; // YouTube/external URLs assumed available
+      }
+    });
+
+    // Build stats
+    const stats = {
+      total: allMedia.length,
+      by_category: {},
+      by_type: {},
+      by_media_type: {},
+      orphaned: orphanedFiles.length,
+      missing_files: missingCount
+    };
+    allMedia.forEach(m => {
+      stats.by_category[m.category] = (stats.by_category[m.category] || 0) + 1;
+      stats.by_type[m.location_type] = (stats.by_type[m.location_type] || 0) + 1;
+      stats.by_media_type[m.media_type] = (stats.by_media_type[m.media_type] || 0) + 1;
+    });
+
+    res.json({
+      images: [...allMedia, ...orphanedFiles],
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching media gallery:', error);
+    res.status(500).json({ error: 'Failed to fetch media gallery: ' + error.message });
+  }
+});
+
+// PUT /api/admin/media-gallery/:id/replace - Replace an image
+app.put('/api/admin/media-gallery/:id/replace', uploadImage.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+
+    const relativePath = path.relative(uploadsDir, req.file.path).replace(/\\/g, '/');
+    const newFilePath = `/uploads/${relativePath}`;
+
+    // Parse composite ID: e.g. "product-section-15", "client-logo-3", "marketplace-item-media-7"
+    const parts = id.split('-');
+    let sourceTable, sourceColumn, sourceRowId, oldFilePath;
+
+    if (id.startsWith('client-logo-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT logo_path FROM client_logos WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.logo_path;
+      await dbRun('UPDATE client_logos SET logo_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('product-icon-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT icon FROM products WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.icon;
+      await dbRun('UPDATE products SET icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('product-section-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM product_sections WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.media_url;
+      await dbRun('UPDATE product_sections SET media_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('product-item-icon-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM product_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.icon;
+      await dbRun('UPDATE product_items SET icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('product-item-media-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM product_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        oldFilePath = contentObj.media_url;
+        contentObj.media_url = newFilePath;
+        await dbRun('UPDATE product_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), sourceRowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else if (id.startsWith('marketplace-section-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM marketplace_sections WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.media_url;
+      await dbRun('UPDATE marketplace_sections SET media_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('marketplace-item-icon-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM section_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.icon;
+      await dbRun('UPDATE section_items SET icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('marketplace-item-media-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM section_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        oldFilePath = contentObj.media_url;
+        contentObj.media_url = newFilePath;
+        await dbRun('UPDATE section_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), sourceRowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else if (id.startsWith('solution-icon-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT icon FROM solutions WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.icon;
+      await dbRun('UPDATE solutions SET icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('solution-section-')) {
+      sourceRowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM solution_sections WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.media_url;
+      await dbRun('UPDATE solution_sections SET media_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('solution-item-icon-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM solution_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      oldFilePath = row.icon;
+      await dbRun('UPDATE solution_items SET icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newFilePath, sourceRowId]);
+    } else if (id.startsWith('solution-item-media-')) {
+      sourceRowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM solution_items WHERE id = ?', [sourceRowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        oldFilePath = contentObj.media_url;
+        contentObj.media_url = newFilePath;
+        await dbRun('UPDATE solution_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), sourceRowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else {
+      return res.status(400).json({ error: 'Unknown image ID format: ' + id });
+    }
+
+    // Optionally delete old file
+    if (oldFilePath && req.query.deleteOld === 'true') {
+      const oldAbsPath = path.join(uploadsDir, oldFilePath.replace('/uploads/', ''));
+      const resolvedOld = path.resolve(oldAbsPath);
+      if (resolvedOld.startsWith(path.resolve(uploadsDir)) && fs.existsSync(resolvedOld)) {
+        fs.unlinkSync(resolvedOld);
+      }
+    }
+
+    res.json({ success: true, newFilePath, oldFilePath });
+  } catch (error) {
+    console.error('Error replacing media:', error);
+    res.status(500).json({ error: 'Failed to replace image: ' + error.message });
+  }
+});
+
+// DELETE /api/admin/media-gallery/:id - Delete an image reference from DB
+app.delete('/api/admin/media-gallery/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleteFile = req.query.deleteFile === 'true';
+    const parts = id.split('-');
+    let filePath;
+
+    if (id.startsWith('client-logo-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT logo_path FROM client_logos WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.logo_path;
+      await dbRun('DELETE FROM client_logos WHERE id = ?', [rowId]);
+    } else if (id.startsWith('product-icon-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT icon FROM products WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.icon;
+      await dbRun('UPDATE products SET icon = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('product-section-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM product_sections WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.media_url;
+      await dbRun('UPDATE product_sections SET media_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('product-item-icon-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM product_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.icon;
+      await dbRun('UPDATE product_items SET icon = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('product-item-media-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM product_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        filePath = contentObj.media_url;
+        contentObj.media_url = null;
+        await dbRun('UPDATE product_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), rowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else if (id.startsWith('marketplace-section-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM marketplace_sections WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.media_url;
+      await dbRun('UPDATE marketplace_sections SET media_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('marketplace-item-icon-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM section_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.icon;
+      await dbRun('UPDATE section_items SET icon = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('marketplace-item-media-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM section_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        filePath = contentObj.media_url;
+        contentObj.media_url = null;
+        await dbRun('UPDATE section_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), rowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else if (id.startsWith('solution-icon-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT icon FROM solutions WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.icon;
+      await dbRun('UPDATE solutions SET icon = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('solution-section-')) {
+      const rowId = parseInt(parts[2]);
+      const row = await dbGet('SELECT media_url FROM solution_sections WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.media_url;
+      await dbRun('UPDATE solution_sections SET media_url = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('solution-item-icon-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT icon FROM solution_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      filePath = row.icon;
+      await dbRun('UPDATE solution_items SET icon = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [rowId]);
+    } else if (id.startsWith('solution-item-media-')) {
+      const rowId = parseInt(parts[3]);
+      const row = await dbGet('SELECT content FROM solution_items WHERE id = ?', [rowId]);
+      if (!row) return res.status(404).json({ error: 'Record not found' });
+      try {
+        const contentObj = JSON.parse(row.content);
+        filePath = contentObj.media_url;
+        contentObj.media_url = null;
+        await dbRun('UPDATE solution_items SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(contentObj), rowId]);
+      } catch (e) { return res.status(400).json({ error: 'Invalid content JSON' }); }
+    } else if (id.startsWith('orphaned-')) {
+      // Orphaned file - just delete from disk
+      const encodedPath = id.replace('orphaned-', '');
+      filePath = Buffer.from(encodedPath, 'base64url').toString();
+      // Force delete for orphaned files
+      const absPath = path.join(uploadsDir, filePath.replace('/uploads/', ''));
+      const resolved = path.resolve(absPath);
+      if (resolved.startsWith(path.resolve(uploadsDir)) && fs.existsSync(resolved)) {
+        fs.unlinkSync(resolved);
+      }
+      return res.json({ success: true, deleted: filePath });
+    } else {
+      return res.status(400).json({ error: 'Unknown image ID format: ' + id });
+    }
+
+    // Optionally delete file from disk
+    if (deleteFile && filePath) {
+      const absPath = path.join(uploadsDir, filePath.replace('/uploads/', ''));
+      const resolved = path.resolve(absPath);
+      if (resolved.startsWith(path.resolve(uploadsDir)) && fs.existsSync(resolved)) {
+        fs.unlinkSync(resolved);
+      }
+    }
+
+    res.json({ success: true, deleted: id });
+  } catch (error) {
+    console.error('Error deleting media:', error);
+    res.status(500).json({ error: 'Failed to delete image: ' + error.message });
+  }
+});
+
+// DELETE /api/admin/media-gallery/orphaned/bulk - Bulk delete orphaned files
+app.delete('/api/admin/media-gallery/orphaned/bulk', async (req, res) => {
+  try {
+    const { filePaths } = req.body;
+    if (!filePaths || !Array.isArray(filePaths)) {
+      return res.status(400).json({ error: 'filePaths array is required' });
+    }
+
+    let deleted = 0;
+    const errors = [];
+    for (const fp of filePaths) {
+      try {
+        const absPath = path.join(uploadsDir, fp.replace('/uploads/', ''));
+        const resolved = path.resolve(absPath);
+        if (!resolved.startsWith(path.resolve(uploadsDir))) {
+          errors.push({ path: fp, error: 'Invalid path' });
+          continue;
+        }
+        if (fs.existsSync(resolved)) {
+          fs.unlinkSync(resolved);
+          deleted++;
+        }
+      } catch (e) {
+        errors.push({ path: fp, error: e.message });
+      }
+    }
+
+    res.json({ success: true, deleted, errors });
+  } catch (error) {
+    console.error('Error bulk deleting orphaned files:', error);
+    res.status(500).json({ error: 'Failed to delete orphaned files: ' + error.message });
+  }
+});
+
+// ===== PDF ESTIMATE CONFIG ENDPOINTS =====
+
+// Get PDF estimate configuration
+app.get('/api/pdf-estimate-config', (req, res) => {
+  db.get('SELECT * FROM pdf_estimate_config WHERE id = 1', (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.json({});
+      return;
+    }
+    // Parse terms_conditions JSON string to array
+    try {
+      row.terms_conditions = JSON.parse(row.terms_conditions || '[]');
+    } catch (e) {
+      row.terms_conditions = [];
+    }
+    res.json(row);
+  });
+});
+
+// Update PDF estimate configuration
+app.put('/api/pdf-estimate-config', (req, res) => {
+  const fields = [
+    'header_title', 'header_subtitle', 'header_bg_color', 'table_header_color',
+    'estimate_id_prefix', 'company_name', 'terms_conditions',
+    'payment_terms_text', 'payment_qr_text',
+    'show_gst_row', 'show_total_incl_gst', 'show_12_months_row', 'show_tc_section',
+    'show_date_line', 'show_estimate_id', 'show_payment_terms', 'show_payment_qr_text',
+    'pdf_filename_prefix',
+    'company_address', 'bank_details_text', 'show_bank_details', 'footer_text', 'prepared_for_label',
+    'payment_qr_image', 'company_logo',
+    'tax_name', 'tax_rate'
+  ];
+
+  const updates = [];
+  const values = [];
+
+  fields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      updates.push(`${field} = ?`);
+      // Stringify terms_conditions array to JSON
+      if (field === 'terms_conditions' && Array.isArray(req.body[field])) {
+        values.push(JSON.stringify(req.body[field]));
+      } else {
+        values.push(req.body[field]);
+      }
+    }
+  });
+
+  if (updates.length === 0) {
+    res.status(400).json({ error: 'No fields to update' });
+    return;
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(1); // WHERE id = 1
+
+  const sql = `UPDATE pdf_estimate_config SET ${updates.join(', ')} WHERE id = ?`;
+
+  db.run(sql, values, function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'PDF estimate configuration updated successfully', changes: this.changes });
+  });
+});
+
 // Initialize Price Estimator routes
 initPriceEstimatorRoutes(app, db);
 
@@ -11330,6 +12183,9 @@ app.listen(PORT, async () => {
 
   // Always ensure section_items has is_visible column
   await addSectionItemsVisibilityColumn();
+
+  // Always ensure pdf_estimate_config has new columns
+  await addPdfEstimateConfigColumns();
 
   // Add missing columns to marketplaces and products tables
   setTimeout(() => {

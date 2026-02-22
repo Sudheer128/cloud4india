@@ -67,7 +67,7 @@ const AdminLayout = ({ children, activeSection = '', title = '', onNavigate }) =
     },
     {
       id: 'price-estimator-config',
-      label: 'Price Estimator',
+      label: 'Pricing Page Settings',
       icon: CalculatorIcon,
       href: '/rohit/price-estimator-config',
       isActive: activeSection === 'price-estimator-config'

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { formatPrice, getPriceForCycle, getBillingCycle, getBillingDiscounts } from '../../utils/pricingHelpers'
+import React, { useState, useEffect } from 'react'
+import { formatPrice, getPriceForCycle, getBillingCycle, getBillingDiscounts, formatMemory } from '../../utils/pricingHelpers'
 import { generateEstimatePdf } from '../../utils/estimatePdf'
+import { CMS_URL } from '../../utils/config'
 
 const EstimateDetailsModal = ({
   isOpen,
@@ -20,6 +21,17 @@ const EstimateDetailsModal = ({
   const [confirmClearAll, setConfirmClearAll] = useState(false)
   const [expandedNotes, setExpandedNotes] = useState({})
   const [shareTooltip, setShareTooltip] = useState(false)
+  const [pdfConfig, setPdfConfig] = useState({})
+  const [generatingPdf, setGeneratingPdf] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`${CMS_URL}/api/pdf-estimate-config`)
+        .then(r => r.json())
+        .then(setPdfConfig)
+        .catch(console.error)
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -67,7 +79,7 @@ const EstimateDetailsModal = ({
         n: item.network,
         os: item.os?.name,
       }))
-      const encoded = btoa(JSON.stringify(minimalCart))
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(minimalCart))))
       const url = `${window.location.origin}${window.location.pathname}?estimate=${encoded}`
       navigator.clipboard.writeText(url).then(() => {
         setShareTooltip(true)
@@ -78,8 +90,16 @@ const EstimateDetailsModal = ({
     }
   }
 
-  const handleDownloadPdf = () => {
-    generateEstimatePdf({ cart, billing, currency, gstRate })
+  const handleDownloadPdf = async () => {
+    if (generatingPdf) return
+    setGeneratingPdf(true)
+    try {
+      await generateEstimatePdf({ cart, billing, currency, gstRate, pdfConfig })
+    } catch (e) {
+      console.error('PDF generation failed:', e)
+    } finally {
+      setGeneratingPdf(false)
+    }
   }
 
   const toggleNotes = (id) => {
@@ -250,7 +270,7 @@ const EstimateDetailsModal = ({
                               <div className="font-medium text-gray-900">{item.plan.name}</div>
                               <div className="text-xs text-gray-500 mt-1 space-x-2">
                                 {item.plan.cpu && <span>{item.plan.cpu} vCPU</span>}
-                                {item.plan.memory && <span>• {item.plan.memory >= 1024 ? `${item.plan.memory/1024} GB` : `${item.plan.memory} MB`} RAM</span>}
+                                {item.plan.memory && <span>• {formatMemory(item.plan.memory)} RAM</span>}
                                 {item.plan.storage && <span>• {item.plan.storage} GB Storage</span>}
                               </div>
                               {item.plan.plan_category_name && (
@@ -441,12 +461,17 @@ const EstimateDetailsModal = ({
               </div>
               <button
                 onClick={handleDownloadPdf}
-                className="flex-1 md:flex-none px-5 py-2.5 bg-saree-teal text-white rounded-lg font-medium hover:bg-saree-teal-dark transition flex items-center justify-center gap-2 text-sm"
+                disabled={generatingPdf}
+                className={`flex-1 md:flex-none px-5 py-2.5 text-white rounded-lg font-medium transition flex items-center justify-center gap-2 text-sm ${generatingPdf ? 'bg-gray-400 cursor-not-allowed' : 'bg-saree-teal hover:bg-saree-teal-dark'}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download PDF
+                {generatingPdf ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                )}
+                {generatingPdf ? 'Generating...' : 'Download PDF'}
               </button>
             </div>
           </div>

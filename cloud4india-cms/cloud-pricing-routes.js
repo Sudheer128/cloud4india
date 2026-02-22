@@ -96,7 +96,7 @@ function initCloudPricingRoutes(app, db) {
   // Returns cached services list
   // ========================================
   app.get('/api/cloud-pricing/services', (req, res) => {
-    db.all('SELECT * FROM cached_services ORDER BY name', [], (err, rows) => {
+    db.all('SELECT * FROM cached_services ORDER BY display_order ASC, name ASC', [], (err, rows) => {
       if (err) {
         console.error('Error fetching services:', err);
         return res.status(500).json({ error: err.message });
@@ -144,6 +144,72 @@ function initCloudPricingRoutes(app, db) {
         res.json(plans);
       }
     );
+  });
+
+  // ========================================
+  // GET /api/cloud-pricing/service-order
+  // Returns services with display_order for admin reordering
+  // ========================================
+  app.get('/api/cloud-pricing/service-order', (req, res) => {
+    db.all(
+      'SELECT id, name, slug, category, category_name, plan_count, display_order FROM cached_services ORDER BY display_order ASC, name ASC',
+      [],
+      (err, rows) => {
+        if (err) {
+          console.error('Error fetching service order:', err);
+          return res.status(500).json({ error: err.message });
+        }
+        res.json(rows || []);
+      }
+    );
+  });
+
+  // ========================================
+  // PUT /api/cloud-pricing/service-order
+  // Update display order for services
+  // Accepts { order: [{ id, display_order }, ...] }
+  // ========================================
+  app.put('/api/cloud-pricing/service-order', (req, res) => {
+    const { order } = req.body;
+
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: 'order must be an array' });
+    }
+
+    // If empty array, reset all to 0
+    if (order.length === 0) {
+      db.run('UPDATE cached_services SET display_order = 0', [], function(err) {
+        if (err) {
+          console.error('Error resetting service order:', err);
+          return res.status(500).json({ error: err.message });
+        }
+        return res.json({ success: true, message: 'Service order reset to default' });
+      });
+      return;
+    }
+
+    db.serialize(() => {
+      const stmt = db.prepare('UPDATE cached_services SET display_order = ? WHERE id = ?');
+      let errors = 0;
+
+      for (const item of order) {
+        if (item.id !== undefined && item.display_order !== undefined) {
+          stmt.run([item.display_order, item.id], (err) => {
+            if (err) {
+              console.error('Error updating display_order:', err);
+              errors++;
+            }
+          });
+        }
+      }
+
+      stmt.finalize((err) => {
+        if (err || errors > 0) {
+          return res.status(500).json({ error: 'Some updates failed' });
+        }
+        res.json({ success: true, message: `Service order updated for ${order.length} services` });
+      });
+    });
   });
 
   // ========================================

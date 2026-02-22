@@ -46,7 +46,7 @@ export default function PriceEstimatorAdmin() {
     return (
         <div className="p-6 max-w-4xl">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Price Estimator Configuration</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Pricing Page Settings</h1>
                 <button onClick={handleSave} disabled={saving}
                     className={`px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-saree-teal text-white hover:bg-saree-teal-dark'
                         }`}>

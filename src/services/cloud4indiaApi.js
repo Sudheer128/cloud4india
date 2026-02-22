@@ -187,6 +187,7 @@ function transformCachedService(svc) {
     categoryIcon: getCategoryIcon(category),
     categoryName: svc.category_name || getCategoryName(category),
     planCount: svc.plan_count || 0,
+    displayOrder: svc.display_order || 0,
   };
 }
 

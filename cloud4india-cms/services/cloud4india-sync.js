@@ -255,22 +255,24 @@ function updateCacheMetadata(db, cacheKey, status, recordCount = 0, errorMessage
 
 /**
  * Clear and insert data into a table
+ * Only clears existing data when new data is available to replace it
  */
 function clearAndInsert(db, tableName, data, columns) {
   return new Promise((resolve, reject) => {
+    // If no new data, preserve existing cached data instead of wiping the table
+    if (data.length === 0) {
+      resolve(0);
+      return;
+    }
+
     db.serialize(() => {
-      // Clear existing data
+      // Clear existing data only when we have new data to insert
       db.run(`DELETE FROM ${tableName}`, (err) => {
         if (err) {
           reject(err);
           return;
         }
       });
-
-      if (data.length === 0) {
-        resolve(0);
-        return;
-      }
 
       // Build insert statement
       const placeholders = columns.map(() => '?').join(', ');
@@ -345,7 +347,32 @@ async function syncServices(db) {
 
   const services = Array.from(serviceMap.values());
   const columns = ['id', 'name', 'slug', 'status', 'category', 'category_name', 'billing_rule', 'config', 'plan_count'];
+
+  // Preserve display_order values before clearing
+  const savedOrders = await new Promise((resolve, reject) => {
+    db.all('SELECT id, display_order FROM cached_services WHERE display_order > 0', [], (err, rows) => {
+      if (err) { resolve([]); return; }
+      resolve(rows || []);
+    });
+  });
+
   await clearAndInsert(db, 'cached_services', services, columns);
+
+  // Restore display_order values after re-insert
+  if (savedOrders.length > 0) {
+    await new Promise((resolve, reject) => {
+      const stmt = db.prepare('UPDATE cached_services SET display_order = ? WHERE id = ?');
+      let completed = 0;
+      for (const row of savedOrders) {
+        stmt.run([row.display_order, row.id], () => {
+          completed++;
+          if (completed === savedOrders.length) resolve();
+        });
+      }
+      stmt.finalize();
+    });
+  }
+
   await updateCacheMetadata(db, 'services', 'success', services.length);
 
   console.log(`   ✅ Synced ${services.length} services`);
@@ -910,7 +937,7 @@ function getAllCachedData(db) {
     };
 
     const queries = [
-      { key: 'services', sql: 'SELECT * FROM cached_services ORDER BY name' },
+      { key: 'services', sql: 'SELECT * FROM cached_services ORDER BY display_order ASC, name ASC' },
       { key: 'plans', sql: 'SELECT * FROM cached_plans ORDER BY service_name, name' },
       { key: 'rateCards', sql: 'SELECT * FROM cached_rate_cards ORDER BY name' },
       { key: 'billingCycles', sql: 'SELECT * FROM cached_billing_cycles ORDER BY sort_order' },

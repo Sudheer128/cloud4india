@@ -199,7 +199,7 @@ const getCategoryForProduct = (productName) => {
 const CloudPricingCalculator = () => {
   // Navigation hook for routing
   const navigate = useNavigate()
-  const { addItem: addToGlobalCart, removeItemByItemId: removeFromGlobalCart, clearCart: clearGlobalCart } = useCart()
+  const { items: globalCartItems, addItem: addToGlobalCart, removeItemByItemId: removeFromGlobalCart, updateItem: updateGlobalItem, clearCart: clearGlobalCart } = useCart()
 
   // API Data State
   const [loading, setLoading] = useState(true)
@@ -251,6 +251,7 @@ const CloudPricingCalculator = () => {
   const [cart, setCart] = useState([])
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [pendingEstimate, setPendingEstimate] = useState(null)
 
   // Load API Data
   useEffect(() => {
@@ -294,16 +295,15 @@ const CloudPricingCalculator = () => {
     loadData()
   }, [])
 
-  // Restore cart from shared estimate link
+  // Parse shared estimate link on mount
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
       const estimateParam = params.get('estimate')
-      if (estimateParam && cart.length === 0) {
-        const decoded = JSON.parse(atob(estimateParam))
+      if (estimateParam) {
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(estimateParam))))
         if (Array.isArray(decoded) && decoded.length > 0) {
-          // Store minimal cart data for reference - full restoration requires API data
-          // This is a simplified restore that shows the shared estimate was received
+          setPendingEstimate(decoded)
           window.history.replaceState({}, '', window.location.pathname)
         }
       }
@@ -312,17 +312,62 @@ const CloudPricingCalculator = () => {
     }
   }, [])
 
-  // Get services grouped by category - ONLY services with plans
+  // Restore cart items once apiData is loaded
+  useEffect(() => {
+    if (!pendingEstimate || !apiData?.services) return
+
+    const restored = pendingEstimate.map(enc => {
+      const service = apiData.services.find(s => s.slug === enc.s)
+      if (!service) return null
+
+      const location = LOCATIONS.find(l => l.id === enc.l)
+      const plans = apiData.plansByService?.[service.name] || []
+      const plan = plans.find(p => p.id === enc.p || p.name === enc.p) || null
+
+      // Find disk from Block Storage plans or service plans
+      const diskPlans = apiData.plansByService?.['Block Storage'] || []
+      const disk = enc.d ? (diskPlans.find(d => d.id === enc.d || d.name === enc.d) || null) : null
+
+      // Find OS template
+      const os = enc.os ? (apiData.templates?.find(t => t.name === enc.os) || null) : null
+
+      // Calculate price
+      let monthly = 0
+      if (plan) monthly += (plan.monthly_price || plan.monthly || 0)
+      if (disk) monthly += (disk.monthly_price || disk.monthly || 0)
+      const hourly = monthly / 730
+
+      return {
+        id: Date.now() + Math.random(),
+        service,
+        location,
+        plan,
+        disk,
+        os,
+        network: enc.n,
+        billingCycle: enc.b || 'monthly',
+        price: { monthly, hourly },
+        quantity: enc.q || 1,
+        notes: '',
+      }
+    }).filter(Boolean)
+
+    if (restored.length > 0) {
+      setCart(restored)
+      setBilling(restored[0].billingCycle || 'monthly')
+    }
+    setPendingEstimate(null)
+  }, [pendingEstimate, apiData])
+
+  // Get services grouped by category - all services from API
   const servicesByCategory = useMemo(() => {
     if (!apiData?.services) return {}
     const groups = {}
-    apiData.services
-      .filter(service => service.planCount > 0) // Only show services that have plans
-      .forEach(service => {
-        const cat = service.category || 'other'
-        if (!groups[cat]) groups[cat] = []
-        groups[cat].push(service)
-      })
+    apiData.services.forEach(service => {
+      const cat = service.category || 'other'
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(service)
+    })
     return groups
   }, [apiData])
 
@@ -362,27 +407,29 @@ const CloudPricingCalculator = () => {
     }
   }, [apiData])
 
-  // Get all categories
+  // Get all categories dynamically from API data — no hardcoding
   const categories = useMemo(() => {
-    return Object.keys(servicesByCategory).sort((a, b) => {
-      const order = ['compute', 'storage', 'network', 'backup', 'security', 'monitoring', 'marketplace', 'other']
-      return order.indexOf(a) - order.indexOf(b)
-    })
-  }, [servicesByCategory])
+    if (!apiData?.services) return []
+    return Array.from(new Set(apiData.services.map(s => s.category || 'other')))
+  }, [apiData])
 
-  // Filter services - only show services with plans
+  // Filter services - respect custom display_order if set, otherwise plans-first + alphabetical
   const filteredServices = useMemo(() => {
     if (!apiData?.services) return []
-    // Show ALL services from API (including those with 0 plans)
-    // Sort: services with plans first, then alphabetically
+    const hasCustomOrder = apiData.services.some(s => s.displayOrder > 0)
     const allServices = [...apiData.services].sort((a, b) => {
-      // Services with plans come first
+      if (hasCustomOrder) {
+        // Custom-ordered services first (by display_order), then unordered alphabetically
+        if (a.displayOrder > 0 && b.displayOrder === 0) return -1
+        if (a.displayOrder === 0 && b.displayOrder > 0) return 1
+        if (a.displayOrder > 0 && b.displayOrder > 0) return a.displayOrder - b.displayOrder
+        return a.name.localeCompare(b.name)
+      }
+      // Default: services with plans first, then alphabetically
       if (a.planCount > 0 && b.planCount === 0) return -1
       if (a.planCount === 0 && b.planCount > 0) return 1
-      // Then sort alphabetically
       return a.name.localeCompare(b.name)
     })
-    // Filter by category if needed
     if (categoryFilter === 'all') return allServices
     return allServices.filter(s => s.category === categoryFilter)
   }, [apiData, categoryFilter])
@@ -844,12 +891,16 @@ const CloudPricingCalculator = () => {
   const currentPrice = calculatePrice()
 
   // Navigation
+  // Scroll to top whenever step or view changes (runs after render)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [currentStep, view])
+
   const goNext = () => currentStep < currentSteps.length && setCurrentStep(currentStep + 1)
   const goBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     } else {
-      // Go back to service selection
       setView('services')
       setSelectedService(null)
       resetConfig()
@@ -923,14 +974,6 @@ const CloudPricingCalculator = () => {
     }
 
     if (slug.includes('virtual-machine') && !slug.includes('backup')) {
-      const osFamily = selectedOS?.operating_system?.family?.toLowerCase() || selectedOS?.name?.toLowerCase() || ''
-      const applicableLicence = apiData?.licences?.find(l => {
-        const lname = l.name.toLowerCase()
-        if (osFamily.includes('windows') && lname.includes('windows')) return true
-        if ((osFamily.includes('redhat') || osFamily.includes('red hat')) && lname.includes('redhat')) return true
-        return false
-      })
-
       item = {
         ...item,
         os: selectedOS,
@@ -983,6 +1026,7 @@ const CloudPricingCalculator = () => {
     if (item.plan?.custom) specs.push(`CPU: ${item.plan.cpu} vCPU`, `RAM: ${item.plan.memory} GB`)
     if (item.disk) specs.push(`Disk: ${item.disk.name}`)
     if (item.location) specs.push(`Location: ${item.location.name}`)
+    if (item.addons?.length > 0) specs.push(`Add-ons: ${item.addons.map(a => a.name).join(', ')}`)
 
     const billingCyclePrice = getPriceForCycle(item.price.monthly, billing)
     const globalCartId = editingItem?.globalCartId || `cloud-${selectedService?.slug || 'service'}-${item.id}`
@@ -1016,7 +1060,16 @@ const CloudPricingCalculator = () => {
   }
 
   const updateCartQuantity = (id, qty) => {
-    setCart(cart.map(item => item.id === id ? { ...item, quantity: Math.max(1, Math.min(99, qty)) } : item))
+    const clampedQty = Math.max(1, Math.min(99, qty))
+    setCart(cart.map(item => item.id === id ? { ...item, quantity: clampedQty } : item))
+    // Sync to global cart
+    const item = cart.find(i => i.id === id)
+    if (item?.globalCartId) {
+      const globalItem = globalCartItems.find(i => i.item_id === item.globalCartId)
+      if (globalItem) {
+        updateGlobalItem(globalItem.id, { quantity: clampedQty })
+      }
+    }
   }
 
   const updateCartNotes = (id, notes) => {
@@ -1637,10 +1690,15 @@ const CloudPricingCalculator = () => {
                           type="number"
                           placeholder="CPU"
                           value={customCpu}
-                          onChange={(e) => setCustomCpu(e.target.value)}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value)
+                            if (e.target.value === '') setCustomCpu('')
+                            else if (!isNaN(v)) setCustomCpu(Math.max(1, Math.min(128, v)))
+                          }}
                           onClick={(e) => { e.stopPropagation(); setUseCustomPlan(true); setSelectedPlan(null); }}
                           className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm"
                           min="1"
+                          max="128"
                         />
                         <span className="text-gray-500 text-sm">vCPU</span>
                       </div>
@@ -1649,10 +1707,15 @@ const CloudPricingCalculator = () => {
                           type="number"
                           placeholder="Memory"
                           value={customMemory}
-                          onChange={(e) => setCustomMemory(e.target.value)}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value)
+                            if (e.target.value === '') setCustomMemory('')
+                            else if (!isNaN(v)) setCustomMemory(Math.max(1, Math.min(2048, v)))
+                          }}
                           onClick={(e) => { e.stopPropagation(); setUseCustomPlan(true); setSelectedPlan(null); }}
                           className="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm"
                           min="1"
+                          max="2048"
                         />
                         <span className="text-gray-500 text-sm">GB</span>
                       </div>
@@ -1847,22 +1910,27 @@ const CloudPricingCalculator = () => {
                               type="number"
                               placeholder="0"
                               value={customDiskSize}
-                              onChange={(e) => setCustomDiskSize(e.target.value)}
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value)
+                                if (e.target.value === '') setCustomDiskSize('')
+                                else if (!isNaN(v)) setCustomDiskSize(Math.max(10, Math.min(10000, v)))
+                              }}
                               onClick={(e) => { e.stopPropagation(); setUseCustomDisk(true); setSelectedDisk(null); }}
                               className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm"
-                              min="1"
+                              min="10"
+                              max="10000"
                             />
                             <span className="text-gray-500 text-sm">GB</span>
                           </div>
                           <div className="text-red-500 font-medium">
                             {useCustomDisk && customDiskSize
-                              ? formatPrice(parseFloat(customDiskSize) * 8, currency)
+                              ? formatPrice(parseFloat(customDiskSize) * unitRates.storage, currency)
                               : `${CURRENCIES[currency]}0.00`}
                             <span className="text-gray-400 text-xs"> /Month</span>
                           </div>
                           <div className="text-gray-600">
                             {useCustomDisk && customDiskSize
-                              ? formatPrice((parseFloat(customDiskSize) * 8) / 730, currency)
+                              ? formatPrice((parseFloat(customDiskSize) * unitRates.storage) / 730, currency)
                               : `${CURRENCIES[currency]}0.00`}
                             <span className="text-gray-400 text-xs"> /Hour</span>
                           </div>
@@ -2800,6 +2868,7 @@ const CloudPricingCalculator = () => {
         onUpdateNotes={updateCartNotes}
         onEditItem={editCartItem}
         onClearAll={clearAllCart}
+        gstRate={getGstPercent()}
       />
     </div>
   )

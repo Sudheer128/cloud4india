@@ -14,7 +14,10 @@ import {
   ChartBarIcon,
   CloudArrowDownIcon,
   Cog6ToothIcon,
-  EyeIcon
+  EyeIcon,
+  Bars3BottomLeftIcon,
+  PhotoIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -136,6 +139,13 @@ const AdminSidebar = () => {
       matchPaths: ['/rohit/cloud-pricing-sync']
     },
     {
+      id: 'cloud-service-order',
+      label: 'Service Order',
+      icon: Bars3BottomLeftIcon,
+      path: '/rohit/cloud-service-order',
+      matchPaths: ['/rohit/cloud-service-order']
+    },
+    {
       id: 'api-config',
       label: 'API Configuration',
       icon: Cog6ToothIcon,
@@ -148,6 +158,27 @@ const AdminSidebar = () => {
       icon: EyeIcon,
       path: '/rohit/visibility-control',
       matchPaths: ['/rohit/visibility-control']
+    },
+    {
+      id: 'media-gallery',
+      label: 'Media Gallery',
+      icon: PhotoIcon,
+      path: '/rohit/media-gallery',
+      matchPaths: ['/rohit/media-gallery']
+    },
+    {
+      id: 'price-estimator-config',
+      label: 'Pricing Page Settings',
+      icon: CalculatorIcon,
+      path: '/rohit/price-estimator-config',
+      matchPaths: ['/rohit/price-estimator-config']
+    },
+    {
+      id: 'pdf-estimate-config',
+      label: 'PDF Export Settings',
+      icon: DocumentTextIcon,
+      path: '/rohit/pdf-estimate-config',
+      matchPaths: ['/rohit/pdf-estimate-config']
     }
   ].filter(item => {
     // Filter out marketplace items if they should be hidden

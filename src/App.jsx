@@ -45,6 +45,9 @@ import PriceEstimatorAdmin from './pages/PriceEstimatorAdmin'
 import CloudPricingSyncAdmin from './pages/CloudPricingSyncAdmin'
 import ApiConfigAdmin from './pages/ApiConfigAdmin'
 import VisibilityControlAdmin from './pages/VisibilityControlAdmin'
+import MediaGalleryAdmin from './pages/MediaGalleryAdmin'
+import CloudServiceOrderAdmin from './pages/CloudServiceOrderAdmin'
+import PdfEstimateConfigAdmin from './pages/PdfEstimateConfigAdmin'
 
 function AppContent() {
   const location = useLocation();
@@ -100,6 +103,9 @@ function AppContent() {
             <Route path="cloud-pricing-sync" element={<CloudPricingSyncAdmin />} />
             <Route path="api-config" element={<ApiConfigAdmin />} />
             <Route path="visibility-control" element={<VisibilityControlAdmin />} />
+            <Route path="media-gallery" element={<MediaGalleryAdmin />} />
+            <Route path="cloud-service-order" element={<CloudServiceOrderAdmin />} />
+            <Route path="pdf-estimate-config" element={<PdfEstimateConfigAdmin />} />
           </Route>
           <Route path="/marketplace/:appName" element={<UniversalMarketplacePage />} />
           <Route path="/products/:productId" element={<UniversalProductPage />} />
